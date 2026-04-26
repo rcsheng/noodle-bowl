@@ -95,7 +95,7 @@ export default function SpreadScreen() {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this one? ${fakeUrl}` });
+    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
   };
 
   if (!question) return null;
@@ -163,7 +163,7 @@ export default function SpreadScreen() {
                 onPress={() => setShowFriend(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.secondaryBtnText}>Phone a Friend</Text>
+                <Text style={styles.secondaryBtnText}>Share with a Friend</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -254,7 +254,7 @@ export default function SpreadScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalInnerBorder} />
-            <Text style={styles.modalTitle}>Phone a Friend</Text>
+            <Text style={styles.modalTitle}>Share with a Friend</Text>
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
             <View style={styles.urlBox}>

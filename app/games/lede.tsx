@@ -66,6 +66,8 @@ export default function LedeScreen() {
     setPhase('reveal');
   };
 
+  const scrollRef = useRef<ScrollView>(null);
+
   const handlePlayAgain = () => {
     const { item, newSeen } = pickFromBank(LEDE_BANK, state.seen.lede);
     setSeen('lede', newSeen);
@@ -74,6 +76,7 @@ export default function LedeScreen() {
     setSelected(null);
     setPhase('play');
     setRevealData(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
 
   const handleCopy = async () => {
@@ -83,7 +86,7 @@ export default function LedeScreen() {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this one? ${fakeUrl}` });
+    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
   };
 
   if (!question) return null;
@@ -120,7 +123,7 @@ export default function LedeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Masthead />
 
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -207,7 +210,7 @@ export default function LedeScreen() {
               onPress={() => setShowFriend(true)}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryBtnText}>Phone a Friend</Text>
+              <Text style={styles.secondaryBtnText}>Share with a Friend</Text>
             </TouchableOpacity>
           </>
         )}
@@ -267,7 +270,7 @@ export default function LedeScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalInnerBorder} />
-            <Text style={styles.modalTitle}>Phone a Friend</Text>
+            <Text style={styles.modalTitle}>Share with a Friend</Text>
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
             <View style={styles.urlBox}>

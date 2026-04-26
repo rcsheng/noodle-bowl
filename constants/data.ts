@@ -76,8 +76,8 @@ export const WACKY_BANK: WackyItem[] = [
   {
     headline: "Local Man Convinced He Could Take A Bear In A Fight If He Really Had To",
     isReal: false,
-    source: 'Satire — written in the style of The Onion',
-    explanation: "Satire. While The Onion has run plenty of articles like this, this specific headline is fabricated for the game. The 'man vs. bear' debate is a real meme but not a verified news event.",
+    source: 'Satire — fabricated headline',
+    explanation: "Satire. This headline is fabricated for the game. The 'man vs. bear' debate is a real meme but not a verified news event.",
   },
   {
     headline: 'Italian Town Sells Abandoned Houses For One Euro To Anyone Willing To Renovate',
@@ -88,8 +88,8 @@ export const WACKY_BANK: WackyItem[] = [
   {
     headline: "Nation's Dads Demand Right To Tell Same Story Twice At Family Dinner",
     isReal: false,
-    source: 'Satire — Onion-style construction',
-    explanation: 'Satire. Classic Onion-format headline (oversized civic concern + small mundane behavior). No such story exists, but it sounds plausible because of the format.',
+    source: 'Satire — fabricated headline',
+    explanation: 'Satire. Classic satirical construction (oversized civic concern + small mundane behavior). No such story exists, but it sounds plausible because of the format.',
   },
   {
     headline: "Tuvalu Plans To Become World's First Country To Exist In The Metaverse",
@@ -112,8 +112,8 @@ export const WACKY_BANK: WackyItem[] = [
   {
     headline: 'New Study Finds That If You Just Believe In Yourself, You Can Apparently Do A Few Things',
     isReal: false,
-    source: 'Satire — written in the style of The Onion',
-    explanation: "Satire. Classic Onion-style deflation of a self-help cliché. No such study exists, but the phrasing parodies real headlines about positivity research.",
+    source: 'Satire — fabricated headline',
+    explanation: "Satire. A classic satirical deflation of a self-help cliché. No such study exists, but the phrasing parodies real headlines about positivity research.",
   },
   {
     headline: 'UK Man Caught Smuggling 70 Kilograms Of Garlic Across Border',
@@ -142,8 +142,8 @@ export const WACKY_BANK: WackyItem[] = [
   {
     headline: "Local Cat Looks Out Window With Genuine Look Of 'I Used To Be Someone'",
     isReal: false,
-    source: 'Satire — written in the style of The Onion',
-    explanation: 'Satire. Vintage Onion construction (anthropomorphizing pets with melodrama). No such story; this format has been used many times in real Onion articles, but this specific headline is fabricated.',
+    source: 'Satire — fabricated headline',
+    explanation: 'Satire. A classic satirical construction (anthropomorphizing pets with melodrama). No such story exists; this specific headline is fabricated.',
   },
   {
     headline: 'Japan Opens World\'s First Hotel Staffed Almost Entirely By Robots',
@@ -154,8 +154,8 @@ export const WACKY_BANK: WackyItem[] = [
   {
     headline: "New Study: Most Americans Could Not Pick Their Best Friend Out Of A Police Lineup",
     isReal: false,
-    source: 'Satire — Onion-style fake-study format',
-    explanation: 'Satire. The Onion frequently fabricates studies for absurdist effect. No such study exists, but the format mimics a real Onion piece almost exactly.',
+    source: 'Satire — fabricated headline',
+    explanation: 'Satire. Satirical fake-study format used for absurdist effect. No such study exists.',
   },
 ];
 

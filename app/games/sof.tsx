@@ -101,7 +101,7 @@ export default function SofScreen() {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this one? ${fakeUrl}` });
+    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
   };
 
   const allVoted = votes.every((v) => v !== null);
@@ -199,7 +199,7 @@ export default function SofScreen() {
               onPress={() => setShowFriend(true)}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryBtnText}>Phone a Friend</Text>
+              <Text style={styles.secondaryBtnText}>Share with a Friend</Text>
             </TouchableOpacity>
           </>
         )}
@@ -259,7 +259,7 @@ export default function SofScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalInnerBorder} />
-            <Text style={styles.modalTitle}>Phone a Friend</Text>
+            <Text style={styles.modalTitle}>Share with a Friend</Text>
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
             <View style={styles.urlBox}>

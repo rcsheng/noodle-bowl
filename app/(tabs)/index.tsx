@@ -29,7 +29,7 @@ export default function HubScreen() {
         <View style={styles.introCard}>
           <View style={styles.cardInnerBorder} />
           <Text style={styles.introText}>
-            Four games. Real news. Curiosity required.
+            Chew on the news.
           </Text>
         </View>
 
@@ -142,6 +142,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: C.ink,
     lineHeight: 26,
+    textAlign: 'center',
   },
   statsCard: {
     borderWidth: 1,
