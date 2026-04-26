@@ -1,0 +1,3639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="color-scheme" content="light only" />
+<meta name="supported-color-schemes" content="light" />
+<meta name="theme-color" content="#e8eef3" />
+<title>Noodle Bowl — A Daily Mix Of Brain Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400;1,9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light only;
+    --ink: #1a2030;
+    --paper: #e8eef3;
+    --paper-dark: #d8e1ea;
+    --paper-darker: #c4d0dc;
+    --rule: #2a3548;
+    --accent: #b84a35;
+    --accent-warm: #d97a3c;
+    --gold: #b8902c;
+    --green: #4a7a3e;
+    --green-light: #7ba368;
+    --blue: #3a5a7a;
+    --muted: #5a6878;
+    --on-dark: #e8eef3;
+    --on-dark-dim: #b8c4d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #e8eef3 !important;
+    background-color: #e8eef3 !important;
+    color: #1a2030 !important;
+    font-family: 'Fraunces', Georgia, serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    color-scheme: light only;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(0,0,0,0.018) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(0,0,0,0.018) 0%, transparent 40%);
+    padding: 24px 16px 80px;
+  }
+  .app { max-width: 720px; margin: 0 auto; }
+
+  .masthead {
+    border-top: 4px double var(--rule);
+    border-bottom: 4px double var(--rule);
+    padding: 18px 0 14px;
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .masthead .date-strip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .masthead h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(38px, 7vw, 56px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    font-style: italic;
+  }
+  .masthead h1 .amp { color: var(--accent); font-weight: 400; }
+  .masthead .tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .nav-back {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0 0 14px;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
+  }
+  .nav-back:hover { color: var(--accent); }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(42, 36, 29, 0.15);
+    pointer-events: none;
+  }
+
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+    opacity: 0.3;
+  }
+
+  .question {
+    font-size: clamp(20px, 3.5vw, 26px);
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  .question .blank {
+    display: inline-block;
+    background: var(--ink);
+    padding: 0 32px;
+    margin: 0 4px;
+    border-radius: 2px;
+  }
+  .source {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 14px;
+    letter-spacing: 0.05em;
+  }
+
+  .citation {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    border-left: 2px solid var(--accent);
+    padding: 8px 12px;
+    margin-top: 12px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .citation strong {
+    font-style: normal;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 9px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  .citation a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+    word-break: break-word;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .citation a:hover { color: var(--accent-warm); }
+
+  .hub-intro { text-align: center; padding: 8px 0 24px; }
+  .hub-intro p {
+    font-size: 18px;
+    line-height: 1.5;
+    max-width: 520px;
+    margin: 0 auto;
+    font-style: italic;
+  }
+
+  .game-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 0;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 3px 3px 0 var(--rule);
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+    overflow: hidden;
+  }
+  .game-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 6px 6px 0 var(--accent);
+  }
+  .game-card .game-header {
+    background: var(--ink);
+    color: var(--on-dark);
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .game-card .game-header .num { color: var(--accent-warm); }
+  .game-card .game-header .play-tag {
+    background: var(--accent);
+    color: var(--on-dark);
+    padding: 3px 10px;
+    border-radius: 1px;
+  }
+  .game-card .game-body { padding: 22px 20px 20px; }
+  .game-card h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .game-card .game-tagline {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+  .game-card .game-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    gap: 16px;
+    border-top: 1px solid var(--paper-darker);
+    padding-top: 14px;
+    flex-wrap: wrap;
+  }
+  .game-card .game-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .game-card .game-meta .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .game-streak {
+    margin-left: auto;
+    font-family: 'Fraunces', serif !important;
+    font-style: italic;
+    font-size: 14px !important;
+    font-weight: 700;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    color: var(--accent) !important;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 16px 18px;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    color: var(--ink);
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+  }
+  .choice:hover:not(:disabled) {
+    background: var(--paper-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .choice .marker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    width: 22px;
+    flex-shrink: 0;
+  }
+  .choice.selected {
+    background: var(--ink);
+    color: var(--on-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 var(--accent);
+  }
+  .choice.selected .marker { color: var(--accent-warm); }
+  .choice.correct {
+    background: var(--green);
+    color: var(--on-dark);
+    border-color: var(--green);
+  }
+  .choice.correct .marker { color: #fff; }
+  .choice.wrong {
+    background: var(--accent);
+    color: var(--on-dark);
+    border-color: var(--accent);
+    opacity: 0.85;
+  }
+  .choice.wrong .marker { color: #fff; }
+  .choice:disabled { cursor: default; }
+  .choice .reveal-tag {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.25);
+    padding: 3px 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    color: var(--on-dark);
+  }
+
+  .btn {
+    background: var(--ink);
+    color: var(--on-dark);
+    border: none;
+    padding: 16px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 16px;
+    transition: all 0.15s ease;
+  }
+  .btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--on-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--rule);
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.secondary {
+    background: var(--paper);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+  }
+  .btn.secondary:hover:not(:disabled) {
+    background: var(--paper-dark);
+    color: var(--ink);
+  }
+
+  .result-card { text-align: center; padding: 36px 24px; }
+  .result-verdict {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: clamp(36px, 7vw, 52px);
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .result-verdict.win { color: var(--green); }
+  .result-verdict.loss { color: var(--accent); }
+  .result-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .points-display {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+    margin: 12px 0;
+  }
+  .points-display.positive { color: var(--green); }
+  .points-display.negative { color: var(--accent); }
+
+  .truth-box {
+    background: var(--ink);
+    color: var(--on-dark);
+    padding: 20px;
+    margin-top: 24px;
+    text-align: left;
+  }
+  .truth-box * { color: var(--on-dark); }
+  .truth-box .label { color: var(--accent-warm); }
+  .truth-box .label::after { background: var(--accent-warm); opacity: 0.4; }
+  .truth-box p {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-top: 8px;
+    color: var(--on-dark);
+  }
+  .truth-box .citation {
+    background: rgba(245, 241, 232, 0.08);
+    border-left-color: var(--accent-warm);
+    margin-top: 14px;
+    color: var(--on-dark-dim);
+  }
+  .truth-box .citation strong { color: var(--on-dark); }
+  .truth-box .citation a { color: var(--accent-warm); border-bottom-color: var(--accent-warm); }
+  .truth-box strong { color: var(--on-dark); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--rule);
+  }
+  .stat {
+    padding: 14px 10px;
+    text-align: center;
+    border-right: 1px solid var(--rule);
+  }
+  .stat:last-child { border-right: none; }
+  .stat .num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat .lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .stat-flame { color: var(--accent); }
+
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .cat-btn {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 18px 14px;
+    cursor: pointer;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: left;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cat-btn:hover {
+    background: var(--ink);
+    color: var(--on-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--accent);
+  }
+  .cat-btn .symbol {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+  }
+  .cat-btn:hover .symbol { color: var(--accent-warm); }
+  .cat-btn .desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .cat-btn:hover .desc { color: var(--on-dark-dim); }
+
+  /* THE QUIP */
+  .quip-prompt {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: clamp(22px, 4vw, 28px);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .quip-input {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 16px;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    color: var(--ink);
+    margin-top: 16px;
+    resize: none;
+    min-height: 80px;
+    font-style: italic;
+  }
+  .quip-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200, 65, 42, 0.2);
+  }
+  .quip-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+    text-align: right;
+  }
+  .panel-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .panelist {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  .panelist .avatar {
+    width: 64px;
+    height: 64px;
+    background: var(--paper-darker);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 28px;
+  }
+  .panelist .body { min-width: 0; }
+  .panelist .name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+  .panelist .role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .panelist .reaction {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .panelist .verdict {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+  .panelist .verdict.like { background: var(--green); color: var(--on-dark); }
+  .panelist .verdict.meh { background: var(--paper-darker); color: var(--muted); }
+  .panelist .verdict.hate { background: var(--accent); color: var(--on-dark); }
+  .panelist.judging { opacity: 0.5; }
+
+  .your-quip {
+    background: var(--ink);
+    color: var(--on-dark);
+    padding: 22px 18px 18px;
+    margin-top: 20px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 18px;
+    line-height: 1.4;
+    position: relative;
+  }
+  .your-quip::before {
+    content: 'YOUR QUIP';
+    position: absolute;
+    top: -8px;
+    left: 14px;
+    background: var(--ink);
+    color: var(--accent-warm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    padding: 0 8px;
+  }
+
+  /* PHONE A FRIEND — Share UI */
+  .friend-help-btn {
+    background: var(--paper);
+    border: 1px dashed var(--rule);
+    padding: 12px 16px;
+    margin-top: 12px;
+    width: 100%;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .friend-help-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    border-style: solid;
+  }
+  .friend-help-btn .phone-icon {
+    font-size: 16px;
+  }
+  .friend-help-btn.has-help {
+    background: var(--paper-dark);
+    border: 1px solid var(--green);
+    border-style: solid;
+    color: var(--green);
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 32, 48, 0.7);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 28px 24px;
+    box-shadow: 6px 6px 0 var(--rule);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(42, 53, 72, 0.15);
+    pointer-events: none;
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--accent); }
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 28px;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .modal-subtitle {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+
+  .share-link-box {
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    padding: 14px 16px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+    word-break: break-all;
+    line-height: 1.4;
+  }
+  .share-link-box .link-icon {
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .share-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .share-option-btn {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 14px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--ink);
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .share-option-btn .opt-icon {
+    font-size: 24px;
+    margin-bottom: 2px;
+  }
+  .share-option-btn:hover {
+    background: var(--ink);
+    color: var(--on-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 var(--accent);
+  }
+  .share-option-btn.copied {
+    background: var(--green);
+    color: var(--on-dark);
+    border-color: var(--green);
+  }
+
+  .link-consent-notice {
+    background: var(--paper-dark);
+    border: 1px solid var(--accent);
+    border-left-width: 3px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .link-consent-notice .consent-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+  .link-consent-notice strong {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .friend-preview-card {
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    padding: 16px 18px;
+    margin: 18px 0 6px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .friend-preview-card .preview-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-style: normal;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .friend-response-card {
+    background: var(--ink);
+    color: var(--on-dark);
+    padding: 18px 18px 16px;
+    margin-top: 14px;
+    position: relative;
+  }
+  .friend-response-card::before {
+    content: 'A HINT CAME BACK';
+    position: absolute;
+    top: -8px;
+    left: 14px;
+    background: var(--ink);
+    color: var(--accent-warm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    padding: 0 8px;
+  }
+  .friend-response-card .friend-name {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--accent-warm);
+    margin-bottom: 6px;
+  }
+  .friend-response-card .friend-msg {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--on-dark);
+  }
+
+  .help-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 14px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .help-status .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* WACKY NEWS — Real or Satire */
+  .wacky-headline-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    position: relative;
+  }
+  .wacky-headline-card::before {
+    content: 'BREAKING';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--on-dark);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    padding: 4px 14px;
+  }
+  .wacky-headline-text {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: clamp(22px, 4.5vw, 32px);
+    line-height: 1.2;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .wacky-byline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+  .wacky-byline .dash {
+    color: var(--accent);
+    margin: 0 6px;
+  }
+
+  .wacky-vote-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .wacky-vote-btn {
+    background: var(--paper);
+    border: 2px solid var(--rule);
+    padding: 24px 16px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    line-height: 1.1;
+  }
+  .wacky-vote-btn:hover:not(:disabled) {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--rule);
+  }
+  .wacky-vote-btn .vote-emoji {
+    font-size: 28px;
+    display: block;
+    margin-bottom: 6px;
+    font-style: normal;
+  }
+  .wacky-vote-btn .vote-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+    font-style: normal;
+    font-weight: 400;
+  }
+  .wacky-vote-btn.real:hover:not(:disabled) {
+    border-color: var(--green);
+    background: rgba(74, 122, 62, 0.08);
+  }
+  .wacky-vote-btn.satire:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(184, 74, 53, 0.08);
+  }
+  .wacky-vote-btn.real.selected {
+    background: var(--green);
+    color: var(--on-dark);
+    border-color: var(--green);
+  }
+  .wacky-vote-btn.real.selected .vote-sub { color: var(--on-dark-dim); }
+  .wacky-vote-btn.satire.selected {
+    background: var(--accent);
+    color: var(--on-dark);
+    border-color: var(--accent);
+  }
+  .wacky-vote-btn.satire.selected .vote-sub { color: var(--on-dark-dim); }
+  .wacky-vote-btn.correct {
+    background: var(--green);
+    color: var(--on-dark);
+    border-color: var(--green);
+  }
+  .wacky-vote-btn.correct .vote-sub { color: var(--on-dark-dim); }
+  .wacky-vote-btn.wrong {
+    background: var(--accent);
+    color: var(--on-dark);
+    border-color: var(--accent);
+    opacity: 0.85;
+  }
+  .wacky-vote-btn.wrong .vote-sub { color: var(--on-dark-dim); }
+  .wacky-vote-btn:disabled { cursor: default; }
+
+  .wacky-stamp {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 3px solid;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transform: rotate(-3deg);
+    margin-top: 12px;
+  }
+  .wacky-stamp.real {
+    color: var(--green);
+    border-color: var(--green);
+  }
+  .wacky-stamp.satire {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* THE SPREAD */
+  .spread-question {
+    font-size: clamp(20px, 3.5vw, 24px);
+    line-height: 1.4;
+  }
+  .number-input-wrap {
+    margin-top: 20px;
+    text-align: center;
+  }
+  .number-input {
+    width: 100%;
+    max-width: 320px;
+    background: var(--paper);
+    border: 2px solid var(--rule);
+    padding: 18px 16px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 36px;
+    color: var(--accent);
+    text-align: center;
+    -moz-appearance: textfield;
+  }
+  .number-input::-webkit-outer-spin-button,
+  .number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .number-input:focus { outline: none; border-color: var(--accent); }
+  .unit-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .spread-comparison {
+    border: 1px solid var(--rule);
+    margin-top: 8px;
+  }
+  .spread-comparison-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--paper);
+  }
+  .spread-comparison-row.truth {
+    background: var(--green);
+    color: var(--on-dark);
+  }
+  .spread-comparison-row.truth .spread-comparison-label,
+  .spread-comparison-row.truth .spread-comparison-unit {
+    color: var(--on-dark-dim);
+  }
+  .spread-comparison-divider {
+    height: 1px;
+    background: var(--rule);
+    opacity: 0.3;
+  }
+  .spread-comparison-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .spread-comparison-value {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--ink);
+    flex: 1;
+  }
+  .spread-comparison-row.truth .spread-comparison-value { color: var(--on-dark); }
+  .spread-comparison-unit {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .spread-deviation-card {
+    margin-top: 14px;
+    padding: 22px 18px;
+    text-align: center;
+    border: 1px solid var(--rule);
+  }
+  .spread-deviation-card.success {
+    background: rgba(74, 122, 62, 0.08);
+    border-color: var(--green);
+  }
+  .spread-deviation-card.fail {
+    background: rgba(184, 74, 53, 0.08);
+    border-color: var(--accent);
+  }
+  .spread-deviation-pct {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .spread-deviation-card.success .spread-deviation-pct { color: var(--green); }
+  .spread-deviation-card.fail .spread-deviation-pct { color: var(--accent); }
+  .spread-deviation-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* OLD SPREAD BOARD (kept for reference, no longer used) */
+  .spread-board {
+    border: 1px solid var(--rule);
+    margin-top: 8px;
+  }
+  .spread-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 90px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--paper-darker);
+    background: var(--paper);
+  }
+  .spread-row:last-child { border-bottom: none; }
+  .spread-row.you {
+    background: var(--paper-dark);
+    border-left: 3px solid var(--accent);
+  }
+  .spread-row.correct {
+    background: var(--green);
+    color: var(--on-dark);
+  }
+  .spread-row.correct .who { color: var(--on-dark-dim); }
+  .spread-row .who {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .spread-row .guess {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .spread-row .marker-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: right;
+    color: var(--muted);
+  }
+  .spread-row.correct .marker-pill { color: var(--on-dark); }
+
+  /* ============ THE LEDE — new headline guess version ============ */
+  .lede-headline-card {
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    padding: 22px 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--accent);
+  }
+  .lede-headline-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .lede-headline-text {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: clamp(22px, 4.2vw, 30px);
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .lede-headline-text .partial {
+    color: var(--ink);
+  }
+  .lede-headline-text .blank-fill {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--ink);
+    padding: 0 24px;
+    margin: 0 4px;
+    border-radius: 2px;
+    min-width: 80px;
+    height: 0.9em;
+    vertical-align: middle;
+  }
+  .lede-source-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-top: 12px;
+    font-style: normal;
+    text-transform: uppercase;
+  }
+
+  .lede-instruction {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  .lede-panelist-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+    color: inherit;
+    display: block;
+  }
+  .lede-panelist-card:hover:not(:disabled) {
+    background: var(--paper-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .lede-panelist-card.selected {
+    background: var(--ink);
+    color: var(--on-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0 var(--accent);
+  }
+  .lede-panelist-card.correct {
+    background: var(--green);
+    color: var(--on-dark);
+    border-color: var(--green);
+  }
+  .lede-panelist-card.wrong {
+    background: var(--accent);
+    color: var(--on-dark);
+    border-color: var(--accent);
+    opacity: 0.85;
+  }
+  .lede-panelist-card:disabled { cursor: default; }
+
+  .lede-completion-headline {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: clamp(20px, 3.8vw, 26px);
+    line-height: 1.25;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  .lede-panelist-card.selected .lede-completion-headline,
+  .lede-panelist-card.correct .lede-completion-headline,
+  .lede-panelist-card.wrong .lede-completion-headline {
+    color: var(--accent-warm);
+  }
+  .lede-panelist-divider {
+    height: 1px;
+    background: var(--rule);
+    opacity: 0.2;
+    margin: 0 0 16px;
+  }
+  .lede-panelist-card.selected .lede-panelist-divider,
+  .lede-panelist-card.correct .lede-panelist-divider,
+  .lede-panelist-card.wrong .lede-panelist-divider {
+    background: rgba(245, 241, 232, 0.25);
+    opacity: 1;
+  }
+
+  .lede-panelist-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .lede-panelist-avatar {
+    width: 44px;
+    height: 44px;
+    background: var(--paper-darker);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+  .lede-panelist-card.selected .lede-panelist-avatar,
+  .lede-panelist-card.correct .lede-panelist-avatar,
+  .lede-panelist-card.wrong .lede-panelist-avatar {
+    background: rgba(245, 241, 232, 0.15);
+    border-color: rgba(245, 241, 232, 0.3);
+    color: var(--on-dark);
+  }
+  .lede-panelist-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .lede-panelist-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 16px;
+  }
+  .lede-panelist-role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .lede-panelist-card.selected .lede-panelist-role,
+  .lede-panelist-card.correct .lede-panelist-role,
+  .lede-panelist-card.wrong .lede-panelist-role {
+    color: var(--on-dark-dim);
+  }
+
+  .lede-panelist-pitch {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .lede-panelist-pitch .quote-mark {
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .lede-panelist-card.selected .lede-panelist-pitch .quote-mark,
+  .lede-panelist-card.correct .lede-panelist-pitch .quote-mark,
+  .lede-panelist-card.wrong .lede-panelist-pitch .quote-mark {
+    color: var(--accent-warm);
+  }
+
+  .lede-reveal-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.25);
+    padding: 4px 10px;
+    border-radius: 2px;
+    color: var(--on-dark);
+  }
+
+  /* THE PULSE */
+  .wave-prompt {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(18px, 3vw, 22px);
+    line-height: 1.4;
+    margin-bottom: 16px;
+  }
+  .wave-spectrum {
+    margin: 32px 0 20px;
+    padding: 0 4px;
+  }
+  .wave-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 16px;
+  }
+  .wave-label-end {
+    flex: 1;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .wave-label-end.left { text-align: left; }
+  .wave-label-end.right { text-align: right; color: var(--accent); }
+  .wave-label-end .arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .wave-label-end.right .arrow { color: var(--accent); }
+
+  .wave-track {
+    position: relative;
+    height: 70px;
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+  }
+  .wave-track::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: repeating-linear-gradient(
+      to right,
+      var(--rule) 0px, var(--rule) 4px,
+      transparent 4px, transparent 8px
+    );
+    opacity: 0.4;
+  }
+  .wave-ticks {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0;
+    pointer-events: none;
+  }
+  .wave-tick {
+    width: 1px;
+    background: var(--rule);
+    opacity: 0.2;
+  }
+  .wave-tick.major { opacity: 0.5; }
+  .wave-marker {
+    position: absolute;
+    top: 50%;
+    width: 4px;
+    height: 60%;
+    background: var(--accent);
+    transform: translate(-50%, -50%);
+    transition: left 0.1s ease;
+    z-index: 2;
+  }
+  .wave-marker::before {
+    content: '';
+    position: absolute;
+    top: -8px; left: 50%;
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid var(--accent);
+    transform: translateX(-50%);
+  }
+  .wave-marker::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; left: 50%;
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 10px solid var(--accent);
+    transform: translateX(-50%);
+  }
+  .wave-truth {
+    position: absolute;
+    top: 50%;
+    width: 4px;
+    height: 60%;
+    background: var(--green);
+    transform: translate(-50%, -50%);
+    z-index: 1;
+  }
+  .wave-truth::before, .wave-truth::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+  }
+  .wave-truth::before {
+    top: -8px;
+    border-top: 10px solid var(--green);
+    transform: translateX(-50%);
+  }
+  .wave-truth::after {
+    bottom: -8px;
+    border-bottom: 10px solid var(--green);
+    transform: translateX(-50%);
+  }
+  .wave-zone {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: rgba(74, 122, 62, 0.12);
+    border-left: 1px solid var(--green);
+    border-right: 1px solid var(--green);
+    z-index: 0;
+  }
+  .wave-input-range {
+    width: 100%;
+    margin-top: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--rule);
+    outline: none;
+  }
+  .wave-input-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    border: 2px solid var(--ink);
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .wave-input-range::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    border: 2px solid var(--ink);
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .wave-position {
+    text-align: center;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .wave-position .num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 6px;
+  }
+  .wave-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .wave-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wave-legend-swatch {
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+  }
+  .wave-legend-swatch.truth { background: var(--green); }
+
+  /* SCIENCE OR FICTION */
+  .sof-intro-card {
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    padding: 16px 18px;
+    margin-bottom: 16px;
+  }
+  .sof-claim {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 18px 18px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s ease;
+    position: relative;
+  }
+  .sof-claim .claim-num {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+  }
+  .sof-claim .claim-text {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    line-height: 1.45;
+    padding-right: 40px;
+  }
+  .sof-claim .claim-vote-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .sof-vote-btn {
+    flex: 1;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 10px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--ink);
+    transition: all 0.12s ease;
+  }
+  .sof-vote-btn:hover { background: var(--paper-dark); }
+  .sof-vote-btn.vote-science.selected {
+    background: var(--green);
+    color: var(--on-dark);
+    border-color: var(--green);
+  }
+  .sof-vote-btn.vote-fiction.selected {
+    background: var(--accent);
+    color: var(--on-dark);
+    border-color: var(--accent);
+  }
+  .sof-claim.locked .sof-vote-btn { cursor: default; }
+  .sof-claim.revealed-correct {
+    border-color: var(--green);
+    border-width: 2px;
+    background: rgba(74, 122, 62, 0.08);
+  }
+  .sof-claim.revealed-wrong {
+    border-color: var(--accent);
+    border-width: 2px;
+    background: rgba(200, 65, 42, 0.08);
+  }
+  .sof-claim .reveal-row {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sof-claim .reveal-tag {
+    padding: 4px 10px;
+    border-radius: 2px;
+    font-weight: 700;
+  }
+  .sof-claim .reveal-tag.science {
+    background: var(--green);
+    color: var(--on-dark);
+  }
+  .sof-claim .reveal-tag.fiction {
+    background: var(--accent);
+    color: var(--on-dark);
+  }
+  .sof-claim .reveal-result {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .sof-claim .reveal-result.right { color: var(--green); }
+  .sof-claim .reveal-result.wrong { color: var(--accent); }
+  .sof-claim .reveal-explanation {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: 10px;
+    color: var(--ink);
+  }
+  .sof-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 4px 0 14px;
+  }
+  .sof-progress-pip {
+    width: 32px;
+    height: 4px;
+    background: var(--paper-darker);
+    transition: background 0.2s ease;
+  }
+  .sof-progress-pip.voted { background: var(--accent); }
+
+  .share-grid {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    background: var(--ink);
+    color: var(--on-dark);
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+  .footer-note {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 28px;
+    opacity: 0.6;
+  }
+  .ornament {
+    text-align: center;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    color: var(--muted);
+    letter-spacing: 0.5em;
+    margin: 14px 0;
+  }
+  .info-box {
+    background: var(--paper-dark);
+    border-left: 3px solid var(--accent);
+    padding: 14px 16px;
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    font-style: italic;
+    color: var(--ink);
+  }
+  .info-box strong {
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+  }
+
+  @media (max-width: 480px) {
+    .cat-grid { grid-template-columns: 1fr; }
+    .card { padding: 22px 18px; }
+    .choice { font-size: 15px; padding: 14px 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+// ============ DATA ============
+// WACKY NEWS — Real or Satire?
+// Each headline is either a real, verifiable news story or a satirical headline
+// written in the style of The Onion, Reductress, The Beaverton, etc.
+const WACKY_BANK = [
+  {
+    headline: "Florida Man Breaks Into Closed Restaurant To Wash All The Dirty Dishes",
+    isReal: true,
+    source: "Tampa Bay Times, 2023",
+    explanation: "Real. A man broke into a closed Tampa restaurant and was found scrubbing dishes when police arrived. He claimed he just wanted to help. He was arrested for burglary anyway."
+  },
+  {
+    headline: "Local Man Convinced He Could Take A Bear In A Fight If He Really Had To",
+    isReal: false,
+    source: "Satire — written in the style of The Onion",
+    explanation: "Satire. While The Onion has run plenty of articles like this, this specific headline is fabricated for the game. The 'man vs. bear' debate is a real meme but not a verified news event."
+  },
+  {
+    headline: "Italian Town Sells Abandoned Houses For One Euro To Anyone Willing To Renovate",
+    isReal: true,
+    source: "BBC, 2019 (Sambuca, Sicily program)",
+    explanation: "Real. Multiple Italian towns including Sambuca, Mussomeli, and Bivona launched €1 home programs to combat depopulation. Buyers must commit to renovating within three years."
+  },
+  {
+    headline: "Nation's Dads Demand Right To Tell Same Story Twice At Family Dinner",
+    isReal: false,
+    source: "Satire — Onion-style construction",
+    explanation: "Satire. Classic Onion-format headline (oversized civic concern + small mundane behavior). No such story exists, but it sounds plausible because of the format."
+  },
+  {
+    headline: "Tuvalu Plans To Become World's First Country To Exist In The Metaverse",
+    isReal: true,
+    source: "Reuters, COP27 announcement, 2022",
+    explanation: "Real. The Pacific island nation Tuvalu announced at COP27 that it would create a digital twin of the country to preserve its statehood and culture as rising seas threaten the islands."
+  },
+  {
+    headline: "Man Who Asked 'Anyone Else Hot?' Now Considered Group Spokesperson",
+    isReal: false,
+    source: "Satire — Reductress-style",
+    explanation: "Satire. This is a fabricated workplace-comedy headline in the style of Reductress or McSweeney's. There's no such news event."
+  },
+  {
+    headline: "Oregon Man Legally Changes His Name To 'Captain Awesome'",
+    isReal: true,
+    source: "The Oregonian, 2008",
+    explanation: "Real. Scott Nall successfully petitioned an Oregon court to change his legal name to Captain Awesome, after convincing the judge it was not intended for fraud and was, well, awesome."
+  },
+  {
+    headline: "New Study Finds That If You Just Believe In Yourself, You Can Apparently Do A Few Things",
+    isReal: false,
+    source: "Satire — written in the style of The Onion",
+    explanation: "Satire. Classic Onion-style deflation of a self-help cliché. No such study exists, but the phrasing parodies real headlines about positivity research."
+  },
+  {
+    headline: "UK Man Caught Smuggling 70 Kilograms Of Garlic Across Border",
+    isReal: true,
+    source: "The Guardian, 2021 (UK Border Force report)",
+    explanation: "Real. A man was caught with 70 kg of garlic at a UK border crossing. Garlic carries high import duties in the UK and is a surprisingly common smuggling target."
+  },
+  {
+    headline: "Scientists Confirm Octopuses Just Out There Punching Fish For No Reason",
+    isReal: true,
+    source: "Ecology, peer-reviewed marine biology paper",
+    explanation: "Real. Researchers in the Red Sea documented octopuses literally punching their fish hunting partners, sometimes apparently out of spite. Published in Ecology, 2020."
+  },
+  {
+    headline: "Area Woman's Cardio Routine Just Walking Faster Through The Office",
+    isReal: false,
+    source: "Satire — Reductress-style",
+    explanation: "Satire. This is a fabricated lifestyle-parody headline in the style of Reductress. No such article was published."
+  },
+  {
+    headline: "Switzerland's Law Requires Every Home To Have Access To A Nuclear Fallout Shelter",
+    isReal: true,
+    source: "Swiss Federal Civil Protection Law, 1963 (still active)",
+    explanation: "Real. A 1963 Swiss law still requires that there be enough nuclear fallout shelter capacity for every resident. New buildings must include shelters or owners pay into a communal fund."
+  },
+  {
+    headline: "Local Cat Looks Out Window With Genuine Look Of 'I Used To Be Someone'",
+    isReal: false,
+    source: "Satire — written in the style of The Onion",
+    explanation: "Satire. Vintage Onion construction (anthropomorphizing pets with melodrama). No such story; this format has been used many times in real Onion articles, but this specific headline is fabricated."
+  },
+  {
+    headline: "Japan Opens World's First Hotel Staffed Almost Entirely By Robots",
+    isReal: true,
+    source: "BBC, 2015 (Henn-na Hotel, Nagasaki)",
+    explanation: "Real. The Henn-na Hotel opened with robot receptionists, robot porters, and a robotic dinosaur at the front desk. Many were later 'fired' and replaced with humans due to malfunctions."
+  },
+  {
+    headline: "New Study: Most Americans Could Not Pick Their Best Friend Out Of A Police Lineup",
+    isReal: false,
+    source: "Satire — Onion-style fake-study format",
+    explanation: "Satire. The Onion frequently fabricates studies for absurdist effect. No such study exists, but the format mimics a real Onion piece almost exactly."
+  }
+];
+
+const QUIP_PROMPTS = [
+  { setup: "Scientists just confirmed octopuses punch fish for fun. Their new motto is...", sourceHint: "real 2024 marine biology study" },
+  { setup: "A small Italian town is selling houses for one euro. The catch in their listing reads...", sourceHint: "real Italian municipal real estate program" },
+  { setup: "A man legally changed his name to 'Captain Awesome.' His new business card says...", sourceHint: "real 2008 Oregon court case" },
+  { setup: "Tuvalu is moving its entire country to the metaverse. The welcome sign at the digital border reads...", sourceHint: "real 2022 Tuvalu government announcement" },
+  { setup: "A man was caught smuggling 70 kilos of garlic across the UK border. His excuse to officials was...", sourceHint: "real 2021 UK Border Force case" },
+  { setup: "A Florida man broke into a restaurant just to do the dishes. The note he left in the kitchen said...", sourceHint: "real 2023 Tampa news story" }
+];
+
+const PANEL = [
+  { name: "Margot Vance", role: "The Cynic", initial: "M", taste: "dry, dark, deadpan",
+    likeReactions: ["Mmm. Surprisingly good. I'm choosing not to enjoy it.", "Tolerable. Almost human.", "I hate that I laughed. Points awarded under protest."],
+    mehReactions: ["I've heard worse. I've also heard better. Mostly better.", "It's a quip. It exists. Congratulations.", "Sure. Why not. Moving on."],
+    hateReactions: ["This is exactly the kind of optimism I've been warning people about.", "If joy were a war crime, this would be evidence.", "I'd rather read Yelp reviews of dentists."]
+  },
+  { name: "Sunny Park", role: "The Dad Joke Guy", initial: "S", taste: "wholesome, punny, groan-inducing",
+    likeReactions: ["Ha! I'm going to use that. Don't sue me.", "That's a keeper for the office potluck.", "My grandkids would laugh. Probably. They're polite."],
+    mehReactions: ["I almost smiled. Almost.", "Could use a pun. Always could use a pun.", "Pleasant. Like room-temperature water."],
+    hateReactions: ["This is too edgy. I worry about you.", "Where's the warmth? Where's the heart?", "I don't get it. And I get all of them."]
+  },
+  { name: "Felix Crane", role: "The Chaos Agent", initial: "F", taste: "absurd, weird, nonsensical",
+    likeReactions: ["YES. The dimensions are bending. Beautiful.", "I would die for this sentence.", "Finally. A reason to keep going."],
+    mehReactions: ["Hm. Reasonable. Disappointing.", "Conventional. Still — workmanlike.", "It made sense. That's the problem."],
+    hateReactions: ["Where is the gerbil? Why no gerbil?", "This is what they want you to write.", "Boring. Boring. Boring. BORING."]
+  }
+];
+
+const SPREAD_BANK = [
+  { question: "How many days did it take ChatGPT to reach 1 million users after launch?", answer: 5, unit: "days", others: [12, 30, 7, 60, 90], explanation: "5 days. Instagram took 75 days; Spotify took roughly 150." },
+  { question: "How many time zones does France have, including its overseas territories?", answer: 12, unit: "time zones", others: [3, 8, 6, 15, 9], explanation: "12 time zones — more than any other country in the world." },
+  { question: "How fast (in mph) does the Parker Solar Probe travel at its closest approach to the Sun?", answer: 430000, unit: "miles per hour", others: [92000, 1200000, 200000, 65000, 750000], explanation: "Approximately 430,000 mph — the fastest any human-made object has ever moved." },
+  { question: "How many kilograms of garlic was a man caught smuggling into the UK in 2021?", answer: 70, unit: "kilograms", others: [12, 200, 35, 500, 150], explanation: "70 kg. Garlic carries high import duties in the UK." },
+  { question: "How many residents are in Vatican City — the world's highest wine-consuming nation per capita?", answer: 800, unit: "residents", others: [200, 5000, 1500, 12000, 2200], explanation: "About 800 residents — most of them clergy." },
+  { question: "How much did the first item ever sold on eBay (a broken laser pointer) cost?", answer: 14.83, unit: "dollars", others: [1.50, 49.99, 0.25, 100, 7.25], explanation: "$14.83. The buyer claimed to be a collector of broken laser pointers." }
+];
+
+// ============ THE LEDE — new "guess the headline" version ============
+// Each puzzle: a partial headline with the punchline blacked out, plus 3 panelists
+// who each pitch a different completion. Player guesses which panelist has the real story.
+const LEDE_BANK = [
+  {
+    partialHeadline: "Scientists Confirm Octopuses Are",
+    sourceHint: "a 2024 marine biology study in Ecology",
+    panelists: [
+      {
+        name: "Iris Bellamy",
+        role: "The Naturalist",
+        completion: "Punching Fish During Joint Hunts",
+        pitch: "I read this in Ecology — they actually punch the fish hunting partners. Full slap. It's wild but documented.",
+        isCorrect: true
+      },
+      {
+        name: "Dex Holloway",
+        role: "The Skeptic",
+        completion: "Communicating With Dolphins",
+        pitch: "There was something about cross-species signaling — clicks, body posture, that sort of thing. Cetacean conversation.",
+        isCorrect: false
+      },
+      {
+        name: "Pip Calderone",
+        role: "The Optimist",
+        completion: "Capable Of Forming Lasting Friendships",
+        pitch: "I'm pretty sure they bond. Long memories, individual preferences, the whole emotional package.",
+        isCorrect: false
+      }
+    ],
+    explanation: "Iris had it right — researchers in the Red Sea documented octopuses literally punching their fish hunting partners during cooperative hunts, sometimes to assert control. Published in Ecology, 2020-2024."
+  },
+  {
+    partialHeadline: "Pacific Island Nation Tuvalu To Become",
+    sourceHint: "Tuvalu's 2022 COP27 announcement",
+    panelists: [
+      {
+        name: "Iris Bellamy",
+        role: "The Naturalist",
+        completion: "Fully Solar-Powered By 2030",
+        pitch: "Small island nations are racing to renewables. I'd bet on a major energy commitment.",
+        isCorrect: false
+      },
+      {
+        name: "Dex Holloway",
+        role: "The Skeptic",
+        completion: "The First Country In The Metaverse",
+        pitch: "I remember this — they announced at COP27 that they'd build a digital twin nation. Sounded like satire at first.",
+        isCorrect: true
+      },
+      {
+        name: "Pip Calderone",
+        role: "The Optimist",
+        completion: "A UN-Recognized Climate Refugee Haven",
+        pitch: "It would track. Rising seas, vulnerable population — the world has to step up somewhere.",
+        isCorrect: false
+      }
+    ],
+    explanation: "Dex was right. At COP27 in 2022, Tuvalu announced it would recreate itself in the metaverse to preserve its statehood and culture as rising seas threaten the islands — the first nation to attempt digital sovereignty."
+  },
+  {
+    partialHeadline: "Switzerland Legally Requires Every Home To",
+    sourceHint: "Swiss federal civil protection law of 1963",
+    panelists: [
+      {
+        name: "Iris Bellamy",
+        role: "The Naturalist",
+        completion: "Have A Working Composting System",
+        pitch: "Switzerland is environmentally fanatical. Composting at the household level seems on-brand.",
+        isCorrect: false
+      },
+      {
+        name: "Dex Holloway",
+        role: "The Skeptic",
+        completion: "Have Access To A Nuclear Fallout Shelter",
+        pitch: "It's an old Cold War law that's still on the books. Every new build must include shelter capacity.",
+        isCorrect: true
+      },
+      {
+        name: "Pip Calderone",
+        role: "The Optimist",
+        completion: "Be Reachable By Public Transit Within 10 Minutes",
+        pitch: "They have one of the best transit networks in the world. A walkability mandate would fit perfectly.",
+        isCorrect: false
+      }
+    ],
+    explanation: "Dex called it. A 1963 Swiss law still requires nuclear fallout shelter capacity for every resident. New buildings must include shelters or owners pay into a communal shelter fund."
+  },
+  {
+    partialHeadline: "ChatGPT Reached One Million Users In Just",
+    sourceHint: "Sam Altman's December 2022 announcement",
+    panelists: [
+      {
+        name: "Iris Bellamy",
+        role: "The Naturalist",
+        completion: "Six Weeks After Launch",
+        pitch: "Six weeks would still be impressive — Instagram took two and a half months. That feels right.",
+        isCorrect: false
+      },
+      {
+        name: "Dex Holloway",
+        role: "The Skeptic",
+        completion: "Five Days After Launch",
+        pitch: "Five days. Sam Altman tweeted it. I remember being stunned — Spotify took five months for the same thing.",
+        isCorrect: true
+      },
+      {
+        name: "Pip Calderone",
+        role: "The Optimist",
+        completion: "Eleven Hours After Launch",
+        pitch: "It went so viral I'd believe almost anything. People were sharing it across every platform overnight.",
+        isCorrect: false
+      }
+    ],
+    explanation: "Dex was right. Sam Altman confirmed ChatGPT hit one million users in 5 days — the fastest growth of any consumer product in history at that point."
+  },
+  {
+    partialHeadline: "Florida Man Arrested After Breaking Into A Restaurant To",
+    sourceHint: "a 2023 Tampa local news report",
+    panelists: [
+      {
+        name: "Iris Bellamy",
+        role: "The Naturalist",
+        completion: "Free Live Lobsters From The Tank",
+        pitch: "There was a story like this — animal rights activist breaking into seafood places. It tracks.",
+        isCorrect: false
+      },
+      {
+        name: "Dex Holloway",
+        role: "The Skeptic",
+        completion: "Argue With An Online Yelp Reviewer",
+        pitch: "Florida has a long history of bizarre confrontations. A bad review escalation feels right.",
+        isCorrect: false
+      },
+      {
+        name: "Pip Calderone",
+        role: "The Optimist",
+        completion: "Wash All Of The Dirty Dishes",
+        pitch: "I swear I remember this — a guy broke in and was just doing the dishes when police showed up. He claimed he wanted to help.",
+        isCorrect: true
+      }
+    ],
+    explanation: "Pip had it. A man in Tampa broke into a closed restaurant and was found cleaning dishes, claiming he just wanted to help. Police arrested him for burglary anyway."
+  }
+];
+
+const WAVE_BANK = [
+  { leftLabel: "Totally expected", rightLabel: "Completely shocking", story: "Scientists confirmed that octopuses punch their fish hunting partners during collaborative hunts.", truthPosition: 78, explanation: "The reaction skewed strongly toward shocking. Even biologists who study octopus behavior were surprised at the apparent spite involved." },
+  { leftLabel: "Wholesome", rightLabel: "Cursed", story: "A Florida man broke into a closed restaurant just to wash all the dirty dishes.", truthPosition: 38, explanation: "Most reactions skewed wholesome — people were charmed, even though it was technically burglary." },
+  { leftLabel: "Reasonable policy", rightLabel: "Wildly impractical", story: "Switzerland legally requires every home to have access to a nuclear fallout shelter.", truthPosition: 55, explanation: "Public reaction was split. Many found it sensible given Cold War history; others called it dated." },
+  { leftLabel: "Boring number", rightLabel: "Mind-blowing number", story: "ChatGPT reached 1 million users in just 5 days after launch.", truthPosition: 88, explanation: "Almost universally seen as mind-blowing." },
+  { leftLabel: "I'd buy it", rightLabel: "I'd never buy it", story: "Italian towns are selling abandoned houses for 1 euro, but you must commit to renovating within 3 years.", truthPosition: 32, explanation: "Most people leaned toward 'I'd buy it' — the romantic appeal of an Italian villa won out." },
+  { leftLabel: "Definitely fake news", rightLabel: "Definitely real", story: "Tuvalu announced it will become the world's first country to exist entirely in the metaverse.", truthPosition: 70, explanation: "Many initially assumed it was satire, then accepted it as real but with disbelief." }
+];
+
+const SOF_BANK = [
+  {
+    topic: "Animal Behavior",
+    intro: "Three claims about animal behavior. Two are real findings; one is fabricated.",
+    claims: [
+      { text: "A 2024 study found that bumblebees can learn to roll a wooden ball into a target zone for a sugar reward by watching other bees demonstrate it first.", isScience: true, explanation: "Real. The Queen Mary University of London study showed bees acquired the behavior socially, not individually — evidence of basic cultural learning.", source: { name: "PLOS Biology", url: "https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.3001541" } },
+      { text: "Researchers documented octopuses punching fish hunting partners during cooperative hunts, apparently to assert control or out of spite.", isScience: true, explanation: "Real. The behavior was observed in the Red Sea and published in Ecology, showing octopuses sometimes 'discipline' fish that fail to cooperate.", source: { name: "Ecology (Ecological Society of America)", url: "https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3266" } },
+      { text: "A 2023 study found that captive elephants can identify their human keepers' moods by smell alone, even when the keeper is in a different building.", isScience: false, explanation: "Fiction. While elephants do have remarkable olfaction (real 2014 study showed they distinguish human ethnic groups by scent), no published research claims they identify mood through walls.", source: null }
+    ]
+  },
+  {
+    topic: "Space & Astronomy",
+    intro: "Three claims about recent space discoveries. Two are real; one is fabricated.",
+    claims: [
+      { text: "NASA's Parker Solar Probe became the fastest human-made object in history, reaching speeds of approximately 430,000 mph at its closest approach to the Sun in December 2024.", isScience: true, explanation: "Real. The probe achieved this speed during its closest perihelion, coming within 3.8 million miles of the Sun's surface.", source: { name: "NASA", url: "https://www.nasa.gov/news-release/nasas-parker-solar-probe-makes-history-with-closest-pass-to-sun/" } },
+      { text: "The James Webb Space Telescope detected water vapor in the atmosphere of an exoplanet roughly the size of Jupiter, located about 700 light-years from Earth.", isScience: true, explanation: "Real. JWST detected water vapor and other molecules in WASP-39b's atmosphere in 2022.", source: { name: "NASA / JWST Mission", url: "https://www.nasa.gov/feature/goddard/2022/nasa-s-webb-reveals-steamy-atmosphere-of-distant-planet-in-detail" } },
+      { text: "A 2024 study from the European Space Agency found that the Moon is gradually spiraling closer to Earth at a rate of 1.5 centimeters per year.", isScience: false, explanation: "Fiction. The Moon is moving away from Earth, not closer — at approximately 3.8 cm per year due to tidal interactions. This claim inverts a real, well-documented fact.", source: null }
+    ]
+  },
+  {
+    topic: "Medicine & Health",
+    intro: "Three medical research claims. Two are real; one is fabricated.",
+    claims: [
+      { text: "A 2024 clinical trial found that a CRISPR-based gene therapy substantially reduced or eliminated symptoms in patients with sickle cell disease, leading to FDA approval of the first CRISPR therapy.", isScience: true, explanation: "Real. Casgevy, developed by Vertex and CRISPR Therapeutics, became the first FDA-approved CRISPR therapy in late 2023.", source: { name: "FDA", url: "https://www.fda.gov/news-events/press-announcements/fda-approves-first-gene-therapies-treat-patients-sickle-cell-disease" } },
+      { text: "Researchers at Stanford developed a wearable patch that uses ultrasound waves to non-invasively monitor deep-tissue blood flow in real time.", isScience: true, explanation: "Real. The wearable ultrasound patch published in Nature Biomedical Engineering can continuously monitor cardiovascular signals.", source: { name: "Nature Biomedical Engineering", url: "https://www.nature.com/articles/s41551-021-00763-4" } },
+      { text: "A Harvard Medical School study found that listening to classical music for 30 minutes daily reduces resting blood pressure by an average of 18 percent in adults over 50.", isScience: false, explanation: "Fiction. Music can have modest blood pressure effects, but no Harvard study has shown an 18% reduction. Real effect sizes are typically much smaller.", source: null }
+    ]
+  },
+  {
+    topic: "Earth & Environment",
+    intro: "Three claims about our planet. Two are real; one is fabricated.",
+    claims: [
+      { text: "Scientists have confirmed that some species of trees in the same forest can share nutrients and warning signals about pests through underground networks of fungi.", isScience: true, explanation: "Real. The 'wood wide web' phenomenon was extensively documented by Suzanne Simard and others. Trees connect via mycorrhizal fungi.", source: { name: "Nature", url: "https://www.nature.com/articles/41557" } },
+      { text: "A 2024 study found that microplastics have been detected in human placentas and in samples of arterial plaque, raising concerns about cardiovascular impact.", isScience: true, explanation: "Real. Multiple peer-reviewed studies have detected microplastics in human placentas (2020) and carotid arterial plaque (2024), linked to higher cardiovascular risk.", source: { name: "New England Journal of Medicine", url: "https://www.nejm.org/doi/full/10.1056/NEJMoa2309822" } },
+      { text: "A 2023 Greenpeace study found that the Pacific Ocean's salinity has decreased by 12 percent over the past decade due to glacial melt.", isScience: false, explanation: "Fiction. Pacific salinity is changing in some regions, but a 12% global drop in a decade would be extreme and is not supported by any peer-reviewed study.", source: null }
+    ]
+  },
+  {
+    topic: "Technology & AI",
+    intro: "Three claims about recent technology. Two are real; one is fabricated.",
+    claims: [
+      { text: "When OpenAI's ChatGPT launched in November 2022, it reached one million users in just five days — faster than any consumer product in history at that point.", isScience: true, explanation: "Real. Sam Altman confirmed the milestone publicly. Instagram took 75 days; Spotify took 150.", source: { name: "Reuters / OpenAI", url: "https://www.reuters.com/business/chatgpt-sets-record-fastest-growing-user-base-analyst-note-2023-02-01/" } },
+      { text: "DeepMind's AlphaFold has predicted the 3D structure of nearly every known protein, releasing a database of over 200 million predicted structures freely available to researchers.", isScience: true, explanation: "Real. The AlphaFold Protein Structure Database, in partnership with EMBL-EBI, has revolutionized structural biology.", source: { name: "DeepMind / EMBL-EBI", url: "https://alphafold.ebi.ac.uk/" } },
+      { text: "A 2024 MIT study found that GPT-class models score higher on standardized creativity tests than 92 percent of human test-takers in a controlled comparison.", isScience: false, explanation: "Fiction. There has been research on AI vs human creativity with varying results, but no MIT study has produced this specific 92% figure.", source: null }
+    ]
+  }
+];
+
+// ============ STATE ============
+let state = {
+  screen: 'hub',
+  game: null,
+  question: null,
+  selectedIdx: null,
+  selectedAnswer: null, // for wacky: 'real' | 'satire'
+  result: null,
+  seen: { wacky: [], quip: [], spread: [], lede: [], wave: [], sof: [] },
+  quipText: '',
+  quipPanelResults: null,
+  spreadGuess: '',
+  ledePanelistOrder: null,
+  wavePosition: 50,
+  sofVotes: [],
+  sofRevealed: false,
+  stats: {
+    totalPoints: 0,
+    wacky: { played: 0, correct: 0, streak: 0, bestStreak: 0 },
+    quip: { played: 0, correct: 0, streak: 0, bestStreak: 0 },
+    spread: { played: 0, correct: 0, streak: 0, bestStreak: 0 },
+    lede: { played: 0, correct: 0, streak: 0, bestStreak: 0 },
+    wave: { played: 0, correct: 0, streak: 0, bestStreak: 0 },
+    sof: { played: 0, correct: 0, streak: 0, bestStreak: 0 }
+  }
+};
+
+try {
+  const saved = localStorage.getItem('daily_state_v7');
+  if (saved) {
+    const s = JSON.parse(saved);
+    if (s.stats) {
+      state.stats = { ...state.stats, ...s.stats };
+      ['wacky', 'quip', 'spread', 'lede', 'wave', 'sof'].forEach(g => {
+        if (!state.stats[g]) state.stats[g] = { played: 0, correct: 0, streak: 0, bestStreak: 0 };
+      });
+    }
+    if (s.seen) {
+      state.seen = { ...state.seen, ...s.seen };
+      ['wacky', 'lede', 'wave', 'sof'].forEach(g => { if (!state.seen[g]) state.seen[g] = []; });
+    }
+  }
+} catch(e) {}
+
+const CATEGORIES = [
+  { id: 'science', name: 'Science', symbol: '01', desc: 'Discoveries & research' },
+  { id: 'tech', name: 'Technology', symbol: '02', desc: 'AI, gadgets, the web' },
+  { id: 'humor', name: 'Weird & Funny', symbol: '03', desc: 'News too odd to be true' },
+  { id: 'world', name: 'World Affairs', symbol: '04', desc: 'Politics & society' }
+];
+
+const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+const issueNum = Math.floor((Date.now() - new Date('2026-01-01').getTime()) / 86400000) + 1;
+
+const app = document.getElementById('app');
+
+// Track previous screen so we know whether to scroll-to-top
+let lastRenderedScreen = null;
+
+function calculatePoints(correct, currentStreak, baseAmount) {
+  if (!correct) return 0;
+  const base = baseAmount || 10;
+  const streakBonus = Math.min(currentStreak * 2, 20);
+  return base + streakBonus;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ============ ROUTER ============
+function render(opts = {}) {
+  const preserveScroll = opts.preserveScroll || false;
+  const currentScroll = window.scrollY;
+
+  app.innerHTML = '';
+  app.appendChild(masthead());
+  if (state.screen === 'hub') app.appendChild(hubScreen());
+  else if (state.screen === 'wacky-play') app.appendChild(wackyPlayScreen());
+  else if (state.screen === 'wacky-reveal') app.appendChild(wackyRevealScreen());
+  else if (state.screen === 'quip-play') app.appendChild(quipPlayScreen());
+  else if (state.screen === 'quip-judging') app.appendChild(quipJudgingScreen());
+  else if (state.screen === 'quip-result') app.appendChild(quipResultScreen());
+  else if (state.screen === 'spread-guess') app.appendChild(spreadGuessScreen());
+  else if (state.screen === 'spread-reveal') app.appendChild(spreadRevealScreen());
+  else if (state.screen === 'lede-play') app.appendChild(ledePlayScreen());
+  else if (state.screen === 'lede-reveal') app.appendChild(ledeRevealScreen());
+  else if (state.screen === 'wave-play') app.appendChild(wavePlayScreen());
+  else if (state.screen === 'wave-reveal') app.appendChild(waveRevealScreen());
+  else if (state.screen === 'sof-play') app.appendChild(sofPlayScreen());
+  else if (state.screen === 'sof-reveal') app.appendChild(sofRevealScreen());
+  app.appendChild(footer());
+
+  // Only scroll to top if we changed screens, not if we're staying on the same screen
+  if (preserveScroll || state.screen === lastRenderedScreen) {
+    window.scrollTo({ top: currentScroll, behavior: 'instant' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  lastRenderedScreen = state.screen;
+}
+
+function masthead() {
+  const m = document.createElement('header');
+  m.className = 'masthead';
+  m.innerHTML = `
+    <div class="date-strip">No. ${String(issueNum).padStart(4,'0')} &middot; ${today}</div>
+    <h1>Noodle <span class="amp">Bowl</span></h1>
+    <div class="tagline">A Daily Mix Of Brain Games &middot; Solo Edition</div>
+  `;
+  return m;
+}
+
+function footer() {
+  const f = document.createElement('div');
+  f.className = 'footer-note';
+  f.textContent = '— Stretch your noodle. Daily. —';
+  return f;
+}
+
+function backBtn(target, label) {
+  const b = document.createElement('button');
+  b.className = 'nav-back';
+  b.textContent = '← ' + (label || 'Back');
+  b.addEventListener('click', () => {
+    state.screen = target;
+    state.selectedIdx = null;
+    render();
+  });
+  return b;
+}
+
+// ============ HUB ============
+function hubScreen() {
+  const c = document.createElement('div');
+  const stats = state.stats;
+  const totalPlayed = stats.wacky.played + stats.quip.played + stats.spread.played + stats.lede.played + stats.wave.played + stats.sof.played;
+  const totalCorrect = stats.wacky.correct + stats.quip.correct + stats.spread.correct + stats.lede.correct + stats.wave.correct + stats.sof.correct;
+  const accuracy = totalPlayed > 0 ? Math.round((totalCorrect / totalPlayed) * 100) : 0;
+
+  const games = [
+    { id: 'wacky', num: 'N° 01', section: 'Real or Satire', title: 'Wacky News', tagline: 'A bizarre headline appears. Real news or satire? You decide.', meta: ['Real headlines', '~1 min'] },
+    // { id: 'quip', num: 'N° 02', section: 'The Wit Test', title: 'The Quip', tagline: "Write the funniest answer to today's strangest news.", meta: ['Open-ended', '~3 min'] }, // TEMPORARILY HIDDEN
+    { id: 'spread', num: 'N° 02', section: 'The Number Hunt', title: 'The Spread', tagline: 'Guess the number behind a real news story. The closer you are, the more points you score.', meta: ['Numerical', '~2 min'] },
+    { id: 'lede', num: 'N° 03', section: 'Finish The Headline', title: 'The Lede', tagline: "Three reporters offer competing endings for today's headline. Only one is real.", meta: ['Bluff round', '~2 min'] },
+    // { id: 'wave', num: 'N° 04', section: 'Reading The Room', title: 'The Pulse', tagline: 'Where does the public stand on today\'s story? Place your dial on the public mood.', meta: ['Sentiment dial', '~1 min'] }, // TEMPORARILY HIDDEN
+    { id: 'sof', num: 'N° 04', section: 'Two Truths, One Lie', title: 'Science or Fiction', tagline: 'Three claims. Two are real and cited. One is fabricated. Find the fake.', meta: ['Cited sources', '~3 min'] }
+  ];
+
+  c.innerHTML = `
+    <div class="hub-intro">
+      <p>A daily bowl of brain games drawn from the news. Each tests a different muscle. Build streaks across all of them.</p>
+    </div>
+
+    <div class="card">
+      <div class="label">Your Standing</div>
+      <div class="stats-row">
+        <div class="stat"><div class="num">${stats.totalPoints}</div><div class="lbl">Points</div></div>
+        <div class="stat"><div class="num">${accuracy}%</div><div class="lbl">Accuracy</div></div>
+        <div class="stat"><div class="num">${totalPlayed}</div><div class="lbl">Rounds</div></div>
+      </div>
+    </div>
+
+    <div class="label" style="margin: 24px 4px 12px;">Today's Games</div>
+
+    ${games.map(g => `
+      <button class="game-card" data-game="${g.id}">
+        <div class="game-header">
+          <span><span class="num">${g.num}</span> &middot; ${g.section}</span>
+          <span class="play-tag">Play</span>
+        </div>
+        <div class="game-body">
+          <h3>${g.title}</h3>
+          <div class="game-tagline">${g.tagline}</div>
+          <div class="game-meta">
+            ${g.meta.map(m => `<span><span class="dot"></span>${m}</span>`).join('')}
+            ${stats[g.id].streak > 0 ? `<span class="game-streak">🔥 ${stats[g.id].streak}</span>` : ''}
+          </div>
+        </div>
+      </button>
+    `).join('')}
+  `;
+
+  c.querySelectorAll('.game-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const game = btn.dataset.game;
+      state.game = game;
+      if (game === 'wacky') startWacky();
+      else if (game === 'quip') startQuip();
+      else if (game === 'spread') startSpread();
+      else if (game === 'lede') startLede();
+      else if (game === 'wave') startWave();
+      else if (game === 'sof') startSof();
+      render();
+    });
+  });
+  return c;
+}
+
+
+// ============ FACT OR FABRICATION ============
+// ============ WACKY NEWS — Real or Satire ============
+function startWacky() {
+  let seen = state.seen.wacky || [];
+  if (seen.length >= WACKY_BANK.length) seen = [];
+  const available = WACKY_BANK.map((_, i) => i).filter(i => !seen.includes(i));
+  const idx = available[Math.floor(Math.random() * available.length)];
+  seen.push(idx);
+  state.seen.wacky = seen;
+  state.question = WACKY_BANK[idx];
+  state.selectedAnswer = null;
+  delete shareState.friendResponses['wacky'];
+  state.screen = 'wacky-play';
+  saveState();
+}
+
+function wackyPlayScreen() {
+  const c = document.createElement('div');
+  c.appendChild(backBtn('hub', 'Back to Games'));
+  const q = state.question;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="label">
+        Wacky News &middot; Today's Headline
+        ${state.stats.wacky.streak > 0 ? `<span class="streak-badge">🔥 ${state.stats.wacky.streak}</span>` : ''}
+      </div>
+
+      <div class="wacky-headline-card">
+        <div class="wacky-headline-text">${q.headline}</div>
+        <div class="wacky-byline">Source <span class="dash">—</span> Withheld Until You Decide</div>
+      </div>
+
+      <div class="info-box">
+        <strong>The Question</strong>
+        Is this a real headline, or is it satire? Bizarre real news happens every day, and the best satire is indistinguishable from it.
+      </div>
+
+      <div class="label" style="margin-top: 24px;">Your Verdict</div>
+      <div class="wacky-vote-row">
+        <button class="wacky-vote-btn real ${state.selectedAnswer === 'real' ? 'selected' : ''}" data-vote="real">
+          <span class="vote-emoji">📰</span>
+          Real
+          <span class="vote-sub">This actually happened</span>
+        </button>
+        <button class="wacky-vote-btn satire ${state.selectedAnswer === 'satire' ? 'selected' : ''}" data-vote="satire">
+          <span class="vote-emoji">🎭</span>
+          Satire
+          <span class="vote-sub">Someone made this up</span>
+        </button>
+      </div>
+
+      <button class="btn" id="lockIn" ${!state.selectedAnswer ? 'disabled' : ''}>Lock In Verdict</button>
+
+      ${friendHelpButton('wacky')}
+
+      <div class="info-box" style="margin-top: 16px;">
+        <strong>Scoring</strong>
+        +10 points per correct call. Each streak day adds +2 bonus, up to +20. Wrong answers reset your streak.
+      </div>
+    </div>
+  `;
+  wrap.querySelectorAll('.wacky-vote-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.selectedAnswer = btn.dataset.vote;
+      // Update DOM in place to preserve scroll
+      wrap.querySelectorAll('.wacky-vote-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.vote === state.selectedAnswer);
+      });
+      const lockBtn = wrap.querySelector('#lockIn');
+      if (lockBtn) lockBtn.disabled = !state.selectedAnswer;
+    });
+  });
+  attachFriendHelpHandler(wrap);
+  const lockBtn = wrap.querySelector('#lockIn');
+  if (lockBtn) {
+    lockBtn.addEventListener('click', () => {
+      if (!state.selectedAnswer) return;
+      state.screen = 'wacky-reveal';
+      render();
+    });
+  }
+  c.appendChild(wrap);
+  return c;
+}
+
+function wackyRevealScreen() {
+  const c = document.createElement('div');
+  const q = state.question;
+  const userPickedReal = state.selectedAnswer === 'real';
+  const correct = userPickedReal === q.isReal;
+  const points = calculatePoints(correct, state.stats.wacky.streak);
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="label">The Reveal</div>
+
+      <div class="wacky-headline-card">
+        <div class="wacky-headline-text">${q.headline}</div>
+        <div class="wacky-byline">Source <span class="dash">—</span> ${q.source}</div>
+        <div class="wacky-stamp ${q.isReal ? 'real' : 'satire'}">${q.isReal ? '✓ Real News' : '✗ Satire'}</div>
+      </div>
+
+      <div class="wacky-vote-row">
+        <button class="wacky-vote-btn real ${q.isReal ? 'correct' : (state.selectedAnswer === 'real' ? 'wrong' : '')}" disabled>
+          <span class="vote-emoji">📰</span>
+          Real
+          <span class="vote-sub">${q.isReal ? 'TRUTH' : (state.selectedAnswer === 'real' ? 'YOUR PICK' : '')}</span>
+        </button>
+        <button class="wacky-vote-btn satire ${!q.isReal ? 'correct' : (state.selectedAnswer === 'satire' ? 'wrong' : '')}" disabled>
+          <span class="vote-emoji">🎭</span>
+          Satire
+          <span class="vote-sub">${!q.isReal ? 'TRUTH' : (state.selectedAnswer === 'satire' ? 'YOUR PICK' : '')}</span>
+        </button>
+      </div>
+
+      <div class="truth-box">
+        <div class="label">The Real Story</div>
+        <p>${q.explanation}</p>
+      </div>
+    </div>
+
+    <div class="card result-card">
+      <div class="result-verdict ${correct ? 'win' : 'loss'}">${correct ? 'Nailed it.' : 'Fooled you.'}</div>
+      <div class="result-detail">${correct ? (state.stats.wacky.streak > 0 ? `+10 base, +${Math.min(state.stats.wacky.streak * 2, 20)} streak bonus` : 'Right call') : 'Streak reset to zero'}</div>
+      <div class="points-display ${correct ? 'positive' : 'negative'}">${correct ? '+' + points : '0'}</div>
+      <div class="result-detail">Points</div>
+
+      <div class="share-grid">
+        WACKY NEWS #${String(issueNum).padStart(4,'0')}<br/>
+        ${correct ? '🟩' : '🟥'} ${correct ? 'CALLED' : 'FOOLED'}<br/>
+        ${correct ? `Streak: ${state.stats.wacky.streak + 1} 🔥` : 'Streak broken'}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Wacky News Record</div>
+      <div class="stats-row">
+        <div class="stat"><div class="num ${state.stats.wacky.streak + (correct ? 1 : 0) > 0 ? 'stat-flame' : ''}">${correct ? state.stats.wacky.streak + 1 : 0}${correct && state.stats.wacky.streak + 1 > 0 ? '🔥' : ''}</div><div class="lbl">Streak</div></div>
+        <div class="stat"><div class="num">${Math.max(state.stats.wacky.bestStreak, correct ? state.stats.wacky.streak + 1 : state.stats.wacky.bestStreak)}</div><div class="lbl">Best</div></div>
+        <div class="stat"><div class="num">${state.stats.wacky.played + 1 > 0 ? Math.round(((state.stats.wacky.correct + (correct ? 1 : 0)) / (state.stats.wacky.played + 1)) * 100) : 0}%</div><div class="lbl">Accuracy</div></div>
+      </div>
+    </div>
+
+    <button class="btn" id="another">Another Headline</button>
+    <button class="btn secondary" id="hub" style="margin-top:8px;">Back to All Games</button>
+  `;
+
+  updateGameStats('wacky', correct, points);
+
+  c.querySelector('#another').addEventListener('click', () => { startWacky(); render(); });
+  c.querySelector('#hub').addEventListener('click', () => { state.screen = 'hub'; render(); });
+  return c;
+}
+
+// ============ THE QUIP ============
+function startQuip() {
+  let seen = state.seen.quip || [];
+  if (seen.length >= QUIP_PROMPTS.length) seen = [];
+  const available = QUIP_PROMPTS.map((_, i) => i).filter(i => !seen.includes(i));
+  const idx = available[Math.floor(Math.random() * available.length)];
+  seen.push(idx);
+  state.seen.quip = seen;
+  state.question = QUIP_PROMPTS[idx];
+  state.quipText = '';
+  state.quipPanelResults = null;
+  delete shareState.friendResponses['quip'];
+  state.screen = 'quip-play';
+  saveState();
+}
+
+function quipPlayScreen() {
+  const c = document.createElement('div');
+  c.appendChild(backBtn('hub', 'Back to Games'));
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="label">The Quip &middot; Today's Setup ${state.stats.quip.streak > 0 ? `<span class="streak-badge">🔥 ${state.stats.quip.streak}</span>` : ''}</div>
+      <div class="quip-prompt">"${state.question.setup}"</div>
+      <div class="source">— Inspired by ${state.question.sourceHint}</div>
+    </div>
+    <div class="card">
+      <div class="label">Meet The Panel</div>
+      <p style="font-size: 14px; line-height: 1.5; margin-bottom: 16px;">Three judges with very different tastes will rate your quip. Win at least two for success.</p>
+      <div class="info-box"><strong>Scoring</strong>Win all 3 judges: +20 base. Win 2 of 3: +10 base. Streak bonus on top. 1 or fewer: 0 pts and streak resets.</div>
+      <div class="panel-row" style="margin-top: 16px;">
+        ${PANEL.map(p => `
+          <div class="panelist">
+            <div class="avatar">${p.initial}</div>
+            <div class="body">
+              <div class="name">${p.name}</div>
+              <div class="role">${p.role}</div>
+              <div class="reaction">Likes: ${p.taste}.</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">Your Answer</div>
+      <textarea class="quip-input" id="quipInput" placeholder="Type your quip..." maxlength="160">${state.quipText}</textarea>
+      <div class="quip-counter"><span id="qcount">${state.quipText.length}</span>/160</div>
+      <button class="btn" id="submitQuip" ${state.quipText.trim().length < 3 ? 'disabled' : ''}>Submit to The Panel</button>
+      ${friendHelpButton('quip')}
+    </div>
+  `;
+  const input = wrap.querySelector('#quipInput');
+  const counter = wrap.querySelector('#qcount');
+  const submit = wrap.querySelector('#submitQuip');
+  input.addEventListener('input', e => {
+    state.quipText = e.target.value;
+    counter.textContent = e.target.value.length;
+    submit.disabled = e.target.value.trim().length < 3;
+  });
+  submit.addEventListener('click', () => {
+    state.screen = 'quip-judging';
+    render();
+    setTimeout(() => { generatePanelReactions(); render(); }, 600);
+  });
+  attachFriendHelpHandler(wrap);
+  c.appendChild(wrap);
+  return c;
+}
+
+function generatePanelReactions() {
+  const text = state.quipText.trim().toLowerCase();
+  const words = text.split(/\s+/);
+  const len = words.length;
+  const hasPunctuation = /[.!?]/.test(text);
+  const hasWeirdWord = /(gerbil|banana|cosmic|infinite|sentient|dimension|spider|emperor|labyrinth|moonlight|squid|haunted|portal|wizard|tentacle)/i.test(text);
+  const seemsWholesome = /(love|kind|warm|family|home|sweet|nice|good|gentle|dad|mom|hug|happy|smile)/i.test(text);
+  const seemsDark = /(death|broke|lost|empty|alone|tax|bills|sad|fail|nothing|void|hate|dark|grim)/i.test(text);
+  const results = PANEL.map((p, i) => {
+    let score;
+    if (i === 0) {
+      if (seemsDark) score = 2;
+      else if (seemsWholesome) score = 0;
+      else score = len > 4 ? 1 : 0;
+    } else if (i === 1) {
+      if (seemsWholesome) score = 2;
+      else if (seemsDark) score = 0;
+      else score = hasPunctuation ? 1 : 1;
+    } else {
+      if (hasWeirdWord) score = 2;
+      else if (len < 4) score = 0;
+      else if (len > 12) score = 2;
+      else score = 1;
+    }
+    const r = Math.random();
+    if (r < 0.15 && score < 2) score += 1;
+    else if (r > 0.85 && score > 0) score -= 1;
+    const reactionList = score === 2 ? p.likeReactions : score === 1 ? p.mehReactions : p.hateReactions;
+    const reaction = reactionList[Math.floor(Math.random() * reactionList.length)];
+    return { score, reaction, panelist: p };
+  });
+  state.quipPanelResults = results;
+}
+
+function quipJudgingScreen() {
+  const c = document.createElement('div');
+  const results = state.quipPanelResults;
+  if (!results) {
+    c.innerHTML = `
+      <div class="card">
+        <div class="label">The Panel Deliberates</div>
+        <div class="your-quip">${escapeHtml(state.quipText)}</div>
+        <div class="panel-row" style="margin-top: 20px;">
+          ${PANEL.map(p => `
+            <div class="panelist judging">
+              <div class="avatar">${p.initial}</div>
+              <div class="body">
+                <div class="name">${p.name}</div>
+                <div class="role">${p.role}</div>
+                <div class="reaction">Reading carefully...</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } else {
+    c.innerHTML = `
+      <div class="card">
+        <div class="label">The Verdict Is In</div>
+        <div class="your-quip">${escapeHtml(state.quipText)}</div>
+        <div class="panel-row" style="margin-top: 20px;">
+          ${results.map(r => {
+            const p = r.panelist;
+            const verdictClass = r.score === 2 ? 'like' : r.score === 1 ? 'meh' : 'hate';
+            const verdictLabel = r.score === 2 ? 'Liked it' : r.score === 1 ? 'Meh' : 'Bombed';
+            return `
+              <div class="panelist">
+                <div class="avatar">${p.initial}</div>
+                <div class="body">
+                  <div class="name">${p.name}</div>
+                  <div class="role">${p.role}</div>
+                  <div class="reaction">"${r.reaction}"</div>
+                  <span class="verdict ${verdictClass}">${verdictLabel}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <button class="btn" id="seeScore" style="margin-top: 24px;">See Final Score</button>
+      </div>
+    `;
+    setTimeout(() => {
+      const btn = c.querySelector('#seeScore');
+      if (btn) btn.addEventListener('click', () => { state.screen = 'quip-result'; render(); });
+    }, 0);
+  }
+  return c;
+}
+
+function quipResultScreen() {
+  const c = document.createElement('div');
+  const results = state.quipPanelResults;
+  const wins = results.filter(r => r.score === 2).length;
+  const success = wins >= 2;
+  const baseScore = wins === 3 ? 20 : wins === 2 ? 10 : 0;
+  const streakBonus = success ? Math.min(state.stats.quip.streak * 2, 20) : 0;
+  const totalPoints = baseScore + streakBonus;
+  let verdict;
+  if (wins === 3) verdict = 'A clean sweep.';
+  else if (wins === 2) verdict = 'You won the room.';
+  else if (wins === 1) verdict = 'Mixed reception.';
+  else verdict = 'A tough crowd.';
+  state.stats.totalPoints += totalPoints;
+  state.stats.quip.played += 1;
+  if (success) {
+    state.stats.quip.correct += 1;
+    state.stats.quip.streak += 1;
+    if (state.stats.quip.streak > state.stats.quip.bestStreak) state.stats.quip.bestStreak = state.stats.quip.streak;
+  } else {
+    state.stats.quip.streak = 0;
+  }
+  saveState();
+  const stats = state.stats.quip;
+  const grid = results.map(r => r.score === 2 ? '🟩' : r.score === 1 ? '🟨' : '🟥').join(' ');
+  c.innerHTML = `
+    <div class="card result-card">
+      <div class="label" style="justify-content:center;">Issue No. ${String(issueNum).padStart(4,'0')} &middot; Filed</div>
+      <div class="ornament">&#10086;  &#10086;  &#10086;</div>
+      <div class="result-verdict ${success ? 'win' : 'loss'}">${verdict}</div>
+      <div class="result-detail">${wins} of 3 judges liked it</div>
+      <div class="points-display ${success ? 'positive' : 'negative'}">${totalPoints > 0 ? '+' : ''}${totalPoints}</div>
+      <div class="result-detail">${success && streakBonus > 0 ? `+${baseScore} base, +${streakBonus} streak` : 'Points'} &middot; Total: ${state.stats.totalPoints}</div>
+      <div class="share-grid">
+        THE QUIP #${String(issueNum).padStart(4,'0')}<br/>
+        ${grid}<br/>
+        ${success ? `Streak: ${stats.streak} 🔥` : 'Streak broken'}
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">The Quip Record</div>
+      <div class="stats-row">
+        <div class="stat"><div class="num ${stats.streak > 0 ? 'stat-flame' : ''}">${stats.streak}${stats.streak > 0 ? '🔥' : ''}</div><div class="lbl">Streak</div></div>
+        <div class="stat"><div class="num">${stats.bestStreak}</div><div class="lbl">Best</div></div>
+        <div class="stat"><div class="num">${stats.played}</div><div class="lbl">Played</div></div>
+      </div>
+    </div>
+    <button class="btn" id="another">Try Another Setup</button>
+    <button class="btn secondary" id="hub" style="margin-top:8px;">Back to All Games</button>
+  `;
+  c.querySelector('#another').addEventListener('click', () => { startQuip(); render(); });
+  c.querySelector('#hub').addEventListener('click', () => { state.screen = 'hub'; render(); });
+  return c;
+}
+
+// ============ THE SPREAD ============
+function startSpread() {
+  let seen = state.seen.spread || [];
+  if (seen.length >= SPREAD_BANK.length) seen = [];
+  const available = SPREAD_BANK.map((_, i) => i).filter(i => !seen.includes(i));
+  const idx = available[Math.floor(Math.random() * available.length)];
+  seen.push(idx);
+  state.seen.spread = seen;
+  state.question = SPREAD_BANK[idx];
+  state.spreadGuess = '';
+  delete shareState.friendResponses['spread'];
+  state.screen = 'spread-guess';
+  saveState();
+}
+
+function spreadGuessScreen() {
+  const c = document.createElement('div');
+  c.appendChild(backBtn('hub', 'Back to Games'));
+  const q = state.question;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="label">The Spread &middot; Today's Question ${state.stats.spread.streak > 0 ? `<span class="streak-badge">🔥 ${state.stats.spread.streak}</span>` : ''}</div>
+      <div class="spread-question">${q.question}</div>
+      <div class="info-box"><strong>How it scores</strong>The closer your guess to the real answer, the more points you score. Within 5%: +25. Within 15%: +15. Within 30%: +8. Beyond: 0. Streak bonus on top.</div>
+    </div>
+    <div class="card">
+      <div class="label">Your Guess</div>
+      <div class="number-input-wrap">
+        <input type="number" class="number-input" id="guessInput" placeholder="0" value="${state.spreadGuess}" />
+        <div class="unit-label">${q.unit}</div>
+      </div>
+      <button class="btn" id="submitGuess" ${!state.spreadGuess ? 'disabled' : ''} style="margin-top: 24px;">Submit Guess</button>
+      ${friendHelpButton('spread')}
+    </div>
+  `;
+  const input = wrap.querySelector('#guessInput');
+  const submit = wrap.querySelector('#submitGuess');
+  input.addEventListener('input', e => { state.spreadGuess = e.target.value; submit.disabled = !state.spreadGuess; });
+  input.focus();
+  submit.addEventListener('click', () => {
+    if (!state.spreadGuess) return;
+    state.screen = 'spread-reveal';
+    render();
+  });
+  attachFriendHelpHandler(wrap);
+  c.appendChild(wrap);
+  return c;
+}
+
+function spreadRevealScreen() {
+  const c = document.createElement('div');
+  const q = state.question;
+  const truth = q.answer;
+  const yourGuess = parseFloat(state.spreadGuess);
+
+  // Calculate percentage deviation from truth
+  const deviation = Math.abs(yourGuess - truth);
+  const percentOff = truth === 0 ? (deviation > 0 ? 100 : 0) : (deviation / Math.abs(truth)) * 100;
+
+  // Score based on tiers
+  let basePoints = 0;
+  let success = false;
+  let verdict;
+  let tierLabel;
+  if (percentOff <= 5) {
+    basePoints = 25; success = true;
+    verdict = "Spot on.";
+    tierLabel = "Within 5%";
+  } else if (percentOff <= 15) {
+    basePoints = 15; success = true;
+    verdict = "Very close.";
+    tierLabel = "Within 15%";
+  } else if (percentOff <= 30) {
+    basePoints = 8; success = true;
+    verdict = "In the ballpark.";
+    tierLabel = "Within 30%";
+  } else {
+    basePoints = 0; success = false;
+    verdict = yourGuess > truth ? "Overshot by a lot." : "Way off.";
+    tierLabel = "More than 30% off";
+  }
+
+  const streakBonus = success ? Math.min(state.stats.spread.streak * 2, 20) : 0;
+  const totalPoints = basePoints + streakBonus;
+
+  // Direction: did they go high or low?
+  const direction = yourGuess > truth ? 'too high' : yourGuess < truth ? 'too low' : 'exact';
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="label">The Reveal</div>
+
+      <div class="spread-comparison">
+        <div class="spread-comparison-row">
+          <div class="spread-comparison-label">Your Guess</div>
+          <div class="spread-comparison-value">${yourGuess.toLocaleString()}</div>
+          <div class="spread-comparison-unit">${q.unit}</div>
+        </div>
+        <div class="spread-comparison-divider"></div>
+        <div class="spread-comparison-row truth">
+          <div class="spread-comparison-label">The Truth</div>
+          <div class="spread-comparison-value">${truth.toLocaleString()}</div>
+          <div class="spread-comparison-unit">${q.unit}</div>
+        </div>
+      </div>
+
+      <div class="spread-deviation-card ${success ? 'success' : 'fail'}">
+        <div class="spread-deviation-pct">${percentOff < 0.1 ? '0' : percentOff.toFixed(percentOff < 10 ? 1 : 0)}%</div>
+        <div class="spread-deviation-label">${direction === 'exact' ? 'EXACT' : direction.toUpperCase()} &middot; ${tierLabel}</div>
+      </div>
+
+      <div class="info-box" style="border-color: var(--green);"><strong>The Real Story</strong>${q.explanation}</div>
+    </div>
+
+    <div class="card result-card">
+      <div class="result-verdict ${success ? 'win' : 'loss'}">${verdict}</div>
+      <div class="result-detail">${percentOff < 0.1 ? 'Bullseye' : percentOff.toFixed(percentOff < 10 ? 1 : 0) + '% deviation from the real number'}</div>
+      <div class="points-display ${success ? 'positive' : 'negative'}">${totalPoints > 0 ? '+' : ''}${totalPoints}</div>
+      <div class="result-detail">${streakBonus > 0 ? `+${basePoints} base, +${streakBonus} streak` : 'Points'} &middot; Total: ${state.stats.totalPoints + totalPoints}</div>
+      <div class="share-grid">
+        THE SPREAD #${String(issueNum).padStart(4,'0')}<br/>
+        ${percentOff <= 5 ? '🟩🟩🟩' : percentOff <= 15 ? '🟩🟩⬜' : percentOff <= 30 ? '🟩⬜⬜' : '⬜⬜⬜'}<br/>
+        ${percentOff < 0.1 ? 'Exact!' : percentOff.toFixed(percentOff < 10 ? 1 : 0) + '% off'}
+      </div>
+    </div>
+    <button class="btn" id="another">Try Another</button>
+    <button class="btn secondary" id="hub" style="margin-top:8px;">Back to All Games</button>
+  `;
+  state.stats.totalPoints += totalPoints;
+  state.stats.spread.played += 1;
+  if (success) {
+    state.stats.spread.correct += 1;
+    state.stats.spread.streak += 1;
+    if (state.stats.spread.streak > state.stats.spread.bestStreak) state.stats.spread.bestStreak = state.stats.spread.streak;
+  } else {
+    state.stats.spread.streak = 0;
+  }
+  saveState();
+  c.querySelector('#another').addEventListener('click', () => { startSpread(); render(); });
+  c.querySelector('#hub').addEventListener('click', () => { state.screen = 'hub'; render(); });
+  return c;
+}
+
+// ============ THE LEDE — guess-the-headline version ============
+function startLede() {
+  let seen = state.seen.lede || [];
+  if (seen.length >= LEDE_BANK.length) seen = [];
+  const available = LEDE_BANK.map((_, i) => i).filter(i => !seen.includes(i));
+  const idx = available[Math.floor(Math.random() * available.length)];
+  seen.push(idx);
+  state.seen.lede = seen;
+  state.question = LEDE_BANK[idx];
+  // Shuffle panelist order so correct answer isn't always first
+  const order = [0, 1, 2];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  state.ledePanelistOrder = order;
+  state.selectedIdx = null;
+  delete shareState.friendResponses['lede'];
+  state.screen = 'lede-play';
+  saveState();
+}
+
+function ledePlayScreen() {
+  const c = document.createElement('div');
+  c.appendChild(backBtn('hub', 'Back to Games'));
+  const q = state.question;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="label">The Lede &middot; Finish The Headline ${state.stats.lede.streak > 0 ? `<span class="streak-badge">🔥 ${state.stats.lede.streak}</span>` : ''}</div>
+
+      <div class="lede-headline-card">
+        <div class="lede-headline-label">Today's Headline</div>
+        <div class="lede-headline-text">
+          ${q.partialHeadline} <span class="blank-fill"></span>...
+        </div>
+        <div class="lede-source-line">— Real story from ${q.sourceHint}</div>
+      </div>
+
+      <div class="lede-instruction">
+        Three reporters claim to remember the rest. Only one has it right. Pick the one telling the truth.
+      </div>
+
+      ${state.ledePanelistOrder.map((origIdx, displayIdx) => {
+        const p = q.panelists[origIdx];
+        const isSelected = state.selectedIdx === displayIdx;
+        return `
+          <button class="lede-panelist-card ${isSelected ? 'selected' : ''}" data-idx="${displayIdx}">
+            <div class="lede-completion-headline">
+              "...${p.completion}"
+            </div>
+            <div class="lede-panelist-divider"></div>
+            <div class="lede-panelist-header">
+              <div class="lede-panelist-avatar">${p.name.charAt(0)}</div>
+              <div class="lede-panelist-info">
+                <div class="lede-panelist-name">${p.name}</div>
+                <div class="lede-panelist-role">${p.role}</div>
+              </div>
+            </div>
+            <div class="lede-panelist-pitch">
+              <span class="quote-mark">"</span>${p.pitch}<span class="quote-mark">"</span>
+            </div>
+          </button>
+        `;
+      }).join('')}
+
+      <button class="btn" id="lockIn" ${state.selectedIdx === null ? 'disabled' : ''}>Lock In Pick</button>
+      ${friendHelpButton('lede')}
+      <div class="info-box"><strong>Scoring</strong>+10 for correct pick. Streak bonus on top, up to +20.</div>
+    </div>
+  `;
+  wrap.querySelectorAll('.lede-panelist-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.selectedIdx = parseInt(btn.dataset.idx);
+      render({ preserveScroll: true });
+    });
+  });
+  attachFriendHelpHandler(wrap);
+  const lockBtn = wrap.querySelector('#lockIn');
+  if (lockBtn) {
+    lockBtn.addEventListener('click', () => { state.screen = 'lede-reveal'; render(); });
+  }
+  c.appendChild(wrap);
+  return c;
+}
+
+function ledeRevealScreen() {
+  const c = document.createElement('div');
+  const q = state.question;
+  // Find which display index has the correct panelist
+  const correctDisplayIdx = state.ledePanelistOrder.findIndex(origIdx => q.panelists[origIdx].isCorrect);
+  const correct = state.selectedIdx === correctDisplayIdx;
+  const points = calculatePoints(correct, state.stats.lede.streak);
+
+  // Find the correct panelist for the headline reveal
+  const correctPanelist = q.panelists.find(p => p.isCorrect);
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="label">The Reveal</div>
+
+      <div class="lede-headline-card">
+        <div class="lede-headline-label">The Real Headline</div>
+        <div class="lede-headline-text">
+          ${q.partialHeadline} <span style="color: var(--accent);">${correctPanelist.completion}</span>
+        </div>
+        <div class="lede-source-line">— ${q.sourceHint}</div>
+      </div>
+
+      ${state.ledePanelistOrder.map((origIdx, displayIdx) => {
+        const p = q.panelists[origIdx];
+        let cls = '';
+        let tag = '';
+        if (p.isCorrect) { cls = 'correct'; tag = 'TRUTH'; }
+        else if (displayIdx === state.selectedIdx) { cls = 'wrong'; tag = 'YOUR PICK'; }
+        return `
+          <div class="lede-panelist-card ${cls}" disabled>
+            <div class="lede-completion-headline">
+              "...${p.completion}"
+            </div>
+            <div class="lede-panelist-divider"></div>
+            <div class="lede-panelist-header">
+              <div class="lede-panelist-avatar">${p.name.charAt(0)}</div>
+              <div class="lede-panelist-info">
+                <div class="lede-panelist-name">${p.name}</div>
+                <div class="lede-panelist-role">${p.role}</div>
+              </div>
+            </div>
+            <div class="lede-panelist-pitch">
+              <span class="quote-mark">"</span>${p.pitch}<span class="quote-mark">"</span>
+            </div>
+            ${tag ? `<span class="lede-reveal-tag">${tag}</span>` : ''}
+          </div>
+        `;
+      }).join('')}
+
+      <div class="truth-box">
+        <div class="label">The Real Story</div>
+        <p>${q.explanation}</p>
+      </div>
+    </div>
+
+    <div class="card result-card">
+      <div class="result-verdict ${correct ? 'win' : 'loss'}">${correct ? 'You picked the truth.' : 'Bluffed.'}</div>
+      <div class="result-detail">${correct ? (state.stats.lede.streak > 0 ? `+10 base, +${Math.min(state.stats.lede.streak * 2, 20)} streak bonus` : 'Right reporter') : 'Streak reset to zero'}</div>
+      <div class="points-display ${correct ? 'positive' : 'negative'}">${correct ? '+' + points : '0'}</div>
+      <div class="result-detail">Points</div>
+      <div class="share-grid">
+        THE LEDE #${String(issueNum).padStart(4,'0')}<br/>
+        ${correct ? '🟩' : '🟥'} ${correct ? 'CALLED' : 'BLUFFED'}<br/>
+        ${correct ? `Streak: ${state.stats.lede.streak + 1} 🔥` : 'Streak broken'}
+      </div>
+    </div>
+
+    <button class="btn" id="another">Try Another Headline</button>
+    <button class="btn secondary" id="hub" style="margin-top:8px;">Back to All Games</button>
+  `;
+
+  updateGameStats('lede', correct, points);
+
+  c.querySelector('#another').addEventListener('click', () => { startLede(); render(); });
+  c.querySelector('#hub').addEventListener('click', () => { state.screen = 'hub'; render(); });
+  return c;
+}
+
+// ============ THE PULSE ============
+function startWave() {
+  let seen = state.seen.wave || [];
+  if (seen.length >= WAVE_BANK.length) seen = [];
+  const available = WAVE_BANK.map((_, i) => i).filter(i => !seen.includes(i));
+  const idx = available[Math.floor(Math.random() * available.length)];
+  seen.push(idx);
+  state.seen.wave = seen;
+  state.question = WAVE_BANK[idx];
+  state.wavePosition = 50;
+  delete shareState.friendResponses['wave'];
+  state.screen = 'wave-play';
+  saveState();
+}
+
+function wavePlayScreen() {
+  const c = document.createElement('div');
+  c.appendChild(backBtn('hub', 'Back to Games'));
+  const q = state.question;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="label">The Pulse &middot; Today's Story ${state.stats.wave.streak > 0 ? `<span class="streak-badge">🔥 ${state.stats.wave.streak}</span>` : ''}</div>
+      <div class="wave-prompt">${q.story}</div>
+      <p style="font-size: 14px; line-height: 1.5; margin-top: 16px; color: var(--muted); font-style: italic;">Where did the public actually land on this story? Place your dial where you think the consensus reaction fell — not your own opinion.</p>
+    </div>
+    <div class="card">
+      <div class="label">Place Your Dial</div>
+      <div class="wave-spectrum">
+        <div class="wave-labels">
+          <div class="wave-label-end left"><span class="arrow">←</span>${q.leftLabel}</div>
+          <div class="wave-label-end right">${q.rightLabel}<span class="arrow">→</span></div>
+        </div>
+        <div class="wave-track" id="waveTrack">
+          <div class="wave-ticks">
+            ${[0,1,2,3,4,5,6,7,8,9,10].map(i => `<div class="wave-tick ${i % 5 === 0 ? 'major' : ''}"></div>`).join('')}
+          </div>
+          <div class="wave-marker" id="waveMarker" style="left: ${state.wavePosition}%;"></div>
+        </div>
+        <input type="range" min="0" max="100" step="1" value="${state.wavePosition}" class="wave-input-range" id="waveSlider" />
+        <div class="wave-position"><span class="num" id="wavePosNum">${state.wavePosition}</span>on the dial</div>
+      </div>
+      <div class="info-box"><strong>Scoring</strong>Within 10 of the truth: +20. Within 20: +10. Within 30: +5. Beyond: 0. Streak bonus on top.</div>
+      <button class="btn" id="lockIn">Lock In My Read</button>
+      ${friendHelpButton('wave')}
+    </div>
+  `;
+  const slider = wrap.querySelector('#waveSlider');
+  const marker = wrap.querySelector('#waveMarker');
+  const posNum = wrap.querySelector('#wavePosNum');
+  slider.addEventListener('input', e => {
+    const v = parseInt(e.target.value);
+    state.wavePosition = v;
+    marker.style.left = v + '%';
+    posNum.textContent = v;
+  });
+  wrap.querySelector('#lockIn').addEventListener('click', () => { state.screen = 'wave-reveal'; render(); });
+  attachFriendHelpHandler(wrap);
+  c.appendChild(wrap);
+  return c;
+}
+
+function waveRevealScreen() {
+  const c = document.createElement('div');
+  const q = state.question;
+  const distance = Math.abs(state.wavePosition - q.truthPosition);
+  let basePoints = 0;
+  let success = false;
+  let verdict;
+  if (distance <= 10) { basePoints = 20; success = true; verdict = "You read the room."; }
+  else if (distance <= 20) { basePoints = 10; success = true; verdict = "Close enough."; }
+  else if (distance <= 30) { basePoints = 5; success = true; verdict = "In the ballpark."; }
+  else { basePoints = 0; success = false; verdict = "Out of step."; }
+  const streakBonus = success ? Math.min(state.stats.wave.streak * 2, 20) : 0;
+  const totalPoints = basePoints + streakBonus;
+  const truthZoneStart = Math.max(0, q.truthPosition - 10);
+  const truthZoneEnd = Math.min(100, q.truthPosition + 10);
+  c.innerHTML = `
+    <div class="card">
+      <div class="label">The Reveal</div>
+      <div class="wave-spectrum">
+        <div class="wave-labels">
+          <div class="wave-label-end left"><span class="arrow">←</span>${q.leftLabel}</div>
+          <div class="wave-label-end right">${q.rightLabel}<span class="arrow">→</span></div>
+        </div>
+        <div class="wave-track">
+          <div class="wave-zone" style="left: ${truthZoneStart}%; width: ${truthZoneEnd - truthZoneStart}%;"></div>
+          <div class="wave-ticks">
+            ${[0,1,2,3,4,5,6,7,8,9,10].map(i => `<div class="wave-tick ${i % 5 === 0 ? 'major' : ''}"></div>`).join('')}
+          </div>
+          <div class="wave-truth" style="left: ${q.truthPosition}%;"></div>
+          <div class="wave-marker" style="left: ${state.wavePosition}%;"></div>
+        </div>
+        <div class="wave-legend">
+          <div class="wave-legend-item"><div class="wave-legend-swatch"></div>Your dial: ${state.wavePosition}</div>
+          <div class="wave-legend-item"><div class="wave-legend-swatch truth"></div>Public: ${q.truthPosition}</div>
+        </div>
+      </div>
+      <div class="truth-box">
+        <div class="label">Why That Position</div>
+        <p>${q.explanation}</p>
+      </div>
+    </div>
+    <div class="card result-card">
+      <div class="result-verdict ${success ? 'win' : 'loss'}">${verdict}</div>
+      <div class="result-detail">${distance} points off the public consensus</div>
+      <div class="points-display ${success ? 'positive' : 'negative'}">${totalPoints > 0 ? '+' : ''}${totalPoints}</div>
+      <div class="result-detail">${basePoints} base${streakBonus > 0 ? `, +${streakBonus} streak` : ''} &middot; Total: ${state.stats.totalPoints + totalPoints}</div>
+      <div class="share-grid">
+        THE PULSE #${String(issueNum).padStart(4,'0')}<br/>
+        ${distance <= 10 ? '🟩🟩🟩' : distance <= 20 ? '🟩🟩⬜' : distance <= 30 ? '🟩⬜⬜' : '⬜⬜⬜'}<br/>
+        ${distance} off the pulse
+      </div>
+    </div>
+    <button class="btn" id="another">Read Another Story</button>
+    <button class="btn secondary" id="hub" style="margin-top:8px;">Back to All Games</button>
+  `;
+  state.stats.totalPoints += totalPoints;
+  state.stats.wave.played += 1;
+  if (success) {
+    state.stats.wave.correct += 1;
+    state.stats.wave.streak += 1;
+    if (state.stats.wave.streak > state.stats.wave.bestStreak) state.stats.wave.bestStreak = state.stats.wave.streak;
+  } else {
+    state.stats.wave.streak = 0;
+  }
+  saveState();
+  c.querySelector('#another').addEventListener('click', () => { startWave(); render(); });
+  c.querySelector('#hub').addEventListener('click', () => { state.screen = 'hub'; render(); });
+  return c;
+}
+
+// ============ SCIENCE OR FICTION ============
+function startSof() {
+  let seen = state.seen.sof || [];
+  if (seen.length >= SOF_BANK.length) seen = [];
+  const available = SOF_BANK.map((_, i) => i).filter(i => !seen.includes(i));
+  const idx = available[Math.floor(Math.random() * available.length)];
+  seen.push(idx);
+  state.seen.sof = seen;
+  state.question = SOF_BANK[idx];
+  state.sofVotes = [null, null, null];
+  state.sofRevealed = false;
+  delete shareState.friendResponses['sof'];
+  state.screen = 'sof-play';
+  saveState();
+}
+
+function sofPlayScreen() {
+  const c = document.createElement('div');
+  c.appendChild(backBtn('hub', 'Back to Games'));
+  const q = state.question;
+  const allVoted = state.sofVotes.every(v => v !== null);
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="label">Science or Fiction &middot; Today's Topic ${state.stats.sof.streak > 0 ? `<span class="streak-badge">🔥 ${state.stats.sof.streak}</span>` : ''}</div>
+      <div class="sof-intro-card">
+        <div style="font-family: 'Fraunces', serif; font-style: italic; font-weight: 700; font-size: 20px; margin-bottom: 8px; color: var(--accent);">${q.topic}</div>
+        <div style="font-size: 15px; line-height: 1.5;">${q.intro}</div>
+      </div>
+      <div class="info-box"><strong>How to play</strong>Mark each claim as <em>Science</em> (real, citable) or <em>Fiction</em> (fabricated). Real claims will show their source on reveal.</div>
+      <div class="sof-progress" id="sofProgress">
+        ${[0,1,2].map(i => `<div class="sof-progress-pip ${state.sofVotes[i] !== null ? 'voted' : ''}"></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">The Three Claims</div>
+      ${q.claims.map((claim, i) => `
+        <div class="sof-claim" data-idx="${i}">
+          <span class="claim-num">${String(i + 1).padStart(2, '0')}</span>
+          <div class="claim-text">${claim.text}</div>
+          <div class="claim-vote-row">
+            <button class="sof-vote-btn vote-science ${state.sofVotes[i] === 'science' ? 'selected' : ''}" data-vote="science" data-idx="${i}">Science (Real)</button>
+            <button class="sof-vote-btn vote-fiction ${state.sofVotes[i] === 'fiction' ? 'selected' : ''}" data-vote="fiction" data-idx="${i}">Fiction (Fake)</button>
+          </div>
+        </div>
+      `).join('')}
+      <button class="btn" id="lockIn" ${!allVoted ? 'disabled' : ''}>${allVoted ? 'Lock In All Votes' : `Vote on ${3 - state.sofVotes.filter(v => v !== null).length} More`}</button>
+      ${friendHelpButton('sof')}
+      <div class="info-box"><strong>Scoring</strong>Each correct vote: +10. All three right: bonus +20. Streak bonus on top.</div>
+    </div>
+  `;
+
+  // FIX: instead of calling render() (which causes scroll jump), update DOM in place
+  wrap.querySelectorAll('.sof-vote-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const vote = btn.dataset.vote;
+      state.sofVotes[idx] = state.sofVotes[idx] === vote ? null : vote;
+      saveState();
+
+      // Update visual state without re-rendering
+      const claim = wrap.querySelector(`.sof-claim[data-idx="${idx}"]`);
+      const scienceBtn = claim.querySelector('.vote-science');
+      const fictionBtn = claim.querySelector('.vote-fiction');
+      scienceBtn.classList.toggle('selected', state.sofVotes[idx] === 'science');
+      fictionBtn.classList.toggle('selected', state.sofVotes[idx] === 'fiction');
+
+      // Update progress pips
+      const pips = wrap.querySelectorAll('.sof-progress-pip');
+      state.sofVotes.forEach((v, i) => {
+        pips[i].classList.toggle('voted', v !== null);
+      });
+
+      // Update lock-in button
+      const lockBtn = wrap.querySelector('#lockIn');
+      const allVotedNow = state.sofVotes.every(v => v !== null);
+      lockBtn.disabled = !allVotedNow;
+      const remaining = 3 - state.sofVotes.filter(v => v !== null).length;
+      lockBtn.textContent = allVotedNow ? 'Lock In All Votes' : `Vote on ${remaining} More`;
+    });
+  });
+
+  const lockBtn = wrap.querySelector('#lockIn');
+  if (lockBtn) {
+    lockBtn.addEventListener('click', () => {
+      if (state.sofVotes.every(v => v !== null)) {
+        state.screen = 'sof-reveal';
+        render();
+      }
+    });
+  }
+  attachFriendHelpHandler(wrap);
+  c.appendChild(wrap);
+  return c;
+}
+
+function sofRevealScreen() {
+  const c = document.createElement('div');
+  const q = state.question;
+  let correctVotes = 0;
+  q.claims.forEach((claim, i) => {
+    const userVote = state.sofVotes[i];
+    const correctVote = claim.isScience ? 'science' : 'fiction';
+    if (userVote === correctVote) correctVotes++;
+  });
+  let basePoints = correctVotes * 10;
+  if (correctVotes === 3) basePoints += 20;
+  const success = correctVotes >= 2;
+  const streakBonus = success ? Math.min(state.stats.sof.streak * 2, 20) : 0;
+  const totalPoints = success ? basePoints + streakBonus : basePoints;
+  let verdict;
+  if (correctVotes === 3) verdict = "Three for three. Perfect.";
+  else if (correctVotes === 2) verdict = "Two of three. Solid.";
+  else if (correctVotes === 1) verdict = "One landed.";
+  else verdict = "All three slipped past.";
+  c.innerHTML = `
+    <div class="card">
+      <div class="label">The Reveal &middot; ${q.topic}</div>
+      ${q.claims.map((claim, i) => {
+        const userVote = state.sofVotes[i];
+        const correctVote = claim.isScience ? 'science' : 'fiction';
+        const wasRight = userVote === correctVote;
+        const cls = wasRight ? 'revealed-correct' : 'revealed-wrong';
+        return `
+          <div class="sof-claim locked ${cls}">
+            <span class="claim-num">${String(i + 1).padStart(2, '0')}</span>
+            <div class="claim-text">${claim.text}</div>
+            <div class="reveal-row">
+              <span class="reveal-tag ${claim.isScience ? 'science' : 'fiction'}">${claim.isScience ? 'SCIENCE' : 'FICTION'}</span>
+              <span class="reveal-result ${wasRight ? 'right' : 'wrong'}">${wasRight ? '✓ You got it' : '✗ You said ' + (userVote || 'nothing')}</span>
+            </div>
+            <div class="reveal-explanation">${claim.explanation}</div>
+            ${claim.source ? `
+              <div class="citation">
+                <strong>Source</strong>
+                <a href="${claim.source.url}" target="_blank" rel="noopener noreferrer">${claim.source.name} ↗</a>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div class="card result-card">
+      <div class="result-verdict ${success ? 'win' : 'loss'}">${verdict}</div>
+      <div class="result-detail">${correctVotes} of 3 correct</div>
+      <div class="points-display ${success ? 'positive' : 'negative'}">${totalPoints > 0 ? '+' : ''}${totalPoints}</div>
+      <div class="result-detail">${correctVotes * 10} for votes${correctVotes === 3 ? ', +20 perfect' : ''}${streakBonus > 0 ? `, +${streakBonus} streak` : ''}</div>
+      <div class="share-grid">
+        SCIENCE or FICTION #${String(issueNum).padStart(4,'0')}<br/>
+        ${q.claims.map((claim, i) => {
+          const correctVote = claim.isScience ? 'science' : 'fiction';
+          return state.sofVotes[i] === correctVote ? '🟩' : '🟥';
+        }).join('')}<br/>
+        ${success ? `Streak: ${state.stats.sof.streak + (success ? 1 : 0)} 🔥` : 'Streak broken'}
+      </div>
+    </div>
+    <button class="btn" id="another">Another Topic</button>
+    <button class="btn secondary" id="hub" style="margin-top:8px;">Back to All Games</button>
+  `;
+  state.stats.totalPoints += totalPoints;
+  state.stats.sof.played += 1;
+  if (success) {
+    state.stats.sof.correct += 1;
+    state.stats.sof.streak += 1;
+    if (state.stats.sof.streak > state.stats.sof.bestStreak) state.stats.sof.bestStreak = state.stats.sof.streak;
+  } else {
+    state.stats.sof.streak = 0;
+  }
+  saveState();
+  c.querySelector('#another').addEventListener('click', () => { startSof(); render(); });
+  c.querySelector('#hub').addEventListener('click', () => { state.screen = 'hub'; render(); });
+  return c;
+}
+
+
+// ============ PHONE A FRIEND — Front-end Share UI ============
+// NOTE: This is a UI-only implementation. The backend hooks are marked
+// with TODO comments. To make this real you'd need:
+//  1. POST /api/share — creates a share token, returns shareable URL
+//  2. GET /api/share/:token — friend opens link, receives the question (no answer)
+//  3. POST /api/share/:token/respond — friend submits their suggestion
+//  4. WebSocket or polling to notify the original player of the response
+//
+// For now: clicking "Phone a Friend" opens a share modal with a fake URL,
+// copy-to-clipboard works, and a "Simulate Friend Response" button lets you
+// preview how an incoming response would look in the play UI.
+
+function generateShareToken() {
+  // TODO: replace with real backend-issued token
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let token = '';
+  for (let i = 0; i < 8; i++) {
+    token += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return token;
+}
+
+function buildShareUrl(gameId) {
+  // TODO: replace with real production URL once backend is live
+  const token = generateShareToken();
+  // In production: window.location.origin + '/help/' + token
+  return `https://noodlebowl.app/help/${token}`;
+}
+
+function getQuestionPreviewForFriend(gameId, question) {
+  // What the friend sees when they open the link.
+  // No answers, no spoilers — just the question they're being asked to weigh in on.
+  if (gameId === 'wacky') {
+    return {
+      gameLabel: 'Wacky News',
+      prompt: 'Real headline or satire?',
+      detail: `"${question.headline}"`
+    };
+  } else if (gameId === 'quip') {
+    return {
+      gameLabel: 'The Quip',
+      prompt: 'Help finish this with the funniest thing you can think of:',
+      detail: `"${question.setup}"`
+    };
+  } else if (gameId === 'spread') {
+    return {
+      gameLabel: 'The Spread',
+      prompt: 'What\'s your best guess?',
+      detail: question.question
+    };
+  } else if (gameId === 'lede') {
+    return {
+      gameLabel: 'The Lede',
+      prompt: 'Which reporter do you trust on this story?',
+      detail: `Headline starts: "${question.partialHeadline}..."`
+    };
+  } else if (gameId === 'wave') {
+    return {
+      gameLabel: 'The Pulse',
+      prompt: `On a 0-100 scale from "${question.leftLabel}" to "${question.rightLabel}", where does the public land?`,
+      detail: question.story
+    };
+  } else if (gameId === 'sof') {
+    return {
+      gameLabel: 'Science or Fiction',
+      prompt: `Three claims about ${question.topic}. Which one is fake?`,
+      detail: question.claims.map((c, i) => `${i+1}. ${c.text}`).join('\n\n')
+    };
+  }
+  return null;
+}
+
+// Sample friend responses by game type — in production these come from the backend
+// when a real friend submits via the share link
+const FRIEND_NAMES = ['Alex', 'Jamie', 'Riley', 'Sam', 'Morgan', 'Casey'];
+function generateMockFriendResponse(gameId, question) {
+  const friendName = FRIEND_NAMES[Math.floor(Math.random() * FRIEND_NAMES.length)];
+  // TODO: replace with real friend response from backend
+  let message;
+  if (gameId === 'wacky') {
+    message = question.isReal
+      ? "I'm pretty sure this one is real — I think I saw it on Reddit a while back."
+      : "This sounds like an Onion piece to me. Too neatly worded to be a real headline.";
+  } else if (gameId === 'quip') {
+    message = "Try something punchy and short. Maybe play on the absurdity directly?";
+  } else if (gameId === 'spread') {
+    const offset = Math.floor(Math.random() * 20) - 10;
+    const suggestion = Math.max(0, question.answer + offset);
+    message = `My gut says around ${suggestion.toLocaleString()} ${question.unit}. Could be off though.`;
+  } else if (gameId === 'lede') {
+    const correctPanelist = question.panelists.find(p => p.isCorrect);
+    message = `${correctPanelist.name}'s version sounds the most specific to me — they're citing details. The others sound like guesses.`;
+  } else if (gameId === 'wave') {
+    const offset = Math.floor(Math.random() * 20) - 10;
+    const suggestion = Math.max(0, Math.min(100, question.truthPosition + offset));
+    message = `I'd put this around ${suggestion} on the dial. That story felt that way to me.`;
+  } else if (gameId === 'sof') {
+    const fictionIdx = question.claims.findIndex(c => !c.isScience);
+    message = `Number ${fictionIdx + 1} smells off to me. The others sound like real research.`;
+  }
+  return { name: friendName, message };
+}
+
+// State for active share session — tracks which game has a friend response pending
+let shareState = {
+  modalGame: null, // game id when modal is open
+  shareUrl: null,
+  friendResponses: {} // keyed by game id; persists during session
+};
+
+function openShareModal(gameId) {
+  shareState.modalGame = gameId;
+  shareState.shareUrl = buildShareUrl(gameId);
+  renderShareModal();
+}
+
+function closeShareModal() {
+  const existing = document.getElementById('shareModal');
+  if (existing) existing.remove();
+  shareState.modalGame = null;
+}
+
+function renderShareModal() {
+  // Remove existing if present
+  const existing = document.getElementById('shareModal');
+  if (existing) existing.remove();
+
+  const gameId = shareState.modalGame;
+  if (!gameId) return;
+
+  const question = state.question;
+  const preview = getQuestionPreviewForFriend(gameId, question);
+  const existingResponse = shareState.friendResponses[gameId];
+
+  const overlay = document.createElement('div');
+  overlay.id = 'shareModal';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" id="modalContent">
+      <button class="modal-close" id="closeModal">✕</button>
+      <div class="modal-title">Share This Question</div>
+      <div class="modal-subtitle">Send a link to anyone who might know the answer. They'll see just the question — no answers, no spoilers — and can send back a hint.</div>
+
+      <div class="link-consent-notice">
+        <span class="consent-icon">🔗</span>
+        <div>
+          <strong>Anyone with this link can view the question.</strong>
+          They don't need an account or the app to help.
+        </div>
+      </div>
+
+      <div class="label" style="margin-bottom: 10px; margin-top: 18px;">What They'll See</div>
+      <div class="friend-preview-card">
+        <span class="preview-label">${preview.gameLabel}</span>
+        <strong style="font-style: normal; font-family: 'Fraunces', serif; font-weight: 700;">${preview.prompt}</strong>
+        <div style="margin-top: 8px; white-space: pre-line;">${preview.detail}</div>
+      </div>
+
+      <div class="label" style="margin-top: 22px; margin-bottom: 10px;">Share Link</div>
+      <div class="share-link-box">
+        <span class="link-icon">🔗</span>
+        <span id="shareUrl">${shareState.shareUrl}</span>
+      </div>
+
+      <div class="share-options">
+        <button class="share-option-btn" id="copyLink">
+          <span class="opt-icon">📋</span>
+          <span id="copyLabel">Copy Link</span>
+        </button>
+        <button class="share-option-btn" id="messagesShare">
+          <span class="opt-icon">💬</span>
+          <span>Send via Messages</span>
+        </button>
+      </div>
+
+      ${existingResponse ? `
+        <div class="friend-response-card">
+          <div class="friend-name">${existingResponse.name}</div>
+          <div class="friend-msg">"${existingResponse.message}"</div>
+        </div>
+      ` : `
+        <div class="help-status">
+          <span class="live-dot"></span>
+          Waiting for someone to respond...
+        </div>
+        <button class="btn secondary" id="simulateResponse" style="margin-top: 14px; font-size: 10px;">
+          Simulate Response (Demo)
+        </button>
+      `}
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Event listeners
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeShareModal();
+  });
+
+  overlay.querySelector('#closeModal').addEventListener('click', closeShareModal);
+
+  overlay.querySelector('#copyLink').addEventListener('click', async () => {
+    try {
+      // TODO: in production, this is just navigator.clipboard.writeText
+      await navigator.clipboard.writeText(shareState.shareUrl);
+      const btn = overlay.querySelector('#copyLink');
+      const label = overlay.querySelector('#copyLabel');
+      btn.classList.add('copied');
+      label.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        label.textContent = 'Copy Link';
+      }, 1800);
+    } catch (e) {
+      // Fallback for older browsers
+      const tmpInput = document.createElement('input');
+      tmpInput.value = shareState.shareUrl;
+      document.body.appendChild(tmpInput);
+      tmpInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tmpInput);
+    }
+  });
+
+  overlay.querySelector('#messagesShare').addEventListener('click', () => {
+    // TODO: on mobile this can use navigator.share() when available
+    if (navigator.share) {
+      navigator.share({
+        title: `Help me with Noodle Bowl — ${preview.gameLabel}`,
+        text: `Can you help me with this? ${preview.prompt}`,
+        url: shareState.shareUrl
+      }).catch(() => {});
+    } else {
+      // Fallback: open SMS link
+      window.location.href = `sms:?body=${encodeURIComponent(`Help me with Noodle Bowl — ${preview.gameLabel}: ${shareState.shareUrl}`)}`;
+    }
+  });
+
+  const simBtn = overlay.querySelector('#simulateResponse');
+  if (simBtn) {
+    simBtn.addEventListener('click', () => {
+      // TODO: in production, friend response arrives via WebSocket or polling
+      const response = generateMockFriendResponse(gameId, state.question);
+      shareState.friendResponses[gameId] = response;
+      renderShareModal(); // re-render with response shown
+    });
+  }
+}
+
+function friendHelpButton(gameId) {
+  // Returns HTML for the in-game "Get Help" button — clearly indicates
+  // this generates a shareable link, not a private message
+  const hasHelp = !!shareState.friendResponses[gameId];
+  return `
+    <button class="friend-help-btn ${hasHelp ? 'has-help' : ''}" id="phoneAFriend" data-game="${gameId}">
+      <span class="phone-icon">${hasHelp ? '✓' : '🔗'}</span>
+      ${hasHelp ? "View The Hint You Got Back" : "Get Help — Share A Link With A Friend"}
+    </button>
+  `;
+}
+
+function attachFriendHelpHandler(container) {
+  const btn = container.querySelector('#phoneAFriend');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      openShareModal(btn.dataset.game);
+    });
+  }
+}
+
+
+// ============ UTIL ============
+function updateGameStats(game, correct, points) {
+  state.stats.totalPoints += points;
+  state.stats[game].played += 1;
+  if (correct) {
+    state.stats[game].correct += 1;
+    state.stats[game].streak += 1;
+    if (state.stats[game].streak > state.stats[game].bestStreak) state.stats[game].bestStreak = state.stats[game].streak;
+  } else {
+    state.stats[game].streak = 0;
+  }
+  saveState();
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('daily_state_v7', JSON.stringify({ stats: state.stats, seen: state.seen }));
+  } catch(e) {}
+}
+
+render();
+</script>
+</body>
+</html>

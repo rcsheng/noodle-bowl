@@ -1,98 +1,306 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Masthead } from '@/components/Masthead';
+import { C, F, cardShadow } from '@/constants/theme';
+import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
+import { useGame } from '@/context/GameContext';
 
-export default function HomeScreen() {
+export default function HubScreen() {
+  const { state } = useGame();
+
+  const totalPlayed = VISIBLE_GAMES.reduce((sum, id) => sum + state.stats[id].played, 0);
+  const totalCorrect = VISIBLE_GAMES.reduce((sum, id) => sum + state.stats[id].correct, 0);
+  const accuracy = totalPlayed > 0 ? Math.round((totalCorrect / totalPlayed) * 100) : 0;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Masthead />
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <View style={styles.introCard}>
+          <View style={styles.cardInnerBorder} />
+          <Text style={styles.introText}>
+            Four games. Real news. Curiosity required.
+          </Text>
+        </View>
+
+        <View style={styles.statsCard}>
+          <View style={styles.cardInnerBorder} />
+          <View style={styles.statsRow}>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>{state.stats.totalPoints}</Text>
+              <Text style={styles.statLabel}>Points</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>{accuracy}%</Text>
+              <Text style={styles.statLabel}>Accuracy</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>{totalPlayed}</Text>
+              <Text style={styles.statLabel}>Rounds</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Today's Games</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        {VISIBLE_GAMES.map((id: GameId) => {
+          const meta = GAME_META[id];
+          const stats = state.stats[id];
+          return (
+            <TouchableOpacity
+              key={id}
+              style={styles.gameCard}
+              onPress={() => router.push(`/games/${id}`)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.gameCardHeader}>
+                <View style={styles.gameCardHeaderLeft}>
+                  <Text style={styles.gameNum}>{meta.num}</Text>
+                  <Text style={styles.gameSection}>{meta.section}</Text>
+                </View>
+                <View style={styles.playBadge}>
+                  <Text style={styles.playBadgeText}>Play →</Text>
+                </View>
+              </View>
+
+              <View style={styles.gameCardBody}>
+                <View style={styles.cardInnerBorder} />
+                <Text style={styles.gameTitle}>{meta.title}</Text>
+                <Text style={styles.gameTagline}>{meta.tagline}</Text>
+
+                <View style={styles.metaRow}>
+                  {meta.meta.map((dot, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <Text style={styles.metaDot}> · </Text>}
+                      <Text style={styles.metaText}>{dot}</Text>
+                    </React.Fragment>
+                  ))}
+                </View>
+
+                {stats.streak > 0 && (
+                  <View style={styles.streakBadge}>
+                    <Text style={styles.streakText}>🔥 {stats.streak} streak</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Noodle Bowl · Solo Edition</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safe: {
+    flex: 1,
+    backgroundColor: C.paper,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 80,
+  },
+  introCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    padding: 20,
+    marginBottom: 16,
+    ...cardShadow,
+  },
+  cardInnerBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(42,36,29,0.15)',
+    pointerEvents: 'none',
+  },
+  introText: {
+    fontFamily: F.frauncesItalic,
+    fontSize: 18,
+    color: C.ink,
+    lineHeight: 26,
+  },
+  statsCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paperDark,
+    padding: 20,
+    marginBottom: 24,
+    ...cardShadow,
+  },
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-around',
   },
-  stepContainer: {
-    gap: 8,
+  statBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontFamily: F.frauncesXBold,
+    fontSize: 28,
+    color: C.ink,
+    lineHeight: 34,
+  },
+  statLabel: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: C.paperDarker,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginRight: 12,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: C.paperDarker,
+  },
+  gameCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    marginBottom: 20,
+    ...cardShadow,
+    overflow: 'hidden',
+  },
+  gameCardHeader: {
+    backgroundColor: C.ink,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  gameCardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  gameNum: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: C.onDarkDim,
+    textTransform: 'uppercase',
+  },
+  gameSection: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: C.onDark,
+    textTransform: 'uppercase',
+  },
+  playBadge: {
+    borderWidth: 1,
+    borderColor: C.onDarkDim,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  playBadgeText: {
+    fontFamily: F.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: C.onDark,
+    textTransform: 'uppercase',
+  },
+  gameCardBody: {
+    padding: 24,
+  },
+  gameTitle: {
+    fontFamily: F.frauncesXBoldItalic,
+    fontSize: 28,
+    color: C.ink,
+    lineHeight: 32,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  gameTagline: {
+    fontFamily: F.fraunces,
+    fontSize: 15,
+    color: C.muted,
+    lineHeight: 22,
+    marginBottom: 14,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  metaText: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
+  },
+  metaDot: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    color: C.muted,
+  },
+  streakBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: C.ink,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 12,
+  },
+  streakText: {
+    fontFamily: F.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: C.onDark,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingTop: 16,
+  },
+  footerText: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
   },
 });

@@ -1,53 +1,58 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+export const C = {
+  ink: '#1a2030',
+  paper: '#e8eef3',
+  paperDark: '#d8e1ea',
+  paperDarker: '#c4d0dc',
+  rule: '#2a3548',
+  accent: '#b84a35',
+  accentWarm: '#d97a3c',
+  gold: '#b8902c',
+  green: '#4a7a3e',
+  greenLight: '#7ba368',
+  blue: '#3a5a7a',
+  muted: '#5a6878',
+  onDark: '#e8eef3',
+  onDarkDim: '#b8c4d4',
+} as const;
 
-import { Platform } from 'react-native';
+export const F = {
+  fraunces: 'Fraunces_400Regular',
+  frauncesItalic: 'Fraunces_400Regular_Italic',
+  frauncesSemiBold: 'Fraunces_600SemiBold',
+  frauncesSemiBoldItalic: 'Fraunces_600SemiBold_Italic',
+  frauncesBold: 'Fraunces_700Bold',
+  frauncesBoldItalic: 'Fraunces_700Bold_Italic',
+  frauncesXBold: 'Fraunces_800ExtraBold',
+  frauncesXBoldItalic: 'Fraunces_800ExtraBold_Italic',
+  mono: 'JetBrainsMono_400Regular',
+  monoMedium: 'JetBrainsMono_500Medium',
+  monoBold: 'JetBrainsMono_700Bold',
+} as const;
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
+// Keep legacy Colors export for components that haven't been updated yet
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: C.ink,
+    background: C.paper,
+    tint: C.accent,
+    icon: C.muted,
+    tabIconDefault: C.muted,
+    tabIconSelected: C.accent,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: C.ink,
+    background: C.paper,
+    tint: C.accent,
+    icon: C.muted,
+    tabIconDefault: C.muted,
+    tabIconSelected: C.accent,
   },
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+export const cardShadow = {
+  shadowColor: C.rule,
+  shadowOffset: { width: 3, height: 3 },
+  shadowOpacity: 1,
+  shadowRadius: 0,
+  elevation: 3,
+} as const;
