@@ -55,3 +55,13 @@ export function pickFromBank<T>(bank: T[], seen: number[]): { idx: number; item:
   const idx = available[Math.floor(Math.random() * available.length)];
   return { idx, item: bank[idx], newSeen: [...effective, idx] };
 }
+
+export function scoreSpread(guess: number, answer: number): { correct: boolean; points: number; deviation: number } {
+  const deviation = Math.abs((guess - answer) / answer) * 100;
+  let points = 0;
+  if (deviation <= 5) points = 25;
+  else if (deviation <= 15) points = 15;
+  else if (deviation <= 30) points = 8;
+  const correct = deviation <= 30;
+  return { correct, points, deviation };
+}

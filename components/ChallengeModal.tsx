@@ -111,6 +111,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
                 )}
 
                 <TouchableOpacity
+                  testID="challenge-next-btn"
                   style={[styles.primaryBtn, !prediction.trim() && styles.primaryBtnDisabled]}
                   onPress={() => setStep('share')}
                   disabled={!prediction.trim()}

@@ -1,0 +1,28 @@
+// @testing-library/react-native v13+ auto-registers matchers; no extend-expect import needed.
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+jest.mock('react-native-reanimated', () =>
+  require('react-native-reanimated/mock')
+);
+
+jest.mock('react-native-worklets', () => ({}));
+
+jest.mock('expo-clipboard', () => ({
+  setStringAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  notificationAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+}));
+
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  Link: 'Link',
+}));
