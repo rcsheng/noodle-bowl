@@ -17,7 +17,7 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | null>(null);
 
-const STORAGE_KEY = 'daily_state_v8';
+const STORAGE_KEY = 'daily_state_v9';
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -44,8 +44,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [state, isLoaded]);
 
   const updateGameStats = useCallback((game: GameId, correct: boolean, points: number) => {
-    dispatch({ type: 'UPDATE_STATS', game, correct, points });
-    dispatch({ type: 'UPDATE_DAILY_STREAK', today: getTodayISODate() });
+    const today = getTodayISODate();
+    dispatch({ type: 'UPDATE_STATS', game, correct, points, today });
+    dispatch({ type: 'UPDATE_DAILY_STREAK', today });
   }, []);
 
   const setSeen = useCallback((game: GameId, seen: number[]) => {

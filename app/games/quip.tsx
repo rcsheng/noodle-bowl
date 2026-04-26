@@ -15,11 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChallengeModal } from '@/components/ChallengeModal';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { PANEL, QUIP_PROMPTS, QuipPrompt } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { pickFromBank } from '@/constants/utils';
+import { genChallengeUrl, pickFromBank } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 type Phase = 'play' | 'judging' | 'result';
@@ -70,10 +71,11 @@ function getReaction(panelist: typeof PANEL[0], quip: string): { reaction: strin
 }
 
 export default function QuipScreen() {
-  const { state, isLoaded, updateGameStats, setSeen } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const started = useRef(false);
 
   const [prompt, setPrompt] = useState<QuipPrompt | null>(null);
+  const [questionIdx, setQuestionIdx] = useState(0);
   const [quip, setQuip] = useState('');
   const [phase, setPhase] = useState<Phase>('play');
   const [judgeResults, setJudgeResults] = useState<JudgeResult[]>([]);
@@ -82,13 +84,15 @@ export default function QuipScreen() {
   const [showFriend, setShowFriend] = useState(false);
   const [fakeUrl] = useState(genFakeUrl);
   const [copied, setCopied] = useState(false);
+  const [showChallenge, setShowChallenge] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { item, newSeen } = pickFromBank(QUIP_PROMPTS, state.seen.quip);
+    const { idx, item, newSeen } = pickFromBank(QUIP_PROMPTS, state.seen.quip);
     setSeen('quip', newSeen);
     setPrompt(item);
+    setQuestionIdx(idx);
   }, [isLoaded]);
 
   const handleSubmit = () => {
@@ -117,9 +121,10 @@ export default function QuipScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { item, newSeen } = pickFromBank(QUIP_PROMPTS, state.seen.quip);
+    const { idx, item, newSeen } = pickFromBank(QUIP_PROMPTS, state.seen.quip);
     setSeen('quip', newSeen);
     setPrompt(item);
+    setQuestionIdx(idx);
     setQuip('');
     setPhase('play');
     setJudgeResults([]);
@@ -134,7 +139,10 @@ export default function QuipScreen() {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    if (result.action === Share.sharedAction) {
+      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'quip', questionIndex: questionIdx, shieldEarned: false });
+    }
   };
 
   if (!prompt) return null;
@@ -254,6 +262,14 @@ export default function QuipScreen() {
               </View>
 
               <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={() => setShowChallenge(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={styles.secondaryBtn}
                 onPress={handlePlayAgain}
                 activeOpacity={0.85}
@@ -276,6 +292,35 @@ export default function QuipScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ChallengeModal
+        visible={showChallenge}
+        onClose={() => setShowChallenge(false)}
+        correct={judgeResults.filter(r => r.liked).length >= 2}
+        predictLabel="How many judges do you think will like it?"
+        predictOptions={[
+          { label: 'None', value: '0' },
+          { label: '1 out of 3', value: '1' },
+          { label: '2 out of 3', value: '2' },
+          { label: 'All 3', value: '3' },
+        ]}
+        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
+          gameId: 'quip',
+          questionIndex: questionIdx,
+          senderPrediction: prediction,
+          senderAnswer: String(judgeResults.filter(r => r.liked).length),
+          senderName: friendName,
+          issuedAt: new Date().toISOString(),
+        })}
+        onSent={(prediction, friendName) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName,
+          gameId: 'quip',
+          questionIndex: questionIdx,
+          shieldEarned: false,
+          senderPrediction: prediction,
+        })}
+      />
 
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>

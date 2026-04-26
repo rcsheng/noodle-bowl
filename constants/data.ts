@@ -65,7 +65,7 @@ export interface SofItem {
   claims: SofClaim[];
 }
 
-export type GameId = 'wacky' | 'quip' | 'spread' | 'lede' | 'wave' | 'sof';
+export type GameId = 'quip' | 'spread' | 'lede' | 'wave' | 'sof';
 
 // export const WACKY_BANK: WackyItem[] = [
 //   {
@@ -717,14 +717,6 @@ export const GAME_META: Record<GameId, { num: string; section: string; title: st
     title: 'Science or Fiction',
     tagline: 'Three claims. Two are real and cited. One is fabricated. Find the fake.',
     meta: ['Cited sources', '~3 min'],
-  },
-  wacky: {
-    num: 'N° 04',
-    section: 'Real or Satire',
-    title: 'Wacky News',
-    tagline: 'A bizarre headline appears. Real news or satire? You decide.',
-    meta: ['Real headlines', '~1 min'],
-    hidden: true,
   },
   quip: {
     num: 'N° 05',

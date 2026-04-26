@@ -42,11 +42,30 @@ export function shuffleIndices(length: number): number[] {
   return arr;
 }
 
-export function genChallengeUrl(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return `https://noodlebowl.app/c/${result}`;
+export interface ChallengePayload {
+  gameId: string;
+  questionIndex: number;
+  senderPrediction: string;
+  senderAnswer: string;
+  senderName: string;
+  issuedAt: string;
+}
+
+export function genChallengeUrl(payload: ChallengePayload): string {
+  const json = JSON.stringify(payload);
+  const encoded = btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  return `https://noodlebowl.app/c/${encoded}`;
+}
+
+export function decodeChallengeToken(token: string): ChallengePayload | null {
+  try {
+    const padded = token.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = (4 - (padded.length % 4)) % 4;
+    const json = atob(padded + '='.repeat(padding));
+    return JSON.parse(json) as ChallengePayload;
+  } catch {
+    return null;
+  }
 }
 
 export function pickFromBank<T>(bank: T[], seen: number[]): { idx: number; item: T; newSeen: number[] } {

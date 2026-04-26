@@ -18,6 +18,7 @@ import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { SOF_BANK, SofItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
+import { ChallengePayload, genChallengeUrl } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 type Phase = 'play' | 'reveal';
@@ -40,7 +41,7 @@ function genFakeUrl(): string {
 function pickFromSof(
   weirdMode: boolean,
   seen: number[]
-): { item: SofItem; newSeen: number[] } {
+): { idx: number; item: SofItem; newSeen: number[] } {
   const filtered = SOF_BANK
     .map((item, i) => ({ item, i }))
     .filter(({ item }) => item.weirdAndTrue === weirdMode);
@@ -49,7 +50,7 @@ function pickFromSof(
     ? filtered
     : filtered.filter(({ i }) => !seenInMode.includes(i));
   const pick = available[Math.floor(Math.random() * available.length)];
-  return { item: pick.item, newSeen: seen.includes(pick.i) ? seen : [...seen, pick.i] };
+  return { idx: pick.i, item: pick.item, newSeen: seen.includes(pick.i) ? seen : [...seen, pick.i] };
 }
 
 export default function SofScreen() {
@@ -57,6 +58,7 @@ export default function SofScreen() {
   const started = useRef(false);
 
   const [question, setQuestion] = useState<SofItem | null>(null);
+  const [questionIdx, setQuestionIdx] = useState(0);
   const [votes, setVotes] = useState<ClaimVote[]>([null, null, null]);
   const [phase, setPhase] = useState<Phase>('play');
   const [revealData, setRevealData] = useState<RevealData | null>(null);
@@ -69,9 +71,10 @@ export default function SofScreen() {
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { item, newSeen } = pickFromSof(false, state.seen.sof);
+    const { idx, item, newSeen } = pickFromSof(false, state.seen.sof);
     setSeen('sof', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
     setVotes([null, null, null]);
   }, [isLoaded]);
 
@@ -107,9 +110,10 @@ export default function SofScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { item, newSeen } = pickFromSof(weirdMode, state.seen.sof);
+    const { idx, item, newSeen } = pickFromSof(weirdMode, state.seen.sof);
     setSeen('sof', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
     setVotes([null, null, null]);
     setPhase('play');
     setRevealData(null);
@@ -119,15 +123,19 @@ export default function SofScreen() {
     if (nextMode === weirdMode) return;
     setWeirdMode(nextMode);
     if (phase === 'play') {
-      const { item, newSeen } = pickFromSof(nextMode, state.seen.sof);
+      const { idx, item, newSeen } = pickFromSof(nextMode, state.seen.sof);
       setSeen('sof', newSeen);
       setQuestion(item);
+      setQuestionIdx(idx);
       setVotes([null, null, null]);
     }
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    if (result.action === Share.sharedAction) {
+      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'sof', questionIndex: questionIdx, shieldEarned: false });
+    }
   };
 
   const handleCopyHelp = async () => {
@@ -317,10 +325,19 @@ export default function SofScreen() {
           label: `${i + 1}. ${claim.text.split(' ').slice(0, 6).join(' ')}…`,
           value: String(i + 1),
         })) : []}
-        onSent={(prediction) => addFriendInteraction({
-          type: 'sent_challenge',
-          friendName: 'A Friend',
+        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
           gameId: 'sof',
+          questionIndex: questionIdx,
+          senderPrediction: prediction,
+          senderAnswer: String(votes.findIndex(v => v === 'fiction') + 1),
+          senderName: friendName,
+          issuedAt: new Date().toISOString(),
+        })}
+        onSent={(prediction, friendName) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName,
+          gameId: 'sof',
+          questionIndex: questionIdx,
           shieldEarned: false,
           senderPrediction: prediction,
         })}

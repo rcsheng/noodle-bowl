@@ -11,7 +11,6 @@ function makeState(overrides: Partial<AppState> = {}): AppState {
       lede: { ...initialState.stats.lede, ...(overrides.stats?.lede ?? {}) },
       spread: { ...initialState.stats.spread, ...(overrides.stats?.spread ?? {}) },
       sof: { ...initialState.stats.sof, ...(overrides.stats?.sof ?? {}) },
-      wacky: { ...initialState.stats.wacky, ...(overrides.stats?.wacky ?? {}) },
       quip: { ...initialState.stats.quip, ...(overrides.stats?.quip ?? {}) },
       wave: { ...initialState.stats.wave, ...(overrides.stats?.wave ?? {}) },
     },
@@ -72,6 +71,7 @@ describe('reducer: LOAD', () => {
       type: 'sent_challenge',
       friendName: 'Bob',
       gameId: 'lede',
+      questionIndex: 0,
       date: '2026-04-26',
       shieldEarned: false,
     };
@@ -102,7 +102,7 @@ describe('reducer: LOAD', () => {
 // ---------------------------------------------------------------------------
 describe('reducer: UPDATE_STATS', () => {
   const action = (game: string, correct: boolean, points: number): Action =>
-    ({ type: 'UPDATE_STATS', game: game as any, correct, points });
+    ({ type: 'UPDATE_STATS', game: game as any, correct, points, today: '2026-04-26' });
 
   test('increments played count for the targeted game', () => {
     const state = makeState();
@@ -152,6 +152,18 @@ describe('reducer: UPDATE_STATS', () => {
     expect(next.stats.lede.bestStreak).toBe(10);
   });
 
+  test('sets lastPlayed to today on the targeted game', () => {
+    const state = makeState();
+    const next = reducer(state, action('lede', true, 10));
+    expect(next.stats.lede.lastPlayed).toBe('2026-04-26');
+  });
+
+  test('sets lastPoints to the points earned on the targeted game', () => {
+    const state = makeState();
+    const next = reducer(state, action('lede', true, 25));
+    expect(next.stats.lede.lastPoints).toBe(25);
+  });
+
   test('updates bestScore with Math.max', () => {
     const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 0, bestStreak: 0, bestScore: 20 } } });
     const higher = reducer(state, action('lede', true, 30));
@@ -166,7 +178,6 @@ describe('reducer: UPDATE_STATS', () => {
     const next = reducer(state, action('lede', true, 10));
     expect(next.stats.spread).toEqual(state.stats.spread);
     expect(next.stats.sof).toEqual(state.stats.sof);
-    expect(next.stats.wacky).toEqual(state.stats.wacky);
     expect(next.stats.quip).toEqual(state.stats.quip);
     expect(next.stats.wave).toEqual(state.stats.wave);
   });
@@ -296,6 +307,7 @@ describe('reducer: ADD_FRIEND_INTERACTION', () => {
     type: 'sent_challenge',
     friendName: 'Alice',
     gameId: 'lede',
+    questionIndex: 0,
     date: '2026-04-26',
     shieldEarned: false,
   });
@@ -327,13 +339,13 @@ describe('reducer: ADD_FRIEND_INTERACTION', () => {
 describe('reducer: immutability', () => {
   test('returned state is a new object reference', () => {
     const state = makeState();
-    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, points: 10 });
+    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, points: 10, today: '2026-04-26' });
     expect(next).not.toBe(state);
   });
 
   test('returned state.stats is a new object reference when stats changed', () => {
     const state = makeState();
-    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, points: 10 });
+    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, points: 10, today: '2026-04-26' });
     expect(next.stats).not.toBe(state.stats);
   });
 });

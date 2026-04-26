@@ -5,10 +5,12 @@ export interface FriendInteraction {
   type: 'received_help' | 'gave_help' | 'sent_challenge' | 'challenge_accepted' | 'received_challenge';
   friendName: string;
   gameId: GameId;
+  questionIndex: number;
   date: string; // YYYY-MM-DD
   shieldEarned: boolean;
   senderPrediction?: string;
   friendAnswer?: string;
+  bonusPointsEarned?: number;
 }
 
 interface GameStats {
@@ -17,6 +19,8 @@ interface GameStats {
   streak: number;
   bestStreak: number;
   bestScore: number;
+  lastPlayed?: string;
+  lastPoints?: number;
 }
 
 interface AppState {
@@ -31,7 +35,6 @@ interface AppState {
     lede: GameStats;
     spread: GameStats;
     sof: GameStats;
-    wacky: GameStats;
     quip: GameStats;
     wave: GameStats;
   };
@@ -55,11 +58,10 @@ export const initialState: AppState = {
     lede: { ...defaultGameStats },
     spread: { ...defaultGameStats },
     sof: { ...defaultGameStats },
-    wacky: { ...defaultGameStats },
     quip: { ...defaultGameStats },
     wave: { ...defaultGameStats },
   },
-  seen: { wacky: [], quip: [], spread: [], lede: [], wave: [], sof: [] },
+  seen: { quip: [], spread: [], lede: [], wave: [], sof: [] },
   friendInteractions: [],
 };
 
@@ -71,7 +73,7 @@ export function getPreviousDay(isoDate: string): string {
 
 export type Action =
   | { type: 'LOAD'; payload: { stats?: Partial<AppState['stats']>; seen?: Partial<AppState['seen']>; friendInteractions?: FriendInteraction[] } }
-  | { type: 'UPDATE_STATS'; game: GameId; correct: boolean; points: number }
+  | { type: 'UPDATE_STATS'; game: GameId; correct: boolean; points: number; today: string }
   | { type: 'UPDATE_DAILY_STREAK'; today: string }
   | { type: 'SET_SEEN'; game: GameId; seen: number[] }
   | { type: 'EARN_SHIELD' }
@@ -90,14 +92,14 @@ export function reducer(state: AppState, action: Action): AppState {
         mergedStats.totalDaysPlayed = stats.totalDaysPlayed ?? 0;
         mergedStats.streakShieldsAvailable = stats.streakShieldsAvailable ?? 0;
         mergedStats.streakShieldUsedToday = stats.streakShieldUsedToday ?? false;
-        (['lede', 'spread', 'sof', 'wacky', 'quip', 'wave'] as GameId[]).forEach(g => {
+        (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
           const saved = stats[g];
           if (saved) mergedStats[g] = { ...defaultGameStats, ...(saved as GameStats) };
         });
       }
       const mergedSeen = { ...initialState.seen };
       if (seen) {
-        (['wacky', 'quip', 'spread', 'lede', 'wave', 'sof'] as GameId[]).forEach(g => {
+        (['quip', 'spread', 'lede', 'wave', 'sof'] as GameId[]).forEach(g => {
           if (seen[g]) mergedSeen[g] = seen[g]!;
         });
       }
@@ -108,7 +110,7 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     }
     case 'UPDATE_STATS': {
-      const { game, correct, points } = action;
+      const { game, correct, points, today } = action;
       const prev = state.stats[game];
       const newStreak = correct ? prev.streak + 1 : 0;
       return {
@@ -122,6 +124,8 @@ export function reducer(state: AppState, action: Action): AppState {
             streak: newStreak,
             bestStreak: Math.max(prev.bestStreak, newStreak),
             bestScore: Math.max(prev.bestScore, points),
+            lastPlayed: today,
+            lastPoints: points,
           },
         },
       };

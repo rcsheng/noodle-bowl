@@ -20,7 +20,7 @@ import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { SPREAD_BANK, SpreadItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { pickFromBank, scoreSpread } from '@/constants/utils';
+import { ChallengePayload, genChallengeUrl, pickFromBank, scoreSpread } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 type Phase = 'guess' | 'reveal';
@@ -45,6 +45,7 @@ export default function SpreadScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const [question, setQuestion] = useState<SpreadItem | null>(null);
+  const [questionIdx, setQuestionIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>('guess');
   const [input, setInput] = useState('');
   const [revealData, setRevealData] = useState<RevealData | null>(null);
@@ -56,9 +57,10 @@ export default function SpreadScreen() {
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { item, newSeen } = pickFromBank(SPREAD_BANK, state.seen.spread);
+    const { idx, item, newSeen } = pickFromBank(SPREAD_BANK, state.seen.spread);
     setSeen('spread', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
   }, [isLoaded]);
 
   const handleSubmit = () => {
@@ -73,16 +75,20 @@ export default function SpreadScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { item, newSeen } = pickFromBank(SPREAD_BANK, state.seen.spread);
+    const { idx, item, newSeen } = pickFromBank(SPREAD_BANK, state.seen.spread);
     setSeen('spread', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
     setPhase('guess');
     setInput('');
     setRevealData(null);
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    if (result.action === Share.sharedAction) {
+      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'spread', questionIndex: questionIdx, shieldEarned: false });
+    }
   };
 
   const handleCopyHelp = async () => {
@@ -252,10 +258,19 @@ export default function SpreadScreen() {
         onClose={() => setShowChallenge(false)}
         correct={revealData?.correct ?? false}
         predictLabel="What do you think they'll guess?"
-        onSent={(prediction) => addFriendInteraction({
-          type: 'sent_challenge',
-          friendName: 'A Friend',
+        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
           gameId: 'spread',
+          questionIndex: questionIdx,
+          senderPrediction: prediction,
+          senderAnswer: input,
+          senderName: friendName,
+          issuedAt: new Date().toISOString(),
+        })}
+        onSent={(prediction, friendName) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName,
+          gameId: 'spread',
+          questionIndex: questionIdx,
           shieldEarned: false,
           senderPrediction: prediction,
         })}

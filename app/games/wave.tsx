@@ -13,11 +13,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChallengeModal, PredictOption } from '@/components/ChallengeModal';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { WAVE_BANK, WaveItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { pickFromBank } from '@/constants/utils';
+import { ChallengePayload, genChallengeUrl, pickFromBank } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 type Phase = 'play' | 'reveal';
@@ -37,6 +38,12 @@ function genFakeUrl(): string {
   return `https://noodlebowl.app/help/${result}`;
 }
 
+function positionToZone(pos: number): string {
+  if (pos < 33) return 'Under';
+  if (pos < 67) return 'Middle';
+  return 'Over';
+}
+
 function scoreWave(userPos: number, truthPos: number): { correct: boolean; points: number } {
   const distance = Math.abs(userPos - truthPos);
   let points = 0;
@@ -48,10 +55,11 @@ function scoreWave(userPos: number, truthPos: number): { correct: boolean; point
 }
 
 export default function WaveScreen() {
-  const { state, isLoaded, updateGameStats, setSeen } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const started = useRef(false);
 
   const [question, setQuestion] = useState<WaveItem | null>(null);
+  const [questionIdx, setQuestionIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>('play');
   const [userPosition, setUserPosition] = useState(50);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -59,6 +67,7 @@ export default function WaveScreen() {
   const [showFriend, setShowFriend] = useState(false);
   const [fakeUrl] = useState(genFakeUrl);
   const [copied, setCopied] = useState(false);
+  const [showChallenge, setShowChallenge] = useState(false);
 
   const userPosRef = useRef(50);
   const trackWidthRef = useRef(0);
@@ -66,9 +75,10 @@ export default function WaveScreen() {
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { item, newSeen } = pickFromBank(WAVE_BANK, state.seen.wave);
+    const { idx, item, newSeen } = pickFromBank(WAVE_BANK, state.seen.wave);
     setSeen('wave', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
   }, [isLoaded]);
 
   const panResponder = useRef(
@@ -105,9 +115,10 @@ export default function WaveScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { item, newSeen } = pickFromBank(WAVE_BANK, state.seen.wave);
+    const { idx, item, newSeen } = pickFromBank(WAVE_BANK, state.seen.wave);
     setSeen('wave', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
     setPhase('play');
     setUserPosition(50);
     userPosRef.current = 50;
@@ -121,7 +132,10 @@ export default function WaveScreen() {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    if (result.action === Share.sharedAction) {
+      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'wave', questionIndex: questionIdx, shieldEarned: false });
+    }
   };
 
   if (!question) return null;
@@ -258,6 +272,14 @@ export default function WaveScreen() {
             )}
 
             <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => setShowChallenge(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={handlePlayAgain}
               activeOpacity={0.85}
@@ -279,6 +301,34 @@ export default function WaveScreen() {
           <Text style={styles.footerText}>Noodle Bowl · N° 06 · The Pulse</Text>
         </View>
       </ScrollView>
+
+      <ChallengeModal
+        visible={showChallenge}
+        onClose={() => setShowChallenge(false)}
+        correct={revealData?.correct ?? false}
+        predictLabel="Where do you think they'll land?"
+        predictOptions={[
+          { label: 'Under (bottom third)', value: 'Under' },
+          { label: 'Middle (centre third)', value: 'Middle' },
+          { label: 'Over (top third)', value: 'Over' },
+        ]}
+        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
+          gameId: 'wave',
+          questionIndex: questionIdx,
+          senderPrediction: prediction,
+          senderAnswer: positionToZone(revealData?.userPosition ?? userPosition),
+          senderName: friendName,
+          issuedAt: new Date().toISOString(),
+        })}
+        onSent={(prediction, friendName) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName,
+          gameId: 'wave',
+          questionIndex: questionIdx,
+          shieldEarned: false,
+          senderPrediction: prediction,
+        })}
+      />
 
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>

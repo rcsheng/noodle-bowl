@@ -17,7 +17,7 @@ import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { LEDE_BANK, LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { calculatePoints, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { ChallengePayload, calculatePoints, genChallengeUrl, pickFromBank, shuffleIndices } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 type Phase = 'play' | 'reveal';
@@ -40,6 +40,7 @@ export default function LedeScreen() {
   const started = useRef(false);
 
   const [question, setQuestion] = useState<LedeItem | null>(null);
+  const [questionIdx, setQuestionIdx] = useState(0);
   const [order, setOrder] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [phase, setPhase] = useState<Phase>('play');
@@ -52,9 +53,10 @@ export default function LedeScreen() {
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { item, newSeen } = pickFromBank(LEDE_BANK, state.seen.lede);
+    const { idx, item, newSeen } = pickFromBank(LEDE_BANK, state.seen.lede);
     setSeen('lede', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
     setOrder(shuffleIndices(item.panelists.length));
   }, [isLoaded]);
 
@@ -72,9 +74,10 @@ export default function LedeScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const handlePlayAgain = () => {
-    const { item, newSeen } = pickFromBank(LEDE_BANK, state.seen.lede);
+    const { idx, item, newSeen } = pickFromBank(LEDE_BANK, state.seen.lede);
     setSeen('lede', newSeen);
     setQuestion(item);
+    setQuestionIdx(idx);
     setOrder(shuffleIndices(item.panelists.length));
     setSelected(null);
     setPhase('play');
@@ -83,7 +86,10 @@ export default function LedeScreen() {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    if (result.action === Share.sharedAction) {
+      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false });
+    }
   };
 
   const handleCopyHelp = async () => {
@@ -277,10 +283,19 @@ export default function LedeScreen() {
           label: panelist.completion.split(' ').slice(0, 7).join(' ') + '…',
           value: panelist.name,
         })) : []}
-        onSent={(prediction) => addFriendInteraction({
-          type: 'sent_challenge',
-          friendName: 'A Friend',
+        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
           gameId: 'lede',
+          questionIndex: questionIdx,
+          senderPrediction: prediction,
+          senderAnswer: selected !== null ? question!.panelists[selected].name : '',
+          senderName: friendName,
+          issuedAt: new Date().toISOString(),
+        })}
+        onSent={(prediction, friendName) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName,
+          gameId: 'lede',
+          questionIndex: questionIdx,
           shieldEarned: false,
           senderPrediction: prediction,
         })}

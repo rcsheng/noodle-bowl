@@ -16,7 +16,6 @@ import * as Clipboard from 'expo-clipboard';
 
 import { CopiedToast } from '@/components/CopiedToast';
 import { C, F, cardShadow } from '@/constants/theme';
-import { genChallengeUrl } from '@/constants/utils';
 
 export interface PredictOption {
   label: string;
@@ -29,24 +28,37 @@ interface Props {
   correct: boolean;
   predictLabel: string;
   predictOptions?: PredictOption[];
-  onSent: (prediction: string) => void;
+  buildChallengeUrl: (friendName: string, prediction: string) => string;
+  onSent: (prediction: string, friendName: string) => void;
 }
 
-type Step = 'predict' | 'share' | 'sent';
+type Step = 'name' | 'predict' | 'share' | 'sent';
 
-export function ChallengeModal({ visible, onClose, correct, predictLabel, predictOptions, onSent }: Props) {
-  const [step, setStep] = useState<Step>('predict');
+export function ChallengeModal({ visible, onClose, correct, predictLabel, predictOptions, buildChallengeUrl, onSent }: Props) {
+  const [step, setStep] = useState<Step>('name');
+  const [friendName, setFriendName] = useState('');
   const [prediction, setPrediction] = useState('');
-  const [challengeUrl] = useState(genChallengeUrl);
+  const [challengeUrl, setChallengeUrl] = useState('');
   const [urlCopied, setUrlCopied] = useState(false);
 
   const hasOptions = predictOptions && predictOptions.length > 0;
+  const displayName = friendName.trim() || 'A Friend';
 
   const handleClose = () => {
-    setStep('predict');
+    setStep('name');
+    setFriendName('');
     setPrediction('');
+    setChallengeUrl('');
     setUrlCopied(false);
     onClose();
+  };
+
+  const handleNameNext = () => setStep('predict');
+
+  const handlePredictNext = () => {
+    const url = buildChallengeUrl(displayName, prediction);
+    setChallengeUrl(url);
+    setStep('share');
   };
 
   const handleCopyUrl = async () => {
@@ -61,7 +73,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
   };
 
   const markSent = () => {
-    onSent(prediction);
+    onSent(prediction, displayName);
     setStep('sent');
   };
 
@@ -79,6 +91,35 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
+            {step === 'name' && (
+              <>
+                <Text style={styles.preheader}>Who are you challenging?</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={friendName}
+                  onChangeText={setFriendName}
+                  placeholder="First name (optional)"
+                  placeholderTextColor={C.muted}
+                  autoFocus={false}
+                  returnKeyType="next"
+                  onSubmitEditing={handleNameNext}
+                />
+
+                <TouchableOpacity
+                  testID="challenge-name-next-btn"
+                  style={styles.primaryBtn}
+                  onPress={handleNameNext}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Next →</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.85}>
+                  <Text style={styles.closeBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             {step === 'predict' && (
               <>
                 <Text style={styles.preheader}>Before you send it —</Text>
@@ -113,7 +154,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
                 <TouchableOpacity
                   testID="challenge-next-btn"
                   style={[styles.primaryBtn, !prediction.trim() && styles.primaryBtnDisabled]}
-                  onPress={() => setStep('share')}
+                  onPress={handlePredictNext}
                   disabled={!prediction.trim()}
                   activeOpacity={0.85}
                 >
@@ -129,7 +170,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
             {step === 'share' && (
               <>
                 <Text style={styles.title}>
-                  {correct ? 'Think your friend would get this right?' : 'Think your friend would do better?'}
+                  {correct ? `Think ${displayName} would get this right?` : `Think ${displayName} would do better?`}
                 </Text>
                 <Text style={styles.subtitle}>They'll see just the question — no answers.</Text>
 
@@ -150,7 +191,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
             {step === 'sent' && (
               <>
                 <Text style={styles.title}>Sent.</Text>
-                <Text style={styles.subtitle}>Waiting to see what they pick…</Text>
+                <Text style={styles.subtitle}>Waiting to see what {displayName} picks…</Text>
 
                 <TouchableOpacity style={styles.primaryBtn} onPress={handleClose} activeOpacity={0.85}>
                   <Text style={styles.primaryBtnText}>Done</Text>

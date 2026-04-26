@@ -1,5 +1,6 @@
 import {
   calculatePoints,
+  decodeChallengeToken,
   formatRelativeDate,
   genChallengeUrl,
   getTodayISODate,
@@ -158,32 +159,38 @@ describe('shuffleIndices', () => {
 // genChallengeUrl
 // ---------------------------------------------------------------------------
 describe('genChallengeUrl', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+  const payload = {
+    gameId: 'lede',
+    questionIndex: 2,
+    senderPrediction: 'Iris',
+    senderAnswer: 'Dex',
+    senderName: 'Alex',
+    issuedAt: '2026-04-26T12:00:00.000Z',
+  };
 
   test('returns string starting with "https://noodlebowl.app/c/"', () => {
-    const url = genChallengeUrl();
+    const url = genChallengeUrl(payload);
     expect(url.startsWith('https://noodlebowl.app/c/')).toBe(true);
   });
 
-  test('suffix after "/c/" is exactly 8 characters', () => {
-    const url = genChallengeUrl();
+  test('suffix after "/c/" is non-empty base64url string', () => {
+    const url = genChallengeUrl(payload);
     const suffix = url.replace('https://noodlebowl.app/c/', '');
-    expect(suffix).toHaveLength(8);
+    expect(suffix.length).toBeGreaterThan(0);
+    expect(suffix).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 
-  test('suffix only contains [A-Z0-9] characters', () => {
-    const url = genChallengeUrl();
-    const suffix = url.replace('https://noodlebowl.app/c/', '');
-    expect(suffix).toMatch(/^[A-Z0-9]+$/);
-  });
-
-  test('two successive calls return different URLs (with real Math.random)', () => {
-    const url1 = genChallengeUrl();
-    const url2 = genChallengeUrl();
-    // With 36^8 ≈ 2.8 trillion possibilities the collision probability is negligible
+  test('two different payloads produce different URLs', () => {
+    const url1 = genChallengeUrl({ ...payload, questionIndex: 1 });
+    const url2 = genChallengeUrl({ ...payload, questionIndex: 2 });
     expect(url1).not.toBe(url2);
+  });
+
+  test('decodeChallengeToken round-trips the payload', () => {
+    const url = genChallengeUrl(payload);
+    const token = url.replace('https://noodlebowl.app/c/', '');
+    const decoded = decodeChallengeToken(token);
+    expect(decoded).toEqual(payload);
   });
 });
 

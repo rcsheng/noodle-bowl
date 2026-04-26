@@ -4,11 +4,14 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import * as Clipboard from 'expo-clipboard';
 import { ChallengeModal, PredictOption } from '../ChallengeModal';
 
+const mockBuildChallengeUrl = jest.fn().mockReturnValue('https://noodlebowl.app/c/testtoken');
+
 const defaultProps = {
   visible: true,
   onClose: jest.fn(),
   correct: true,
   predictLabel: 'What do you think they will guess?',
+  buildChallengeUrl: mockBuildChallengeUrl,
   onSent: jest.fn(),
 };
 
@@ -17,14 +20,22 @@ const OPTIONS: PredictOption[] = [
   { label: 'No', value: 'no' },
 ];
 
-/** Navigate the modal from predict step to share step via a text input. */
-async function advanceToShareStep(utils: ReturnType<typeof render>, text = '42') {
-  const { getByPlaceholderText, getByText } = utils;
+/** Advance past the name step (press Next without entering a name). */
+async function advancePastNameStep(utils: ReturnType<typeof render>) {
   await act(async () => {
-    fireEvent.changeText(getByPlaceholderText('Your estimate…'), text);
+    fireEvent.press(utils.getByTestId('challenge-name-next-btn'));
+  });
+}
+
+/** Advance from name step through predict step to share step. */
+async function advanceToShareStep(utils: ReturnType<typeof render>, text = '42') {
+  await advancePastNameStep(utils);
+  await waitFor(() => utils.getByText(defaultProps.predictLabel));
+  await act(async () => {
+    fireEvent.changeText(utils.getByPlaceholderText('Your estimate…'), text);
   });
   await act(async () => {
-    fireEvent.press(getByText('Next →'));
+    fireEvent.press(utils.getByTestId('challenge-next-btn'));
   });
   await waitFor(() => utils.getByText('Share with a Friend'));
 }
@@ -51,48 +62,78 @@ describe('ChallengeModal', () => {
     const { queryByText } = render(
       <ChallengeModal {...defaultProps} visible={false} />
     );
-    expect(queryByText(defaultProps.predictLabel)).toBeNull();
+    expect(queryByText('Who are you challenging?')).toBeNull();
   });
 
-  test('when visible=true, shows predictLabel text', () => {
+  test('when visible=true, shows name step first', () => {
     const { getByText } = render(<ChallengeModal {...defaultProps} />);
-    expect(getByText(defaultProps.predictLabel)).toBeTruthy();
+    expect(getByText('Who are you challenging?')).toBeTruthy();
+  });
+
+  // -------------------------------------------------------------------------
+  // Name step content
+  // -------------------------------------------------------------------------
+  test('name step shows optional first name input', () => {
+    const { getByPlaceholderText } = render(<ChallengeModal {...defaultProps} />);
+    expect(getByPlaceholderText('First name (optional)')).toBeTruthy();
+  });
+
+  test('name-next button is always enabled (name is optional)', () => {
+    const { getByTestId } = render(<ChallengeModal {...defaultProps} />);
+    expect(getByTestId('challenge-name-next-btn')).not.toBeDisabled();
+  });
+
+  test('pressing name-next advances to predict step', async () => {
+    const utils = render(<ChallengeModal {...defaultProps} />);
+    await advancePastNameStep(utils);
+    await waitFor(() => {
+      expect(utils.getByText(defaultProps.predictLabel)).toBeTruthy();
+    });
   });
 
   // -------------------------------------------------------------------------
   // Predict step content
   // -------------------------------------------------------------------------
-  test('shows the preheader "Before you send it —" in predict step', () => {
-    const { getByText } = render(<ChallengeModal {...defaultProps} />);
-    expect(getByText('Before you send it —')).toBeTruthy();
+  test('shows the preheader "Before you send it —" in predict step', async () => {
+    const utils = render(<ChallengeModal {...defaultProps} />);
+    await advancePastNameStep(utils);
+    await waitFor(() => {
+      expect(utils.getByText('Before you send it —')).toBeTruthy();
+    });
   });
 
-  test('with predictOptions, renders a button for each option', () => {
-    const { getByText } = render(
-      <ChallengeModal {...defaultProps} predictOptions={OPTIONS} />
-    );
-    expect(getByText('Yes')).toBeTruthy();
-    expect(getByText('No')).toBeTruthy();
+  test('with predictOptions, renders a button for each option', async () => {
+    const utils = render(<ChallengeModal {...defaultProps} predictOptions={OPTIONS} />);
+    await advancePastNameStep(utils);
+    await waitFor(() => {
+      expect(utils.getByText('Yes')).toBeTruthy();
+      expect(utils.getByText('No')).toBeTruthy();
+    });
   });
 
-  test('without predictOptions, renders a numeric TextInput', () => {
-    const { getByPlaceholderText } = render(<ChallengeModal {...defaultProps} />);
-    expect(getByPlaceholderText('Your estimate…')).toBeTruthy();
+  test('without predictOptions, renders a numeric TextInput in predict step', async () => {
+    const utils = render(<ChallengeModal {...defaultProps} />);
+    await advancePastNameStep(utils);
+    await waitFor(() => {
+      expect(utils.getByPlaceholderText('Your estimate…')).toBeTruthy();
+    });
   });
 
-  test('Next button is disabled when no prediction selected', () => {
-    const { getByTestId } = render(<ChallengeModal {...defaultProps} />);
-    expect(getByTestId('challenge-next-btn')).toBeDisabled();
+  test('Next button is disabled when no prediction selected', async () => {
+    const utils = render(<ChallengeModal {...defaultProps} />);
+    await advancePastNameStep(utils);
+    await waitFor(() => {
+      expect(utils.getByTestId('challenge-next-btn')).toBeDisabled();
+    });
   });
 
   test('selecting an option enables Next button', async () => {
-    const { getByText, getByTestId } = render(
-      <ChallengeModal {...defaultProps} predictOptions={OPTIONS} />
-    );
+    const utils = render(<ChallengeModal {...defaultProps} predictOptions={OPTIONS} />);
+    await advancePastNameStep(utils);
     await act(async () => {
-      fireEvent.press(getByText('Yes'));
+      fireEvent.press(utils.getByText('Yes'));
     });
-    expect(getByTestId('challenge-next-btn')).not.toBeDisabled();
+    expect(utils.getByTestId('challenge-next-btn')).not.toBeDisabled();
   });
 
   // -------------------------------------------------------------------------
@@ -101,21 +142,19 @@ describe('ChallengeModal', () => {
   test('pressing Next advances to share step showing the URL', async () => {
     const utils = render(<ChallengeModal {...defaultProps} />);
     await advanceToShareStep(utils);
-    expect(utils.getByText(/https:\/\/noodlebowl\.app\/c\//)).toBeTruthy();
+    expect(utils.getByText('https://noodlebowl.app/c/testtoken')).toBeTruthy();
   });
 
-  test('URL matches the expected format', async () => {
+  test('buildChallengeUrl is called with friendName and prediction', async () => {
     const utils = render(<ChallengeModal {...defaultProps} />);
-    await advanceToShareStep(utils);
-    const urlElement = utils.getByText(/https:\/\/noodlebowl\.app\/c\//);
-    const urlText = urlElement.children[0] as string;
-    expect(urlText).toMatch(/^https:\/\/noodlebowl\.app\/c\/[A-Z0-9]{8}$/);
+    await advanceToShareStep(utils, '99');
+    expect(mockBuildChallengeUrl).toHaveBeenCalledWith('A Friend', '99');
   });
 
   test('pressing the URL box calls Clipboard.setStringAsync', async () => {
     const utils = render(<ChallengeModal {...defaultProps} />);
     await advanceToShareStep(utils);
-    const urlElement = utils.getByText(/https:\/\/noodlebowl\.app\/c\//);
+    const urlElement = utils.getByText('https://noodlebowl.app/c/testtoken');
     await act(async () => {
       fireEvent.press(urlElement);
     });
@@ -131,30 +170,22 @@ describe('ChallengeModal', () => {
     expect(shareSpy).toHaveBeenCalled();
   });
 
-  test('onSent is called with the prediction value', async () => {
+  test('onSent is called with prediction and friendName', async () => {
     const onSent = jest.fn();
     const utils = render(<ChallengeModal {...defaultProps} onSent={onSent} />);
-    const { getByPlaceholderText, getByText } = utils;
-
-    await act(async () => {
-      fireEvent.changeText(getByPlaceholderText('Your estimate…'), '99');
-    });
-    await act(async () => {
-      fireEvent.press(getByText('Next →'));
-    });
-    await waitFor(() => utils.getByText('Share with a Friend'));
+    await advanceToShareStep(utils, '99');
     await act(async () => {
       fireEvent.press(utils.getByText('Share with a Friend'));
     });
     await waitFor(() => {
-      expect(onSent).toHaveBeenCalledWith('99');
+      expect(onSent).toHaveBeenCalledWith('99', 'A Friend');
     });
   });
 
   // -------------------------------------------------------------------------
   // Cancel / Close
   // -------------------------------------------------------------------------
-  test('pressing Cancel calls onClose', () => {
+  test('pressing Cancel on name step calls onClose', () => {
     const onClose = jest.fn();
     const { getByText } = render(
       <ChallengeModal {...defaultProps} onClose={onClose} />
@@ -163,26 +194,23 @@ describe('ChallengeModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  test('after closing and reopening, shows predict step again (state reset)', async () => {
-    const { getByText, getByPlaceholderText, rerender } = render(
+  test('after closing and reopening, shows name step again (state reset)', async () => {
+    const { getByText, getByTestId, rerender } = render(
       <ChallengeModal {...defaultProps} />
     );
 
-    // Navigate to share step
+    // Navigate past name step
     await act(async () => {
-      fireEvent.changeText(getByPlaceholderText('Your estimate…'), '42');
+      fireEvent.press(getByTestId('challenge-name-next-btn'));
     });
-    await act(async () => {
-      fireEvent.press(getByText('Next →'));
-    });
-    await waitFor(() => getByText('Share with a Friend'));
+    await waitFor(() => getByText('Before you send it —'));
 
-    // Close the modal — handleClose resets internal state
+    // Close the modal
     await act(async () => {
       fireEvent.press(getByText('Cancel'));
     });
 
-    // Reopen the modal
+    // Reopen
     await act(async () => {
       rerender(<ChallengeModal {...defaultProps} visible={false} />);
     });
@@ -190,24 +218,24 @@ describe('ChallengeModal', () => {
       rerender(<ChallengeModal {...defaultProps} visible={true} />);
     });
 
-    // Should be back on predict step
+    // Should be back on name step
     await waitFor(() => {
-      expect(getByText('Before you send it —')).toBeTruthy();
+      expect(getByText('Who are you challenging?')).toBeTruthy();
     });
   });
 
   // -------------------------------------------------------------------------
   // correct prop drives share-step title
   // -------------------------------------------------------------------------
-  test('correct=true shows "Think your friend would get this right?"', async () => {
+  test('correct=true shows "Think A Friend would get this right?"', async () => {
     const utils = render(<ChallengeModal {...defaultProps} correct={true} />);
     await advanceToShareStep(utils);
-    expect(utils.getByText('Think your friend would get this right?')).toBeTruthy();
+    expect(utils.getByText('Think A Friend would get this right?')).toBeTruthy();
   });
 
-  test('correct=false shows "Think your friend would do better?"', async () => {
+  test('correct=false shows "Think A Friend would do better?"', async () => {
     const utils = render(<ChallengeModal {...defaultProps} correct={false} />);
     await advanceToShareStep(utils);
-    expect(utils.getByText('Think your friend would do better?')).toBeTruthy();
+    expect(utils.getByText('Think A Friend would do better?')).toBeTruthy();
   });
 });

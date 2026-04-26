@@ -12,12 +12,14 @@ import { router } from 'expo-router';
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
+import { getTodayISODate } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 export default function HubScreen() {
   const { state } = useGame();
   const { totalPoints, dailyStreak } = state.stats;
   const assists = state.friendInteractions.filter(i => i.type === 'gave_help').length;
+  const today = getTodayISODate();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -52,10 +54,12 @@ export default function HubScreen() {
         {VISIBLE_GAMES.map((id: GameId, index: number) => {
           const meta = GAME_META[id];
           const isAnchor = index === 0;
+          const gameStats = state.stats[id];
+          const playedToday = gameStats.lastPlayed === today;
           return (
             <TouchableOpacity
               key={id}
-              style={[styles.gameCard, isAnchor && styles.gameCardAnchor]}
+              style={[styles.gameCard, isAnchor && styles.gameCardAnchor, playedToday && styles.gameCardPlayed]}
               onPress={() => router.push(`/games/${id}`)}
               activeOpacity={0.85}
             >
@@ -64,9 +68,15 @@ export default function HubScreen() {
                   <Text style={[styles.gameNum, isAnchor && styles.gameNumAnchor]}>{meta.num}</Text>
                   <Text style={styles.gameSection}>{meta.section}</Text>
                 </View>
-                <View style={styles.playBadge}>
-                  <Text style={styles.playBadgeText}>Play →</Text>
-                </View>
+                {playedToday ? (
+                  <View style={styles.playedBadge}>
+                    <Text style={styles.playedBadgeText}>Played ✓</Text>
+                  </View>
+                ) : (
+                  <View style={styles.playBadge}>
+                    <Text style={styles.playBadgeText}>Play →</Text>
+                  </View>
+                )}
               </View>
 
               <View style={[styles.gameCardBody, isAnchor && styles.gameCardBodyAnchor]}>
@@ -81,6 +91,16 @@ export default function HubScreen() {
                       <Text style={styles.metaText}>{dot}</Text>
                     </React.Fragment>
                   ))}
+                  {playedToday && gameStats.lastPoints !== undefined && (
+                    <>
+                      <Text style={styles.metaDot}> · </Text>
+                      <View style={styles.scorePill}>
+                        <Text style={styles.scorePillText}>+{gameStats.lastPoints} pts</Text>
+                      </View>
+                      <Text style={styles.metaDot}> · </Text>
+                      <Text style={styles.metaText}>Play Again</Text>
+                    </>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -262,6 +282,34 @@ const styles = StyleSheet.create({
     fontFamily: F.mono,
     fontSize: 10,
     color: C.muted,
+  },
+  gameCardPlayed: {
+    opacity: 0.85,
+  },
+  playedBadge: {
+    borderWidth: 1,
+    borderColor: C.green,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  playedBadgeText: {
+    fontFamily: F.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: C.green,
+    textTransform: 'uppercase',
+  },
+  scorePill: {
+    backgroundColor: C.green,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  scorePillText: {
+    fontFamily: F.monoBold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    color: C.onDark,
+    textTransform: 'uppercase',
   },
   footer: {
     alignItems: 'center',

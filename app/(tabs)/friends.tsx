@@ -13,6 +13,13 @@ export default function FriendsScreen() {
   const { streakShieldsAvailable } = state.stats;
   const { friendInteractions } = state;
 
+  const acceptedMap = new Map<string, typeof friendInteractions[0]>();
+  friendInteractions.forEach(i => {
+    if (i.type === 'challenge_accepted') {
+      acceptedMap.set(`${i.gameId}|${i.questionIndex}|${i.friendName}`, i);
+    }
+  });
+
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   oneWeekAgo.setHours(0, 0, 0, 0);
@@ -102,6 +109,8 @@ export default function FriendsScreen() {
               const meta = GAME_META[interaction.gameId];
               let icon = '📤';
               let line: React.ReactNode;
+              let resolvedEntry: typeof friendInteractions[0] | undefined;
+
               if (interaction.type === 'received_help') {
                 icon = '📩';
                 line = <><Text style={styles.feedBold}>{interaction.friendName}</Text>{' helped you with '}{meta.title}</>;
@@ -111,6 +120,7 @@ export default function FriendsScreen() {
               } else if (interaction.type === 'sent_challenge') {
                 icon = '⚔️';
                 line = <>{'You challenged '}<Text style={styles.feedBold}>{interaction.friendName}</Text>{' to '}{meta.title}</>;
+                resolvedEntry = acceptedMap.get(`${interaction.gameId}|${interaction.questionIndex}|${interaction.friendName}`);
               } else if (interaction.type === 'challenge_accepted') {
                 icon = '⚔️';
                 line = <><Text style={styles.feedBold}>{interaction.friendName}</Text>{' accepted your challenge — '}{meta.title}</>;
@@ -118,6 +128,8 @@ export default function FriendsScreen() {
                 icon = '⚔️';
                 line = <><Text style={styles.feedBold}>{interaction.friendName}</Text>{' challenged you to '}{meta.title}</>;
               }
+
+              const isPending = interaction.type === 'sent_challenge' && !resolvedEntry;
 
               return (
                 <View key={interaction.id} style={styles.feedItem}>
@@ -127,8 +139,31 @@ export default function FriendsScreen() {
                     <Text style={styles.feedMeta}>
                       {formatRelativeDate(interaction.date)}
                       {interaction.shieldEarned ? '  🛡 Shield earned' : ''}
-                      {interaction.type === 'sent_challenge' && !interaction.friendAnswer ? '  · Waiting for them to play…' : ''}
+                      {resolvedEntry?.bonusPointsEarned ? `  +${resolvedEntry.bonusPointsEarned} pts` : ''}
                     </Text>
+                    {isPending && (
+                      <Text style={[styles.feedMeta, styles.feedPending]}>Waiting for them to play…</Text>
+                    )}
+                    {resolvedEntry && interaction.senderPrediction && (
+                      <View style={styles.predictionReveal}>
+                        <View style={styles.predictionRow}>
+                          <Text style={styles.predictionLabel}>You picked</Text>
+                          <Text style={styles.predictionValue}>{interaction.senderPrediction}</Text>
+                        </View>
+                        <View style={styles.predictionRow}>
+                          <Text style={styles.predictionLabel}>{interaction.friendName} picked</Text>
+                          <Text style={styles.predictionValue}>{resolvedEntry.friendAnswer ?? '—'}</Text>
+                        </View>
+                        {(() => {
+                          const predictionCorrect = interaction.senderPrediction === resolvedEntry.friendAnswer;
+                          return (
+                            <Text style={[styles.predictionResult, predictionCorrect ? styles.predictionCorrect : styles.predictionWrong]}>
+                              {predictionCorrect ? '✓ You called it' : '✗ Off this time'}
+                            </Text>
+                          );
+                        })()}
+                      </View>
+                    )}
                   </View>
                 </View>
               );
@@ -313,6 +348,49 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     color: C.muted,
+  },
+  feedPending: {
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  predictionReveal: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: C.paperDarker,
+    gap: 4,
+  },
+  predictionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  predictionLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    width: 90,
+  },
+  predictionValue: {
+    fontFamily: F.frauncesBold,
+    fontSize: 13,
+    color: C.ink,
+    flex: 1,
+  },
+  predictionResult: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+  predictionCorrect: {
+    color: C.green,
+  },
+  predictionWrong: {
+    color: C.accent,
   },
   footer: {
     alignItems: 'center',
