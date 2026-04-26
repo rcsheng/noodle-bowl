@@ -2,23 +2,25 @@ import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChallengeModal } from '@/components/ChallengeModal';
+import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { SPREAD_BANK, SpreadItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { calculatePoints, pickFromBank } from '@/constants/utils';
+import { pickFromBank } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 type Phase = 'guess' | 'reveal';
@@ -48,7 +50,7 @@ function genFakeUrl(): string {
 }
 
 export default function SpreadScreen() {
-  const { state, isLoaded, updateGameStats, setSeen } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const started = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -58,7 +60,8 @@ export default function SpreadScreen() {
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
   const [fakeUrl] = useState(genFakeUrl);
-  const [copied, setCopied] = useState(false);
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [helpCopied, setHelpCopied] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -88,14 +91,14 @@ export default function SpreadScreen() {
     setRevealData(null);
   };
 
-  const handleCopy = async () => {
-    await Clipboard.setStringAsync(fakeUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleShare = async () => {
     await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+  };
+
+  const handleCopyHelp = async () => {
+    await Clipboard.setStringAsync(fakeUrl);
+    setHelpCopied(true);
+    setTimeout(() => setHelpCopied(false), 2000);
   };
 
   if (!question) return null;
@@ -163,7 +166,7 @@ export default function SpreadScreen() {
                 onPress={() => setShowFriend(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.secondaryBtnText}>Share with a Friend</Text>
+                <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -227,6 +230,14 @@ export default function SpreadScreen() {
               )}
 
               <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={() => setShowChallenge(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={styles.secondaryBtn}
                 onPress={handlePlayAgain}
                 activeOpacity={0.85}
@@ -234,12 +245,8 @@ export default function SpreadScreen() {
                 <Text style={styles.secondaryBtnText}>Play Again</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={() => router.back()}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryBtnText}>Back to Games</Text>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <Text style={styles.backText}>← Back to Games</Text>
               </TouchableOpacity>
             </>
           )}
@@ -250,29 +257,33 @@ export default function SpreadScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      <ChallengeModal
+        visible={showChallenge}
+        onClose={() => setShowChallenge(false)}
+        correct={revealData?.correct ?? false}
+        predictLabel="What do you think they'll guess?"
+        onSent={(prediction) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName: 'A Friend',
+          gameId: 'spread',
+          shieldEarned: false,
+          senderPrediction: prediction,
+        })}
+      />
+
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalInnerBorder} />
-            <Text style={styles.modalTitle}>Share with a Friend</Text>
+            <Text style={styles.modalTitle}>Ask a Friend for Help</Text>
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
-            <View style={styles.urlBox}>
+            <TouchableOpacity style={styles.urlBox} onPress={handleCopyHelp} activeOpacity={0.7}>
               <Text style={styles.urlText}>{fakeUrl}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.modalBtn} onPress={handleCopy} activeOpacity={0.85}>
-              <Text style={styles.modalBtnText}>{copied ? 'Copied!' : 'Copy Link'}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.modalBtnSecondary]}
-              onPress={handleShare}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>
-                Share via Messages
-              </Text>
+            <TouchableOpacity style={styles.modalBtn} onPress={handleShare} activeOpacity={0.85}>
+              <Text style={styles.modalBtnText}>Share with a Friend</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -283,6 +294,7 @@ export default function SpreadScreen() {
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
             </TouchableOpacity>
           </View>
+          <CopiedToast visible={helpCopied} />
         </View>
       </Modal>
     </SafeAreaView>

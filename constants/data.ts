@@ -61,103 +61,104 @@ export interface SofClaim {
 export interface SofItem {
   topic: string;
   intro: string;
+  weirdAndTrue: boolean;
   claims: SofClaim[];
 }
 
 export type GameId = 'wacky' | 'quip' | 'spread' | 'lede' | 'wave' | 'sof';
 
-export const WACKY_BANK: WackyItem[] = [
-  {
-    headline: 'Florida Man Breaks Into Closed Restaurant To Wash All The Dirty Dishes',
-    isReal: true,
-    source: 'Tampa Bay Times, 2023',
-    explanation: 'Real. A man broke into a closed Tampa restaurant and was found scrubbing dishes when police arrived. He claimed he just wanted to help. He was arrested for burglary anyway.',
-  },
-  {
-    headline: "Local Man Convinced He Could Take A Bear In A Fight If He Really Had To",
-    isReal: false,
-    source: 'Satire — fabricated headline',
-    explanation: "Satire. This headline is fabricated for the game. The 'man vs. bear' debate is a real meme but not a verified news event.",
-  },
-  {
-    headline: 'Italian Town Sells Abandoned Houses For One Euro To Anyone Willing To Renovate',
-    isReal: true,
-    source: 'BBC, 2019 (Sambuca, Sicily program)',
-    explanation: 'Real. Multiple Italian towns including Sambuca, Mussomeli, and Bivona launched €1 home programs to combat depopulation. Buyers must commit to renovating within three years.',
-  },
-  {
-    headline: "Nation's Dads Demand Right To Tell Same Story Twice At Family Dinner",
-    isReal: false,
-    source: 'Satire — fabricated headline',
-    explanation: 'Satire. Classic satirical construction (oversized civic concern + small mundane behavior). No such story exists, but it sounds plausible because of the format.',
-  },
-  {
-    headline: "Tuvalu Plans To Become World's First Country To Exist In The Metaverse",
-    isReal: true,
-    source: 'Reuters, COP27 announcement, 2022',
-    explanation: "Real. The Pacific island nation Tuvalu announced at COP27 that it would create a digital twin of the country to preserve its statehood and culture as rising seas threaten the islands.",
-  },
-  {
-    headline: "Man Who Asked 'Anyone Else Hot?' Now Considered Group Spokesperson",
-    isReal: false,
-    source: 'Satire — Reductress-style',
-    explanation: "Satire. This is a fabricated workplace-comedy headline in the style of Reductress or McSweeney's. There's no such news event.",
-  },
-  {
-    headline: "Oregon Man Legally Changes His Name To 'Captain Awesome'",
-    isReal: true,
-    source: 'The Oregonian, 2008',
-    explanation: 'Real. Scott Nall successfully petitioned an Oregon court to change his legal name to Captain Awesome, after convincing the judge it was not intended for fraud and was, well, awesome.',
-  },
-  {
-    headline: 'New Study Finds That If You Just Believe In Yourself, You Can Apparently Do A Few Things',
-    isReal: false,
-    source: 'Satire — fabricated headline',
-    explanation: "Satire. A classic satirical deflation of a self-help cliché. No such study exists, but the phrasing parodies real headlines about positivity research.",
-  },
-  {
-    headline: 'UK Man Caught Smuggling 70 Kilograms Of Garlic Across Border',
-    isReal: true,
-    source: 'The Guardian, 2021 (UK Border Force report)',
-    explanation: 'Real. A man was caught with 70 kg of garlic at a UK border crossing. Garlic carries high import duties in the UK and is a surprisingly common smuggling target.',
-  },
-  {
-    headline: 'Scientists Confirm Octopuses Just Out There Punching Fish For No Reason',
-    isReal: true,
-    source: 'Ecology, peer-reviewed marine biology paper',
-    explanation: 'Real. Researchers in the Red Sea documented octopuses literally punching their fish hunting partners, sometimes apparently out of spite. Published in Ecology, 2020.',
-  },
-  {
-    headline: "Area Woman's Cardio Routine Just Walking Faster Through The Office",
-    isReal: false,
-    source: 'Satire — Reductress-style',
-    explanation: 'Satire. This is a fabricated lifestyle-parody headline in the style of Reductress. No such article was published.',
-  },
-  {
-    headline: "Switzerland's Law Requires Every Home To Have Access To A Nuclear Fallout Shelter",
-    isReal: true,
-    source: 'Swiss Federal Civil Protection Law, 1963 (still active)',
-    explanation: 'Real. A 1963 Swiss law still requires that there be enough nuclear fallout shelter capacity for every resident. New buildings must include shelters or owners pay into a communal fund.',
-  },
-  {
-    headline: "Local Cat Looks Out Window With Genuine Look Of 'I Used To Be Someone'",
-    isReal: false,
-    source: 'Satire — fabricated headline',
-    explanation: 'Satire. A classic satirical construction (anthropomorphizing pets with melodrama). No such story exists; this specific headline is fabricated.',
-  },
-  {
-    headline: 'Japan Opens World\'s First Hotel Staffed Almost Entirely By Robots',
-    isReal: true,
-    source: 'BBC, 2015 (Henn-na Hotel, Nagasaki)',
-    explanation: "Real. The Henn-na Hotel opened with robot receptionists, robot porters, and a robotic dinosaur at the front desk. Many were later 'fired' and replaced with humans due to malfunctions.",
-  },
-  {
-    headline: "New Study: Most Americans Could Not Pick Their Best Friend Out Of A Police Lineup",
-    isReal: false,
-    source: 'Satire — fabricated headline',
-    explanation: 'Satire. Satirical fake-study format used for absurdist effect. No such study exists.',
-  },
-];
+// export const WACKY_BANK: WackyItem[] = [
+//   {
+//     headline: 'Florida Man Breaks Into Closed Restaurant To Wash All The Dirty Dishes',
+//     isReal: true,
+//     source: 'Tampa Bay Times, 2023',
+//     explanation: 'Real. A man broke into a closed Tampa restaurant and was found scrubbing dishes when police arrived. He claimed he just wanted to help. He was arrested for burglary anyway.',
+//   },
+//   {
+//     headline: "Local Man Convinced He Could Take A Bear In A Fight If He Really Had To",
+//     isReal: false,
+//     source: 'Satire — fabricated headline',
+//     explanation: "Satire. This headline is fabricated for the game. The 'man vs. bear' debate is a real meme but not a verified news event.",
+//   },
+//   {
+//     headline: 'Italian Town Sells Abandoned Houses For One Euro To Anyone Willing To Renovate',
+//     isReal: true,
+//     source: 'BBC, 2019 (Sambuca, Sicily program)',
+//     explanation: 'Real. Multiple Italian towns including Sambuca, Mussomeli, and Bivona launched €1 home programs to combat depopulation. Buyers must commit to renovating within three years.',
+//   },
+//   {
+//     headline: "Nation's Dads Demand Right To Tell Same Story Twice At Family Dinner",
+//     isReal: false,
+//     source: 'Satire — fabricated headline',
+//     explanation: 'Satire. Classic satirical construction (oversized civic concern + small mundane behavior). No such story exists, but it sounds plausible because of the format.',
+//   },
+//   {
+//     headline: "Tuvalu Plans To Become World's First Country To Exist In The Metaverse",
+//     isReal: true,
+//     source: 'Reuters, COP27 announcement, 2022',
+//     explanation: "Real. The Pacific island nation Tuvalu announced at COP27 that it would create a digital twin of the country to preserve its statehood and culture as rising seas threaten the islands.",
+//   },
+//   {
+//     headline: "Man Who Asked 'Anyone Else Hot?' Now Considered Group Spokesperson",
+//     isReal: false,
+//     source: 'Satire — Reductress-style',
+//     explanation: "Satire. This is a fabricated workplace-comedy headline in the style of Reductress or McSweeney's. There's no such news event.",
+//   },
+//   {
+//     headline: "Oregon Man Legally Changes His Name To 'Captain Awesome'",
+//     isReal: true,
+//     source: 'The Oregonian, 2008',
+//     explanation: 'Real. Scott Nall successfully petitioned an Oregon court to change his legal name to Captain Awesome, after convincing the judge it was not intended for fraud and was, well, awesome.',
+//   },
+//   {
+//     headline: 'New Study Finds That If You Just Believe In Yourself, You Can Apparently Do A Few Things',
+//     isReal: false,
+//     source: 'Satire — fabricated headline',
+//     explanation: "Satire. A classic satirical deflation of a self-help cliché. No such study exists, but the phrasing parodies real headlines about positivity research.",
+//   },
+//   {
+//     headline: 'UK Man Caught Smuggling 70 Kilograms Of Garlic Across Border',
+//     isReal: true,
+//     source: 'The Guardian, 2021 (UK Border Force report)',
+//     explanation: 'Real. A man was caught with 70 kg of garlic at a UK border crossing. Garlic carries high import duties in the UK and is a surprisingly common smuggling target.',
+//   },
+//   {
+//     headline: 'Scientists Confirm Octopuses Just Out There Punching Fish For No Reason',
+//     isReal: true,
+//     source: 'Ecology, peer-reviewed marine biology paper',
+//     explanation: 'Real. Researchers in the Red Sea documented octopuses literally punching their fish hunting partners, sometimes apparently out of spite. Published in Ecology, 2020.',
+//   },
+//   {
+//     headline: "Area Woman's Cardio Routine Just Walking Faster Through The Office",
+//     isReal: false,
+//     source: 'Satire — Reductress-style',
+//     explanation: 'Satire. This is a fabricated lifestyle-parody headline in the style of Reductress. No such article was published.',
+//   },
+//   {
+//     headline: "Switzerland's Law Requires Every Home To Have Access To A Nuclear Fallout Shelter",
+//     isReal: true,
+//     source: 'Swiss Federal Civil Protection Law, 1963 (still active)',
+//     explanation: 'Real. A 1963 Swiss law still requires that there be enough nuclear fallout shelter capacity for every resident. New buildings must include shelters or owners pay into a communal fund.',
+//   },
+//   {
+//     headline: "Local Cat Looks Out Window With Genuine Look Of 'I Used To Be Someone'",
+//     isReal: false,
+//     source: 'Satire — fabricated headline',
+//     explanation: 'Satire. A classic satirical construction (anthropomorphizing pets with melodrama). No such story exists; this specific headline is fabricated.',
+//   },
+//   {
+//     headline: 'Japan Opens World\'s First Hotel Staffed Almost Entirely By Robots',
+//     isReal: true,
+//     source: 'BBC, 2015 (Henn-na Hotel, Nagasaki)',
+//     explanation: "Real. The Henn-na Hotel opened with robot receptionists, robot porters, and a robotic dinosaur at the front desk. Many were later 'fired' and replaced with humans due to malfunctions.",
+//   },
+//   {
+//     headline: "New Study: Most Americans Could Not Pick Their Best Friend Out Of A Police Lineup",
+//     isReal: false,
+//     source: 'Satire — fabricated headline',
+//     explanation: 'Satire. Satirical fake-study format used for absurdist effect. No such study exists.',
+//   },
+// ];
 
 export const QUIP_PROMPTS: QuipPrompt[] = [
   { setup: 'Scientists just confirmed octopuses punch fish for fun. Their new motto is...', sourceHint: 'real 2024 marine biology study' },
@@ -471,6 +472,7 @@ export const SOF_BANK: SofItem[] = [
   {
     topic: 'Animal Behavior',
     intro: 'Three claims about animal behavior. Two are real findings; one is fabricated.',
+    weirdAndTrue: false,
     claims: [
       {
         text: 'A 2024 study found that bumblebees can learn to roll a wooden ball into a target zone for a sugar reward by watching other bees demonstrate it first.',
@@ -495,6 +497,7 @@ export const SOF_BANK: SofItem[] = [
   {
     topic: 'Space & Astronomy',
     intro: 'Three claims about recent space discoveries. Two are real; one is fabricated.',
+    weirdAndTrue: false,
     claims: [
       {
         text: "NASA's Parker Solar Probe became the fastest human-made object in history, reaching speeds of approximately 430,000 mph at its closest approach to the Sun in December 2024.",
@@ -519,6 +522,7 @@ export const SOF_BANK: SofItem[] = [
   {
     topic: 'Medicine & Health',
     intro: 'Three medical research claims. Two are real; one is fabricated.',
+    weirdAndTrue: false,
     claims: [
       {
         text: 'A 2024 clinical trial found that a CRISPR-based gene therapy substantially reduced or eliminated symptoms in patients with sickle cell disease, leading to FDA approval of the first CRISPR therapy.',
@@ -543,6 +547,7 @@ export const SOF_BANK: SofItem[] = [
   {
     topic: 'Earth & Environment',
     intro: 'Three claims about our planet. Two are real; one is fabricated.',
+    weirdAndTrue: false,
     claims: [
       {
         text: 'Scientists have confirmed that some species of trees in the same forest can share nutrients and warning signals about pests through underground networks of fungi.',
@@ -567,6 +572,7 @@ export const SOF_BANK: SofItem[] = [
   {
     topic: 'Technology & AI',
     intro: 'Three claims about recent technology. Two are real; one is fabricated.',
+    weirdAndTrue: false,
     claims: [
       {
         text: "When OpenAI's ChatGPT launched in November 2022, it reached one million users in just five days — faster than any consumer product in history at that point.",
@@ -588,15 +594,115 @@ export const SOF_BANK: SofItem[] = [
       },
     ],
   },
+  {
+    topic: 'Weird & True: Law & Order',
+    intro: 'Three bizarre real-world stories. Two actually happened. One is fabricated satire.',
+    weirdAndTrue: true,
+    claims: [
+      {
+        text: 'A man in Tampa was arrested after breaking into a closed restaurant at night and washing all the dirty dishes. He told police he just wanted to help.',
+        isScience: true,
+        explanation: 'Real. A Tampa man was found scrubbing dishes at a closed restaurant and was arrested for burglary anyway, despite his claim that he was only trying to help. (Tampa Bay Times, 2023)',
+        source: { name: 'Tampa Bay Times', url: 'https://www.tampabay.com' },
+      },
+      {
+        text: 'A UK man was stopped at a border crossing with 70 kilograms of garlic hidden in his vehicle. Garlic carries high import duties in Britain.',
+        isScience: true,
+        explanation: 'Real. Garlic is a surprisingly common smuggling target in the UK due to steep import tariffs. Border agents regularly seize large quantities. (The Guardian, 2021)',
+        source: { name: 'The Guardian', url: 'https://www.theguardian.com' },
+      },
+      {
+        text: 'A man in Ohio was cited by municipal inspectors after repeatedly pressure-washing his neighbor\'s driveway at 5 a.m. as "a favor," citing an unwritten neighborhood code of conduct.',
+        isScience: false,
+        explanation: 'Fiction. Classic Onion-style construction: oversized civic response to unsolicited, good-faith helpfulness. No such incident was reported.',
+        source: null,
+      },
+    ],
+  },
+  {
+    topic: 'Weird & True: Strange Places',
+    intro: 'Three claims about unusual places and institutions. Two are real; one is fabricated.',
+    weirdAndTrue: true,
+    claims: [
+      {
+        text: 'Multiple Italian towns have sold abandoned, crumbling houses for one euro to buyers willing to commit to a full renovation within three years.',
+        isScience: true,
+        explanation: 'Real. Towns including Sambuca, Mussomeli, and Bivona launched €1 home programs to reverse depopulation. The renovation commitment is legally binding. (BBC, 2019)',
+        source: { name: 'BBC', url: 'https://www.bbc.com' },
+      },
+      {
+        text: 'Japan opened the world\'s first hotel staffed almost entirely by robots in 2015, including a robotic dinosaur at the front desk. Many robots were later removed after causing more problems than they solved.',
+        isScience: true,
+        explanation: 'Real. The Henn-na Hotel in Nagasaki opened with robot receptionists and porter robots. After malfunctions, including a robot that kept waking guests to ask if they were snoring, many were quietly retired. (BBC, 2015)',
+        source: { name: 'BBC', url: 'https://www.bbc.com' },
+      },
+      {
+        text: 'A small town in Slovakia temporarily renamed its main street "Cryptocurrency Boulevard" in exchange for an undisclosed corporate sponsorship from a blockchain startup.',
+        isScience: false,
+        explanation: 'Fiction. Adjacent to real naming-rights deals (stadiums, cities), but no such transaction occurred. The satire plays on the pattern of brands paying for public naming rights.',
+        source: null,
+      },
+    ],
+  },
+  {
+    topic: 'Weird & True: Remarkable People',
+    intro: 'Three claims about people who did something extraordinary — or apparently did. Two are real; one is fabricated.',
+    weirdAndTrue: true,
+    claims: [
+      {
+        text: 'An Oregon man successfully petitioned a court to legally change his name to Captain Awesome in 2008, convincing a judge it was not intended for fraudulent purposes.',
+        isScience: true,
+        explanation: 'Real. Scott Nall legally became Captain Awesome in Oregon. The judge found no fraud and granted the petition. He was not embarrassed about it. (The Oregonian, 2008)',
+        source: { name: 'The Oregonian', url: 'https://www.oregonlive.com' },
+      },
+      {
+        text: 'At COP27 in 2022, the Pacific island nation of Tuvalu announced it would build a digital replica of the entire country in the metaverse to preserve its statehood as rising seas threaten the physical islands.',
+        isScience: true,
+        explanation: 'Real. Tuvalu\'s foreign minister made the announcement in a video filmed knee-deep in seawater, wearing a suit. The digital nation project is ongoing. (Reuters, 2022)',
+        source: { name: 'Reuters', url: 'https://www.reuters.com' },
+      },
+      {
+        text: 'A retired New Zealand postal worker was offered a formal government citation after delivering mail to the same rural route for 38 years without once using a GPS device.',
+        isScience: false,
+        explanation: 'Fiction. Adjacent to real lifetime-service recognition stories, but this specific event did not occur. The GPS detail is a satirical embellishment of dedication narratives.',
+        source: null,
+      },
+    ],
+  },
+  {
+    topic: 'Weird & True: Rules & Regulations',
+    intro: 'Three claims about surprising laws and scientific findings. Two are real; one is fabricated.',
+    weirdAndTrue: true,
+    claims: [
+      {
+        text: 'Switzerland legally requires that every home have access to a nuclear fallout shelter under a 1963 law still in force today. New buildings must include shelters or owners pay into a communal fund.',
+        isScience: true,
+        explanation: 'Real. Switzerland has more fallout shelter capacity per capita than any other nation. The Cold War law was never repealed and remains enforceable. (Swiss Federal Civil Protection Law)',
+        source: { name: 'Swiss Federal Chancellery', url: 'https://www.admin.ch' },
+      },
+      {
+        text: 'Researchers documented octopuses literally punching fish during cooperative hunting expeditions in the Red Sea, sometimes apparently out of spite rather than for any strategic advantage.',
+        isScience: true,
+        explanation: 'Real. Marine biologists filmed the behavior in the Red Sea and published findings in Ecology. The "spite" interpretation is supported by the timing and targeting of the punches. (Ecology, 2020)',
+        source: { name: 'Ecology (Ecological Society of America)', url: 'https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3266' },
+      },
+      {
+        text: 'Denmark passed a 2022 workplace regulation requiring all open-plan offices with more than 20 employees to designate at least one lockable "deep focus pod" for uninterrupted work.',
+        isScience: false,
+        explanation: 'Fiction. Plausible given Scandinavian workplace wellness culture, but no such law exists. The satire plays on real debates about open-plan offices and Nordic labor regulation.',
+        source: null,
+      },
+    ],
+  },
 ];
 
 export const GAME_META: Record<GameId, { num: string; section: string; title: string; tagline: string; meta: string[]; hidden?: boolean }> = {
-  wacky: {
+  lede: {
     num: 'N° 01',
-    section: 'Real or Satire',
-    title: 'Wacky News',
-    tagline: 'A bizarre headline appears. Real news or satire? You decide.',
-    meta: ['Real headlines', '~1 min'],
+    section: 'Finish The Headline',
+    title: 'The Lede',
+    tagline: 'Three reporters offer competing endings for today\'s headline. Only one is real.',
+    meta: ['Bluff round', '~2 min'],
   },
   spread: {
     num: 'N° 02',
@@ -605,19 +711,20 @@ export const GAME_META: Record<GameId, { num: string; section: string; title: st
     tagline: 'Guess the number behind a real news story. The closer you are, the more points you score.',
     meta: ['Numerical', '~2 min'],
   },
-  lede: {
-    num: 'N° 03',
-    section: 'Finish The Headline',
-    title: 'The Lede',
-    tagline: 'Three reporters offer competing endings for today\'s headline. Only one is real.',
-    meta: ['Bluff round', '~2 min'],
-  },
   sof: {
-    num: 'N° 04',
+    num: 'N° 03',
     section: 'Two Truths, One Lie',
     title: 'Science or Fiction',
     tagline: 'Three claims. Two are real and cited. One is fabricated. Find the fake.',
     meta: ['Cited sources', '~3 min'],
+  },
+  wacky: {
+    num: 'N° 04',
+    section: 'Real or Satire',
+    title: 'Wacky News',
+    tagline: 'A bizarre headline appears. Real news or satire? You decide.',
+    meta: ['Real headlines', '~1 min'],
+    hidden: true,
   },
   quip: {
     num: 'N° 05',
@@ -637,4 +744,4 @@ export const GAME_META: Record<GameId, { num: string; section: string; title: st
   },
 };
 
-export const VISIBLE_GAMES: GameId[] = ['wacky', 'spread', 'lede', 'sof'];
+export const VISIBLE_GAMES: GameId[] = ['lede', 'spread', 'sof'];

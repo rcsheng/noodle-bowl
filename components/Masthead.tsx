@@ -2,10 +2,13 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { C, F } from '@/constants/theme';
 import { getIssueNumber, getTodayString } from '@/constants/utils';
+import { useGame } from '@/context/GameContext';
 
 export function Masthead() {
   const issueNum = getIssueNumber();
   const today = getTodayString();
+  const { state } = useGame();
+  const { dailyStreak, streakShieldsAvailable } = state.stats;
 
   return (
     <View style={styles.wrap}>
@@ -18,7 +21,12 @@ export function Masthead() {
         <Text style={styles.title}>
           Noodle <Text style={styles.amp}>Bowl</Text>
         </Text>
-        <Text style={styles.tagline}>A Daily Mix Of Brain Games · Solo Edition</Text>
+        <Text style={styles.tagline}>A Daily Mix Of Brain Games</Text>
+        {dailyStreak > 0 && (
+          <Text style={styles.streakLine}>
+            🔥 {dailyStreak}{streakShieldsAvailable > 0 ? '  🛡' : ''}
+          </Text>
+        )}
       </View>
       <View style={styles.borderLine} />
       <View style={styles.borderLine} />
@@ -67,5 +75,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
     marginTop: 8,
+  },
+  streakLine: {
+    fontFamily: F.monoBold,
+    fontSize: 13,
+    letterSpacing: 1.2,
+    color: C.ink,
+    marginTop: 10,
   },
 });

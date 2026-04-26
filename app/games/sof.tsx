@@ -2,21 +2,22 @@ import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Linking,
-  Modal,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Linking,
+    Modal,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChallengeModal } from '@/components/ChallengeModal';
+import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { SOF_BANK, SofItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { pickFromBank } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
 
 type Phase = 'play' | 'reveal';
@@ -36,22 +37,39 @@ function genFakeUrl(): string {
   return `https://noodlebowl.app/help/${result}`;
 }
 
+function pickFromSof(
+  weirdMode: boolean,
+  seen: number[]
+): { item: SofItem; newSeen: number[] } {
+  const filtered = SOF_BANK
+    .map((item, i) => ({ item, i }))
+    .filter(({ item }) => item.weirdAndTrue === weirdMode);
+  const seenInMode = seen.filter(i => SOF_BANK[i]?.weirdAndTrue === weirdMode);
+  const available = seenInMode.length >= filtered.length
+    ? filtered
+    : filtered.filter(({ i }) => !seenInMode.includes(i));
+  const pick = available[Math.floor(Math.random() * available.length)];
+  return { item: pick.item, newSeen: seen.includes(pick.i) ? seen : [...seen, pick.i] };
+}
+
 export default function SofScreen() {
-  const { state, isLoaded, updateGameStats, setSeen } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const started = useRef(false);
 
   const [question, setQuestion] = useState<SofItem | null>(null);
   const [votes, setVotes] = useState<ClaimVote[]>([null, null, null]);
   const [phase, setPhase] = useState<Phase>('play');
   const [revealData, setRevealData] = useState<RevealData | null>(null);
+  const [weirdMode, setWeirdMode] = useState(false);
   const [showFriend, setShowFriend] = useState(false);
   const [fakeUrl] = useState(genFakeUrl);
-  const [copied, setCopied] = useState(false);
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [helpCopied, setHelpCopied] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { item, newSeen } = pickFromBank(SOF_BANK, state.seen.sof);
+    const { item, newSeen } = pickFromSof(false, state.seen.sof);
     setSeen('sof', newSeen);
     setQuestion(item);
     setVotes([null, null, null]);
@@ -60,6 +78,9 @@ export default function SofScreen() {
   const setVote = (idx: number, v: ClaimVote) => {
     setVotes((prev) => {
       const next = [...prev];
+      if (v === 'fiction') {
+        next.forEach((_, i) => { if (i !== idx && next[i] === 'fiction') next[i] = null; });
+      }
       next[idx] = v;
       return next;
     });
@@ -86,7 +107,7 @@ export default function SofScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { item, newSeen } = pickFromBank(SOF_BANK, state.seen.sof);
+    const { item, newSeen } = pickFromSof(weirdMode, state.seen.sof);
     setSeen('sof', newSeen);
     setQuestion(item);
     setVotes([null, null, null]);
@@ -94,17 +115,28 @@ export default function SofScreen() {
     setRevealData(null);
   };
 
-  const handleCopy = async () => {
-    await Clipboard.setStringAsync(fakeUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleToggleMode = (nextMode: boolean) => {
+    if (nextMode === weirdMode) return;
+    setWeirdMode(nextMode);
+    if (phase === 'play') {
+      const { item, newSeen } = pickFromSof(nextMode, state.seen.sof);
+      setSeen('sof', newSeen);
+      setQuestion(item);
+      setVotes([null, null, null]);
+    }
   };
 
   const handleShare = async () => {
     await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
   };
 
-  const allVoted = votes.every((v) => v !== null);
+  const handleCopyHelp = async () => {
+    await Clipboard.setStringAsync(fakeUrl);
+    setHelpCopied(true);
+    setTimeout(() => setHelpCopied(false), 2000);
+  };
+
+  const allVoted = votes.every((v) => v !== null) && votes.filter(v => v === 'fiction').length === 1;
 
   if (!question) return null;
 
@@ -120,6 +152,23 @@ export default function SofScreen() {
         <View style={styles.labelRow}>
           <Text style={styles.label}>Science or Fiction</Text>
           <View style={styles.labelLine} />
+        </View>
+
+        <View style={styles.modeToggle}>
+          <TouchableOpacity
+            style={[styles.modeBtn, !weirdMode && styles.modeBtnActive]}
+            onPress={() => handleToggleMode(false)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.modeBtnText, !weirdMode && styles.modeBtnTextActive]}>Standard</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeBtn, weirdMode && styles.modeBtnActive]}
+            onPress={() => handleToggleMode(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.modeBtnText, weirdMode && styles.modeBtnTextActive]}>Weird & True</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.topicCard}>
@@ -199,7 +248,7 @@ export default function SofScreen() {
               onPress={() => setShowFriend(true)}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryBtnText}>Share with a Friend</Text>
+              <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
             </TouchableOpacity>
           </>
         )}
@@ -233,6 +282,14 @@ export default function SofScreen() {
             </View>
 
             <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => setShowChallenge(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={handlePlayAgain}
               activeOpacity={0.85}
@@ -240,44 +297,48 @@ export default function SofScreen() {
               <Text style={styles.secondaryBtnText}>Play Again</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => router.back()}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryBtnText}>Back to Games</Text>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Text style={styles.backText}>← Back to Games</Text>
             </TouchableOpacity>
           </>
         )}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Noodle Bowl · N° 04 · Science or Fiction</Text>
+          <Text style={styles.footerText}>Noodle Bowl · N° 03 · Science or Fiction</Text>
         </View>
       </ScrollView>
+
+      <ChallengeModal
+        visible={showChallenge}
+        onClose={() => setShowChallenge(false)}
+        correct={revealData?.correct ?? false}
+        predictLabel="Which claim do you think they'll call Fiction?"
+        predictOptions={question ? question.claims.map((claim, i) => ({
+          label: `${i + 1}. ${claim.text.split(' ').slice(0, 6).join(' ')}…`,
+          value: String(i + 1),
+        })) : []}
+        onSent={(prediction) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName: 'A Friend',
+          gameId: 'sof',
+          shieldEarned: false,
+          senderPrediction: prediction,
+        })}
+      />
 
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalInnerBorder} />
-            <Text style={styles.modalTitle}>Share with a Friend</Text>
+            <Text style={styles.modalTitle}>Ask a Friend for Help</Text>
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
-            <View style={styles.urlBox}>
+            <TouchableOpacity style={styles.urlBox} onPress={handleCopyHelp} activeOpacity={0.7}>
               <Text style={styles.urlText}>{fakeUrl}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.modalBtn} onPress={handleCopy} activeOpacity={0.85}>
-              <Text style={styles.modalBtnText}>{copied ? 'Copied!' : 'Copy Link'}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.modalBtnSecondary]}
-              onPress={handleShare}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>
-                Share via Messages
-              </Text>
+            <TouchableOpacity style={styles.modalBtn} onPress={handleShare} activeOpacity={0.85}>
+              <Text style={styles.modalBtnText}>Share with a Friend</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -288,6 +349,7 @@ export default function SofScreen() {
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
             </TouchableOpacity>
           </View>
+          <CopiedToast visible={helpCopied} />
         </View>
       </Modal>
     </SafeAreaView>
@@ -336,6 +398,31 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     backgroundColor: C.paperDarker,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: C.ink,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: C.paper,
+  },
+  modeBtnActive: {
+    backgroundColor: C.ink,
+  },
+  modeBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.ink,
+  },
+  modeBtnTextActive: {
+    color: C.onDark,
   },
   topicCard: {
     borderWidth: 1,

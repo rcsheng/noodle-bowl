@@ -16,39 +16,30 @@ import { useGame } from '@/context/GameContext';
 
 export default function HubScreen() {
   const { state } = useGame();
-
-  const totalPlayed = VISIBLE_GAMES.reduce((sum, id) => sum + state.stats[id].played, 0);
-  const totalCorrect = VISIBLE_GAMES.reduce((sum, id) => sum + state.stats[id].correct, 0);
-  const accuracy = totalPlayed > 0 ? Math.round((totalCorrect / totalPlayed) * 100) : 0;
+  const { totalPoints, dailyStreak } = state.stats;
+  const assists = state.friendInteractions.filter(i => i.type === 'gave_help').length;
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Masthead />
 
-        <View style={styles.introCard}>
-          <View style={styles.cardInnerBorder} />
-          <Text style={styles.introText}>
-            Chew on the news.
-          </Text>
-        </View>
-
         <View style={styles.statsCard}>
           <View style={styles.cardInnerBorder} />
           <View style={styles.statsRow}>
             <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{state.stats.totalPoints}</Text>
+              <Text style={styles.statValue}>{totalPoints}</Text>
               <Text style={styles.statLabel}>Points</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{accuracy}%</Text>
-              <Text style={styles.statLabel}>Accuracy</Text>
+              <Text style={styles.statValue}>{dailyStreak > 0 ? `🔥 ${dailyStreak}` : '—'}</Text>
+              <Text style={styles.statLabel}>Streak</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{totalPlayed}</Text>
-              <Text style={styles.statLabel}>Rounds</Text>
+              <Text style={styles.statValue}>{assists}</Text>
+              <Text style={styles.statLabel}>Assists</Text>
             </View>
           </View>
         </View>
@@ -58,19 +49,19 @@ export default function HubScreen() {
           <View style={styles.sectionLine} />
         </View>
 
-        {VISIBLE_GAMES.map((id: GameId) => {
+        {VISIBLE_GAMES.map((id: GameId, index: number) => {
           const meta = GAME_META[id];
-          const stats = state.stats[id];
+          const isAnchor = index === 0;
           return (
             <TouchableOpacity
               key={id}
-              style={styles.gameCard}
+              style={[styles.gameCard, isAnchor && styles.gameCardAnchor]}
               onPress={() => router.push(`/games/${id}`)}
               activeOpacity={0.85}
             >
-              <View style={styles.gameCardHeader}>
+              <View style={[styles.gameCardHeader, isAnchor && styles.gameCardHeaderAnchor]}>
                 <View style={styles.gameCardHeaderLeft}>
-                  <Text style={styles.gameNum}>{meta.num}</Text>
+                  <Text style={[styles.gameNum, isAnchor && styles.gameNumAnchor]}>{meta.num}</Text>
                   <Text style={styles.gameSection}>{meta.section}</Text>
                 </View>
                 <View style={styles.playBadge}>
@@ -78,7 +69,7 @@ export default function HubScreen() {
                 </View>
               </View>
 
-              <View style={styles.gameCardBody}>
+              <View style={[styles.gameCardBody, isAnchor && styles.gameCardBodyAnchor]}>
                 <View style={styles.cardInnerBorder} />
                 <Text style={styles.gameTitle}>{meta.title}</Text>
                 <Text style={styles.gameTagline}>{meta.tagline}</Text>
@@ -91,19 +82,13 @@ export default function HubScreen() {
                     </React.Fragment>
                   ))}
                 </View>
-
-                {stats.streak > 0 && (
-                  <View style={styles.streakBadge}>
-                    <Text style={styles.streakText}>🔥 {stats.streak} streak</Text>
-                  </View>
-                )}
               </View>
             </TouchableOpacity>
           );
         })}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Noodle Bowl · Solo Edition</Text>
+          <Text style={styles.footerText}>Noodle Bowl</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -119,14 +104,6 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 80,
   },
-  introCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    padding: 20,
-    marginBottom: 16,
-    ...cardShadow,
-  },
   cardInnerBorder: {
     position: 'absolute',
     top: 4,
@@ -136,13 +113,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(42,36,29,0.15)',
     pointerEvents: 'none',
-  },
-  introText: {
-    fontFamily: F.frauncesItalic,
-    fontSize: 18,
-    color: C.ink,
-    lineHeight: 26,
-    textAlign: 'center',
   },
   statsCard: {
     borderWidth: 1,
@@ -206,6 +176,9 @@ const styles = StyleSheet.create({
     ...cardShadow,
     overflow: 'hidden',
   },
+  gameCardAnchor: {
+    borderColor: C.gold,
+  },
   gameCardHeader: {
     backgroundColor: C.ink,
     paddingHorizontal: 20,
@@ -214,10 +187,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  gameCardHeaderAnchor: {
+    backgroundColor: C.ink,
+  },
   gameCardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flexShrink: 1,
   },
   gameNum: {
     fontFamily: F.mono,
@@ -225,6 +202,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: C.onDarkDim,
     textTransform: 'uppercase',
+  },
+  gameNumAnchor: {
+    color: C.gold,
   },
   gameSection: {
     fontFamily: F.mono,
@@ -248,6 +228,9 @@ const styles = StyleSheet.create({
   },
   gameCardBody: {
     padding: 24,
+  },
+  gameCardBodyAnchor: {
+    paddingVertical: 28,
   },
   gameTitle: {
     fontFamily: F.frauncesXBoldItalic,
@@ -279,19 +262,6 @@ const styles = StyleSheet.create({
     fontFamily: F.mono,
     fontSize: 10,
     color: C.muted,
-  },
-  streakBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: C.ink,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 12,
-  },
-  streakText: {
-    fontFamily: F.monoBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: C.onDark,
   },
   footer: {
     alignItems: 'center',

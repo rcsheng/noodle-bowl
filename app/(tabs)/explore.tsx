@@ -9,6 +9,13 @@ import { useGame } from '@/context/GameContext';
 
 export default function StatsScreen() {
   const { state } = useGame();
+  const {
+    totalPoints,
+    dailyStreak,
+    bestDailyStreak,
+    totalDaysPlayed,
+    streakShieldsAvailable,
+  } = state.stats;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -16,14 +23,62 @@ export default function StatsScreen() {
         <Masthead />
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Your Record</Text>
+          <Text style={styles.sectionLabel}>Streak & History</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        <View style={styles.streakCard}>
+          <View style={styles.cardInnerBorder} />
+          <View style={styles.streakRow}>
+            <View style={styles.streakBlock}>
+              <Text style={styles.streakValue}>{dailyStreak > 0 ? `🔥 ${dailyStreak}` : '—'}</Text>
+              <Text style={styles.streakLabel}>Daily Streak</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.streakBlock}>
+              <Text style={styles.streakValue}>{totalDaysPlayed}</Text>
+              <Text style={styles.streakLabel}>Days Played</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.streakBlock}>
+              <Text style={styles.streakValue}>{bestDailyStreak > 0 ? `🏆 ${bestDailyStreak}` : '—'}</Text>
+              <Text style={styles.streakLabel}>Best Streak</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.shieldsRow}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <View
+              key={i}
+              style={[styles.shieldSlot, i < streakShieldsAvailable && styles.shieldSlotFilled]}
+            >
+              <Text style={styles.shieldSlotText}>
+                {i < streakShieldsAvailable ? '🛡' : '·'}
+              </Text>
+            </View>
+          ))}
+          <Text style={styles.shieldsLabel}>
+            {streakShieldsAvailable === 0
+              ? 'No shields'
+              : `${streakShieldsAvailable} shield${streakShieldsAvailable > 1 ? 's' : ''}`}
+          </Text>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Lifetime Points</Text>
           <View style={styles.sectionLine} />
         </View>
 
         <View style={styles.totalCard}>
-          <View style={styles.cardInnerBorder} />
-          <Text style={styles.totalLabel}>Total Points</Text>
-          <Text style={styles.totalValue}>{state.stats.totalPoints}</Text>
+          <View style={styles.totalInnerBorder} />
+          <Text style={styles.totalValue}>{totalPoints}</Text>
+          <Text style={styles.totalLabel}>pts</Text>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Per-Game Breakdown</Text>
+          <View style={styles.sectionLine} />
         </View>
 
         {VISIBLE_GAMES.map((id: GameId) => {
@@ -34,7 +89,7 @@ export default function StatsScreen() {
 
           return (
             <View key={id} style={styles.gameCard}>
-              <View style={styles.gameCardInnerBorder} />
+              <View style={styles.cardInnerBorder} />
               <View style={styles.gameHeader}>
                 <Text style={styles.gameNum}>{meta.num}</Text>
                 <Text style={styles.gameName}>{meta.title}</Text>
@@ -42,13 +97,13 @@ export default function StatsScreen() {
 
               <View style={styles.statsGrid}>
                 <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{stats.streak}</Text>
-                  <Text style={styles.statLabel}>Current{'\n'}Streak</Text>
+                  <Text style={styles.statValue}>{stats.played}</Text>
+                  <Text style={styles.statLabel}>Played</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{stats.bestStreak}</Text>
-                  <Text style={styles.statLabel}>Best{'\n'}Streak</Text>
+                  <Text style={styles.statValue}>{stats.correct}</Text>
+                  <Text style={styles.statLabel}>Correct</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statCell}>
@@ -57,8 +112,8 @@ export default function StatsScreen() {
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{stats.played}</Text>
-                  <Text style={styles.statLabel}>Rounds{'\n'}Played</Text>
+                  <Text style={styles.statValue}>{stats.bestScore > 0 ? `+${stats.bestScore}` : '—'}</Text>
+                  <Text style={styles.statLabel}>Best</Text>
                 </View>
               </View>
             </View>
@@ -66,7 +121,7 @@ export default function StatsScreen() {
         })}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Noodle Bowl · Solo Edition</Text>
+          <Text style={styles.footerText}>Noodle Bowl · Stats</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -85,7 +140,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionLabel: {
     fontFamily: F.mono,
@@ -100,13 +155,12 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: C.paperDarker,
   },
-  totalCard: {
+  streakCard: {
     borderWidth: 1,
     borderColor: C.rule,
-    backgroundColor: C.ink,
-    padding: 24,
-    marginBottom: 20,
-    alignItems: 'center',
+    backgroundColor: C.paperDark,
+    padding: 20,
+    marginBottom: 12,
     ...cardShadow,
   },
   cardInnerBorder: {
@@ -116,22 +170,102 @@ const styles = StyleSheet.create({
     right: 4,
     bottom: 4,
     borderWidth: 1,
-    borderColor: 'rgba(232,238,243,0.15)',
+    borderColor: 'rgba(42,36,29,0.15)',
     pointerEvents: 'none',
   },
-  totalLabel: {
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  streakBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  streakValue: {
+    fontFamily: F.frauncesXBold,
+    fontSize: 24,
+    color: C.ink,
+    lineHeight: 30,
+  },
+  streakLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: C.paperDarker,
+  },
+  shieldsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  shieldSlot: {
+    width: 32,
+    height: 32,
+    borderWidth: 1,
+    borderColor: C.paperDarker,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shieldSlotFilled: {
+    borderColor: C.accent,
+    backgroundColor: 'rgba(184,74,53,0.06)',
+  },
+  shieldSlotText: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  shieldsLabel: {
     fontFamily: F.mono,
     fontSize: 10,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
-    color: C.onDarkDim,
-    marginBottom: 8,
+    color: C.muted,
+  },
+  totalCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.ink,
+    padding: 24,
+    marginBottom: 28,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    ...cardShadow,
+  },
+  totalInnerBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(232,238,243,0.15)',
+    pointerEvents: 'none',
   },
   totalValue: {
     fontFamily: F.frauncesXBold,
     fontSize: 52,
     color: C.onDark,
     lineHeight: 58,
+  },
+  totalLabel: {
+    fontFamily: F.mono,
+    fontSize: 14,
+    letterSpacing: 1.5,
+    color: C.onDarkDim,
+    alignSelf: 'flex-end',
+    paddingBottom: 6,
   },
   gameCard: {
     borderWidth: 1,
@@ -140,16 +274,6 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
     ...cardShadow,
-  },
-  gameCardInnerBorder: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(42,36,29,0.15)',
-    pointerEvents: 'none',
   },
   gameHeader: {
     flexDirection: 'row',
@@ -177,16 +301,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: C.paperDarker,
-  },
   statValue: {
     fontFamily: F.frauncesXBold,
-    fontSize: 24,
+    fontSize: 22,
     color: C.ink,
-    lineHeight: 28,
+    lineHeight: 26,
   },
   statLabel: {
     fontFamily: F.mono,

@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChallengeModal } from '@/components/ChallengeModal';
+import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { LEDE_BANK, LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
@@ -34,7 +36,7 @@ function genFakeUrl(): string {
 }
 
 export default function LedeScreen() {
-  const { state, isLoaded, updateGameStats, setSeen } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const started = useRef(false);
 
   const [question, setQuestion] = useState<LedeItem | null>(null);
@@ -44,7 +46,8 @@ export default function LedeScreen() {
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
   const [fakeUrl] = useState(genFakeUrl);
-  const [copied, setCopied] = useState(false);
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [helpCopied, setHelpCopied] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -79,14 +82,14 @@ export default function LedeScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
 
-  const handleCopy = async () => {
-    await Clipboard.setStringAsync(fakeUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleShare = async () => {
     await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+  };
+
+  const handleCopyHelp = async () => {
+    await Clipboard.setStringAsync(fakeUrl);
+    setHelpCopied(true);
+    setTimeout(() => setHelpCopied(false), 2000);
   };
 
   if (!question) return null;
@@ -210,7 +213,7 @@ export default function LedeScreen() {
               onPress={() => setShowFriend(true)}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryBtnText}>Share with a Friend</Text>
+              <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
             </TouchableOpacity>
           </>
         )}
@@ -235,13 +238,16 @@ export default function LedeScreen() {
                 <Text style={styles.resultPoints}>
                   {revealData.correct ? `+${revealData.points} pts` : '0 pts'}
                 </Text>
-                {revealData.correct && revealData.prevStreak > 0 && (
-                  <Text style={styles.resultStreak}>
-                    🔥 {revealData.prevStreak + 1} streak
-                  </Text>
-                )}
               </View>
             )}
+
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => setShowChallenge(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.secondaryBtn}
@@ -251,44 +257,48 @@ export default function LedeScreen() {
               <Text style={styles.secondaryBtnText}>Play Again</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => router.back()}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryBtnText}>Back to Games</Text>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Text style={styles.backText}>← Back to Games</Text>
             </TouchableOpacity>
           </>
         )}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Noodle Bowl · N° 03 · The Lede</Text>
+          <Text style={styles.footerText}>Noodle Bowl · N° 01 · The Lede</Text>
         </View>
       </ScrollView>
+
+      <ChallengeModal
+        visible={showChallenge}
+        onClose={() => setShowChallenge(false)}
+        correct={revealData?.correct ?? false}
+        predictLabel="Which ending do you think they'll pick?"
+        predictOptions={question ? orderedPanelists.map(({ panelist }) => ({
+          label: panelist.completion.split(' ').slice(0, 7).join(' ') + '…',
+          value: panelist.name,
+        })) : []}
+        onSent={(prediction) => addFriendInteraction({
+          type: 'sent_challenge',
+          friendName: 'A Friend',
+          gameId: 'lede',
+          shieldEarned: false,
+          senderPrediction: prediction,
+        })}
+      />
 
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalInnerBorder} />
-            <Text style={styles.modalTitle}>Share with a Friend</Text>
-            <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
+            <Text style={styles.modalTitle}>Ask a Friend for Help</Text>
+            <Text style={styles.modalSubtitle}>They'll answer the same puzzle — you'll see what they pick.</Text>
 
-            <View style={styles.urlBox}>
+            <TouchableOpacity style={styles.urlBox} onPress={handleCopyHelp} activeOpacity={0.7}>
               <Text style={styles.urlText}>{fakeUrl}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.modalBtn} onPress={handleCopy} activeOpacity={0.85}>
-              <Text style={styles.modalBtnText}>{copied ? 'Copied!' : 'Copy Link'}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.modalBtnSecondary]}
-              onPress={handleShare}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>
-                Share via Messages
-              </Text>
+            <TouchableOpacity style={styles.modalBtn} onPress={handleShare} activeOpacity={0.85}>
+              <Text style={styles.modalBtnText}>Share with a Friend</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -299,6 +309,7 @@ export default function LedeScreen() {
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
             </TouchableOpacity>
           </View>
+          <CopiedToast visible={helpCopied} />
         </View>
       </Modal>
     </SafeAreaView>

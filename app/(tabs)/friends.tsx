@@ -1,0 +1,328 @@
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Masthead } from '@/components/Masthead';
+import { C, F, cardShadow } from '@/constants/theme';
+import { GAME_META } from '@/constants/data';
+import { useGame } from '@/context/GameContext';
+import { formatRelativeDate } from '@/constants/utils';
+
+export default function FriendsScreen() {
+  const { state } = useGame();
+  const { streakShieldsAvailable } = state.stats;
+  const { friendInteractions } = state;
+
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  oneWeekAgo.setHours(0, 0, 0, 0);
+
+  const thisWeek = friendInteractions.filter(i => {
+    const d = new Date(i.date + 'T00:00:00');
+    return d >= oneWeekAgo;
+  });
+  const helpedMe = thisWeek.filter(i => i.type === 'received_help').length;
+  const iHelped = thisWeek.filter(i => i.type === 'gave_help').length;
+  const weekShieldsEarned = thisWeek.filter(i => i.shieldEarned).length;
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Masthead />
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Streak Shields</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        <View style={styles.shieldCard}>
+          <View style={styles.cardInnerBorder} />
+          <View style={styles.shieldSlots}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <View
+                key={i}
+                style={[styles.shieldSlot, i < streakShieldsAvailable && styles.shieldSlotFilled]}
+              >
+                <Text style={styles.shieldSlotText}>
+                  {i < streakShieldsAvailable ? '🛡' : '—'}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.shieldCount}>
+            {streakShieldsAvailable === 0
+              ? 'No shields available'
+              : `${streakShieldsAvailable} shield${streakShieldsAvailable > 1 ? 's' : ''} available`}
+          </Text>
+          <Text style={styles.shieldExplainer}>
+            Shields protect your streak if you miss a day.
+          </Text>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Friend Activity</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        {friendInteractions.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <View style={styles.cardInnerBorder} />
+            <Text style={styles.emptyTitle}>No friend activity yet.</Text>
+            <Text style={styles.emptyBody}>
+              Tap{' '}
+              <Text style={styles.emptyBold}>Ask a Friend for Help</Text>
+              {' '}the next time you're stuck — they'll see just the question, no answers.{'\n\n'}
+              You both earn a streak shield when they respond.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {(helpedMe > 0 || iHelped > 0) && (
+              <View style={styles.weekCard}>
+                <View style={styles.cardInnerBorder} />
+                <Text style={styles.weekLabel}>This Week</Text>
+                <View style={styles.weekRow}>
+                  <Text style={styles.weekStat}>
+                    {helpedMe} friend{helpedMe !== 1 ? 's' : ''} helped you
+                  </Text>
+                  <Text style={styles.weekDot}> · </Text>
+                  <Text style={styles.weekStat}>
+                    You helped {iHelped} friend{iHelped !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                {weekShieldsEarned > 0 && (
+                  <Text style={styles.weekShields}>
+                    🛡 {weekShieldsEarned} shield{weekShieldsEarned !== 1 ? 's' : ''} earned this week
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {friendInteractions.map(interaction => {
+              const meta = GAME_META[interaction.gameId];
+              let icon = '📤';
+              let line: React.ReactNode;
+              if (interaction.type === 'received_help') {
+                icon = '📩';
+                line = <><Text style={styles.feedBold}>{interaction.friendName}</Text>{' helped you with '}{meta.title}</>;
+              } else if (interaction.type === 'gave_help') {
+                icon = '📤';
+                line = <>{'You helped '}<Text style={styles.feedBold}>{interaction.friendName}</Text>{' with '}{meta.title}</>;
+              } else if (interaction.type === 'sent_challenge') {
+                icon = '⚔️';
+                line = <>{'You challenged '}<Text style={styles.feedBold}>{interaction.friendName}</Text>{' to '}{meta.title}</>;
+              } else if (interaction.type === 'challenge_accepted') {
+                icon = '⚔️';
+                line = <><Text style={styles.feedBold}>{interaction.friendName}</Text>{' accepted your challenge — '}{meta.title}</>;
+              } else if (interaction.type === 'received_challenge') {
+                icon = '⚔️';
+                line = <><Text style={styles.feedBold}>{interaction.friendName}</Text>{' challenged you to '}{meta.title}</>;
+              }
+
+              return (
+                <View key={interaction.id} style={styles.feedItem}>
+                  <Text style={styles.feedIcon}>{icon}</Text>
+                  <View style={styles.feedBody}>
+                    <Text style={styles.feedText}>{line}</Text>
+                    <Text style={styles.feedMeta}>
+                      {formatRelativeDate(interaction.date)}
+                      {interaction.shieldEarned ? '  🛡 Shield earned' : ''}
+                      {interaction.type === 'sent_challenge' && !interaction.friendAnswer ? '  · Waiting for them to play…' : ''}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Noodle Bowl · Friends</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: C.paper,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 80,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginRight: 12,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: C.paperDarker,
+  },
+  cardInnerBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(42,36,29,0.15)',
+    pointerEvents: 'none',
+  },
+  shieldCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paperDark,
+    padding: 24,
+    marginBottom: 24,
+    ...cardShadow,
+  },
+  shieldSlots: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 14,
+  },
+  shieldSlot: {
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    borderColor: C.paperDarker,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shieldSlotFilled: {
+    borderColor: C.accent,
+    backgroundColor: 'rgba(184,74,53,0.06)',
+  },
+  shieldSlotText: {
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  shieldCount: {
+    fontFamily: F.frauncesSemiBold,
+    fontSize: 16,
+    color: C.ink,
+    marginBottom: 6,
+  },
+  shieldExplainer: {
+    fontFamily: F.fraunces,
+    fontSize: 14,
+    color: C.muted,
+    lineHeight: 20,
+  },
+  emptyCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    padding: 28,
+    ...cardShadow,
+  },
+  emptyTitle: {
+    fontFamily: F.frauncesBold,
+    fontSize: 18,
+    color: C.ink,
+    marginBottom: 12,
+  },
+  emptyBody: {
+    fontFamily: F.fraunces,
+    fontSize: 15,
+    color: C.muted,
+    lineHeight: 24,
+  },
+  emptyBold: {
+    fontFamily: F.frauncesBold,
+    color: C.ink,
+  },
+  weekCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paperDark,
+    padding: 20,
+    marginBottom: 20,
+    ...cardShadow,
+  },
+  weekLabel: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginBottom: 10,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  weekStat: {
+    fontFamily: F.fraunces,
+    fontSize: 14,
+    color: C.ink,
+  },
+  weekDot: {
+    fontFamily: F.fraunces,
+    fontSize: 14,
+    color: C.muted,
+  },
+  weekShields: {
+    fontFamily: F.fraunces,
+    fontSize: 14,
+    color: C.ink,
+    marginTop: 8,
+  },
+  feedItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.paperDarker,
+  },
+  feedIcon: {
+    fontSize: 20,
+    lineHeight: 24,
+    marginTop: 2,
+  },
+  feedBody: {
+    flex: 1,
+  },
+  feedText: {
+    fontFamily: F.fraunces,
+    fontSize: 15,
+    color: C.ink,
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  feedBold: {
+    fontFamily: F.frauncesBold,
+  },
+  feedMeta: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: C.muted,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingTop: 24,
+  },
+  footerText: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+  },
+});

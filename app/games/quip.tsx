@@ -2,19 +2,20 @@ import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { PANEL, QUIP_PROMPTS, QuipPrompt } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
@@ -194,7 +195,7 @@ export default function QuipScreen() {
                 onPress={() => setShowFriend(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.secondaryBtnText}>Share with a Friend</Text>
+                <Text style={styles.secondaryBtnText}>Ask a Friend for Help</Text>
               </TouchableOpacity>
             </>
           )}
@@ -280,12 +281,12 @@ export default function QuipScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <View style={styles.modalInnerBorder} />
-            <Text style={styles.modalTitle}>Share with a Friend</Text>
+            <Text style={styles.modalTitle}>Ask a Friend for Help</Text>
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
-            <View style={styles.urlBox}>
+            <TouchableOpacity style={styles.urlBox} onPress={handleCopy} activeOpacity={0.7}>
               <Text style={styles.urlText}>{fakeUrl}</Text>
-            </View>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalBtn} onPress={handleCopy} activeOpacity={0.85}>
               <Text style={styles.modalBtnText}>{copied ? 'Copied!' : 'Copy Link'}</Text>
@@ -309,6 +310,7 @@ export default function QuipScreen() {
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
             </TouchableOpacity>
           </View>
+          <CopiedToast visible={copied} />
         </View>
       </Modal>
     </SafeAreaView>
