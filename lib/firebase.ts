@@ -25,10 +25,12 @@ export const db = getFirestore(app);
 export const fns = getFunctions(app);
 
 // Connect to local emulators in dev — only runs once per module load.
-// Set EXPO_PUBLIC_EMULATOR_HOST to your machine's LAN IP when testing on a
-// physical device (Expo Go can't reach localhost across the network).
+// Android emulators can't reach `localhost`; they use 10.0.2.2 for the host machine.
+// Override with EXPO_PUBLIC_EMULATOR_HOST when testing on a physical device (use LAN IP).
 if (__DEV__) {
-  const host = process.env.EXPO_PUBLIC_EMULATOR_HOST ?? 'localhost';
+  const { Platform } = require('react-native') as typeof import('react-native');
+  const defaultHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+  const host = process.env.EXPO_PUBLIC_EMULATOR_HOST ?? defaultHost;
   connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
   connectFirestoreEmulator(db, host, 8080);
   connectFunctionsEmulator(fns, host, 5001);

@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { signOut } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,8 +8,10 @@ import { Masthead } from '@/components/Masthead';
 import { GAME_META, GameId } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { ChallengePayload, decodeChallengeToken } from '@/constants/utils';
+import { useAuth } from '@/context/AuthContext';
 import { useGame } from '@/context/GameContext';
 import { fetchChallenge } from '@/lib/challengeApi';
+import { auth } from '@/lib/firebase';
 
 // Short tokens from the backend: 8 uppercase alphanum chars
 const SHORT_TOKEN_RE = /^[A-Z0-9]{8}$/;
@@ -23,10 +26,15 @@ interface NormalizedPayload {
 
 export default function ChallengeScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
-  const { addFriendInteraction } = useGame();
+  const { state, isLoaded: gameLoaded, addFriendInteraction } = useGame();
+  const { isAnonymous } = useAuth();
   const [payload, setPayload] = useState<NormalizedPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recorded, setRecorded] = useState(false);
+
+  const isSender = !isAnonymous && gameLoaded && !!token && state.friendInteractions.some(
+    (i) => i.type === 'sent_challenge' && i.token === (token as string),
+  );
 
   useEffect(() => {
     if (!token) { setError('No challenge token found.'); return; }
@@ -81,7 +89,7 @@ export default function ChallengeScreen() {
   }, [token]);
 
   useEffect(() => {
-    if (!payload || recorded) return;
+    if (!payload || recorded || !gameLoaded || isSender) return;
     addFriendInteraction({
       type: 'received_challenge',
       friendName: payload.senderName,
@@ -90,7 +98,35 @@ export default function ChallengeScreen() {
       shieldEarned: false,
     });
     setRecorded(true);
-  }, [payload, recorded]);
+  }, [payload, recorded, gameLoaded, isSender]);
+
+  if (payload && isSender) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Masthead />
+          <View style={styles.card} testID="self-challenge-guard">
+            <View style={styles.cardInnerBorder} />
+            <Text style={styles.cardLabel}>You Created This Challenge</Text>
+            <Text style={styles.cardBody}>
+              Sign out to play it as {payload.senderName}.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => signOut(auth)}
+            activeOpacity={0.85}
+            testID="self-challenge-signout-btn"
+          >
+            <Text style={styles.primaryBtnText}>Sign Out</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.replace('/')} activeOpacity={0.85}>
+            <Text style={styles.secondaryBtnText}>Back to Games</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   if (error) {
     return (

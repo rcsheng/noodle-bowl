@@ -4,6 +4,8 @@ import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
 import { GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { db } from '@/lib/firebase';
+import { readStats, writeStats } from '@/lib/statsRepo';
+import { scheduleWrite } from '@/lib/syncQueue';
 import { useAuth } from '@/context/AuthContext';
 import { Action, AppState, FriendInteraction, initialState, reducer } from './gameReducer';
 
@@ -47,6 +49,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       JSON.stringify({ stats: state.stats, seen: state.seen, friendInteractions: state.friendInteractions })
     ).catch(() => {});
   }, [state, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded || isAnonymous || !uid) return;
+    scheduleWrite('stats', state.stats, (s) => writeStats(uid, s), 1500);
+  }, [state.stats, isLoaded, isAnonymous, uid]);
+
+  useEffect(() => {
+    if (!isLoaded || isAnonymous || !uid) return;
+    readStats(uid)
+      .then(serverStats => {
+        if (serverStats) dispatch({ type: 'MERGE_FROM_SERVER', serverStats });
+      })
+      .catch(() => {});
+  }, [uid, isAnonymous, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded || isAnonymous || !uid) return;

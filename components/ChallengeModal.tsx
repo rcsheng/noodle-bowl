@@ -67,6 +67,11 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
       const { url, token } = await buildChallengeUrl(displayName, prediction);
       setChallengeUrl(url);
       setChallengeToken(token);
+      // Record the sent_challenge interaction now — the challenge exists on
+      // the server regardless of whether the user copies the URL or taps
+      // Share. Without this, an onSnapshot listener for the token is never
+      // set up and the friend's response never reaches the Friends tab.
+      onSent(prediction, displayName, token);
       setStep('share');
     } catch {
       setUrlError('Could not generate challenge link. Please try again.');
@@ -85,11 +90,6 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
 
   const handleShare = async () => {
     await Share.share({ message: `I thought this Noodle Bowl question would trick you. ${challengeUrl}` });
-    markSent();
-  };
-
-  const markSent = () => {
-    onSent(prediction, displayName, challengeToken);
     setStep('sent');
   };
 

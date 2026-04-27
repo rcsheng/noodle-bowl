@@ -188,6 +188,17 @@ describe('ChallengeModal', () => {
     });
   });
 
+  test('onSent fires as soon as the URL is generated, not deferred until Share is pressed', async () => {
+    // Regression: if onSent only fires on tapping "Share with a Friend",
+    // users who copy the URL and share manually (AirDrop, paste, etc.) never
+    // record the sent_challenge interaction, so the Friends tab listener
+    // never subscribes and the friend's response is invisible.
+    const onSent = jest.fn();
+    const utils = render(<ChallengeModal {...defaultProps} onSent={onSent} />);
+    await advanceToShareStep(utils, '42');
+    expect(onSent).toHaveBeenCalledWith('42', 'A Friend', 'TESTTOKEN');
+  });
+
   // -------------------------------------------------------------------------
   // Cancel / Close
   // -------------------------------------------------------------------------

@@ -18,9 +18,10 @@ export function Masthead() {
         <Text style={styles.dateStrip}>
           No. {String(issueNum).padStart(4, '0')} · {today}
         </Text>
-        <Text style={styles.title}>
-          Noodle <Text style={styles.amp}>Bowl</Text>
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Noodle </Text>
+          <Text style={styles.amp}>Bowl</Text>
+        </View>
         <Text style={styles.tagline}>A Daily Mix Of Brain Games</Text>
         {dailyStreak > 0 && (
           <Text style={styles.streakLine}>
@@ -57,6 +58,10 @@ const styles = StyleSheet.create({
     color: C.muted,
     marginBottom: 6,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
   title: {
     fontFamily: F.frauncesXBoldItalic,
     fontSize: 48,
@@ -65,9 +70,11 @@ const styles = StyleSheet.create({
     color: C.ink,
   },
   amp: {
-    color: C.accent,
     fontFamily: F.frauncesItalic,
     fontSize: 48,
+    lineHeight: 56,
+    letterSpacing: -1,
+    color: C.accent,
   },
   tagline: {
     fontFamily: F.mono,

@@ -12,11 +12,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChallengeModal } from '@/components/ChallengeModal';
+import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { calculatePoints, copyToClipboard, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { useAuth } from '@/context/AuthContext';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
@@ -35,6 +37,7 @@ interface RevealData {
 }
 
 export default function LedeScreen() {
+  const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const { banks } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
@@ -73,6 +76,7 @@ export default function LedeScreen() {
   const [helpCopied, setHelpCopied] = useState(false);
   const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
+  const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -356,6 +360,13 @@ export default function LedeScreen() {
                     </Text>
                   </View>
                 </View>
+              {isAnonymous && !signUpBannerDismissed && (
+                <ChallengeSignUpBanner
+                  senderName={challengeSenderName ?? 'your friend'}
+                  onCreateAccount={() => router.push('/auth/sign-up')}
+                  onDismiss={() => setSignUpBannerDismissed(true)}
+                />
+              )}
                 <TouchableOpacity
                   style={styles.primaryBtn}
                   onPress={() => router.back()}
@@ -431,7 +442,7 @@ export default function LedeScreen() {
             questionIndex: questionIdx,
             senderPrediction: prediction,
             senderAnswer: selected !== null ? question!.panelists[selected].name : '',
-            senderName: friendName,
+            senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
           return { url: result.url, token: result.token };

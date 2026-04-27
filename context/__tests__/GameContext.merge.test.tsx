@@ -1,0 +1,167 @@
+import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { act, renderHook } from '@testing-library/react-native';
+
+// ── Mocks ────────────────────────────────────────────────────────────────────
+
+const mockReadStats = jest.fn();
+
+jest.mock('@/lib/statsRepo', () => ({
+  readStats: (...args: unknown[]) => mockReadStats(...args),
+  writeStats: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/lib/syncQueue', () => ({
+  scheduleWrite: jest.fn(),
+}));
+
+jest.mock('firebase/firestore', () => ({
+  collection: jest.fn(),
+  doc: jest.fn(),
+  getDocs: jest.fn().mockResolvedValue({ docs: [] }),
+  setDoc: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/lib/firebase', () => ({ db: {} }));
+
+jest.mock('@/context/AuthContext', () => ({
+  useAuth: jest.fn(),
+}));
+
+const { useAuth } = require('@/context/AuthContext') as { useAuth: jest.Mock };
+
+import { reducer, initialState } from '../gameReducer';
+import { GameProvider, useGame } from '../GameContext';
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  return <GameProvider>{children}</GameProvider>;
+}
+
+async function flushEffects(count = 15) {
+  for (let i = 0; i < count; i++) await Promise.resolve();
+}
+
+// ── Pure reducer: MERGE_FROM_SERVER ──────────────────────────────────────────
+
+describe('reducer: MERGE_FROM_SERVER', () => {
+  const localStats = { ...initialState.stats, totalPoints: 50, lastPlayedDate: '2026-04-20' };
+  const serverStatsNewer = { ...initialState.stats, totalPoints: 200, lastPlayedDate: '2026-04-27' };
+  const serverStatsOlder = { ...initialState.stats, totalPoints: 10, lastPlayedDate: '2026-04-10' };
+  const serverStatsSameDate = { ...initialState.stats, totalPoints: 300, lastPlayedDate: '2026-04-20' };
+
+  function makeState(stats = localStats) {
+    return { ...initialState, stats };
+  }
+
+  test('server wins when server.lastPlayedDate is newer than local', () => {
+    const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverStatsNewer });
+    expect(next.stats.totalPoints).toBe(200);
+    expect(next.stats.lastPlayedDate).toBe('2026-04-27');
+  });
+
+  test('local wins when local.lastPlayedDate is newer than server', () => {
+    const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverStatsOlder });
+    expect(next.stats.totalPoints).toBe(50);
+    expect(next.stats.lastPlayedDate).toBe('2026-04-20');
+  });
+
+  test('server wins when dates are equal', () => {
+    const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverStatsSameDate });
+    expect(next.stats.totalPoints).toBe(300);
+  });
+
+  test('server wins when local.lastPlayedDate is null', () => {
+    const state = makeState({ ...initialState.stats, lastPlayedDate: null });
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats: serverStatsNewer });
+    expect(next.stats.totalPoints).toBe(200);
+  });
+
+  test('local wins when server.lastPlayedDate is null', () => {
+    const serverNull = { ...initialState.stats, lastPlayedDate: null };
+    const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverNull });
+    expect(next.stats.totalPoints).toBe(50);
+  });
+
+  test('seen arrays merge as deduplicated union per game', () => {
+    const state = { ...initialState, seen: { ...initialState.seen, lede: [0, 1, 2] } };
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: serverStatsNewer,
+      serverSeen: { lede: [1, 2, 3, 4] },
+    });
+    expect(next.seen.lede).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  test('seen union deduplicates overlapping entries', () => {
+    const state = { ...initialState, seen: { ...initialState.seen, spread: [5, 6, 7] } };
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: serverStatsNewer,
+      serverSeen: { spread: [6, 7, 8] },
+    });
+    expect(next.seen.spread).toEqual([5, 6, 7, 8]);
+  });
+
+  test('seen games not in serverSeen stay unchanged', () => {
+    const state = { ...initialState, seen: { ...initialState.seen, quip: [3] } };
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: serverStatsNewer,
+    });
+    expect(next.seen.quip).toEqual([3]);
+  });
+});
+
+// ── GameContext integration ───────────────────────────────────────────────────
+
+describe('GameContext: sign-in merge', () => {
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    await AsyncStorage.clear();
+    mockReadStats.mockResolvedValue(null);
+  });
+
+  test('calls readStats with uid when signed-in user mounts', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+
+    renderHook(() => useGame(), { wrapper });
+
+    await act(async () => { await flushEffects(); });
+
+    expect(mockReadStats).toHaveBeenCalledWith('user1');
+  });
+
+  test('does not call readStats for anonymous users', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'anon1', isAnonymous: true }, isAnonymous: true });
+
+    renderHook(() => useGame(), { wrapper });
+
+    await act(async () => { await flushEffects(); });
+
+    expect(mockReadStats).not.toHaveBeenCalled();
+  });
+
+  test('merges server stats into local state when readStats returns data', async () => {
+    const serverStats = { ...initialState.stats, totalPoints: 999, lastPlayedDate: '2026-04-27' };
+    mockReadStats.mockResolvedValue(serverStats);
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    await act(async () => { await flushEffects(); });
+
+    // Server date (2026-04-27) > local date (null) → server wins
+    expect(result.current.state.stats.totalPoints).toBe(999);
+  });
+
+  test('leaves state unchanged when readStats returns null', async () => {
+    mockReadStats.mockResolvedValue(null);
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    await act(async () => { await flushEffects(); });
+
+    expect(result.current.state.stats.totalPoints).toBe(0);
+  });
+});

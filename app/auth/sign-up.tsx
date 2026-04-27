@@ -15,10 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
 import { mapAuthError, resendVerificationEmail, signUp } from '@/lib/authApi';
+import { useAuth } from '@/context/AuthContext';
 
 type Phase = 'form' | 'verify';
 
 export default function SignUpScreen() {
+  const { isAnonymous } = useAuth();
   const [phase, setPhase] = useState<Phase>('form');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -91,10 +93,12 @@ export default function SignUpScreen() {
           <TouchableOpacity
             testID="verify-signin-btn"
             style={styles.secondaryBtn}
-            onPress={() => router.replace('/auth/sign-in')}
+            onPress={() => isAnonymous ? router.replace('/auth/sign-in') : router.replace('/')}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryBtnText}>Sign in after verifying</Text>
+            <Text style={styles.secondaryBtnText}>
+              {isAnonymous ? 'Sign in after verifying' : 'Continue to Games'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity

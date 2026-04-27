@@ -63,6 +63,9 @@ export async function signUp(email: string, password: string, displayName: strin
       await updateProfile(result.user, { displayName });
       user = result.user;
     }
+    // updateProfile mutates the User in place but does not fire any auth listener.
+    // Force a token refresh so onIdTokenChanged fires with the updated displayName.
+    await user.getIdToken(true);
     await sendEmailVerification(user);
   } catch (err) {
     logger.error('[signUp]', err);

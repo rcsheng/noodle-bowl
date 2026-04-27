@@ -79,7 +79,8 @@ export type Action =
   | { type: 'SET_SEEN'; game: GameId; seen: number[] }
   | { type: 'EARN_SHIELD' }
   | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction }
-  | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] };
+  | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] }
+  | { type: 'MERGE_FROM_SERVER'; serverStats: AppState['stats']; serverSeen?: Partial<AppState['seen']> };
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -175,6 +176,20 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, friendInteractions: [action.interaction, ...state.friendInteractions] };
     case 'SET_FRIEND_INTERACTIONS':
       return { ...state, friendInteractions: action.interactions };
+    case 'MERGE_FROM_SERVER': {
+      const { serverStats, serverSeen = {} } = action;
+      const serverDate = serverStats.lastPlayedDate;
+      const localDate = state.stats.lastPlayedDate;
+      const serverWins = serverDate !== null && (localDate === null || serverDate >= localDate);
+      const mergedStats = serverWins ? serverStats : state.stats;
+      const mergedSeen = { ...state.seen };
+      (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
+        const local = state.seen[g] ?? [];
+        const remote = serverSeen[g] ?? [];
+        mergedSeen[g] = [...new Set([...local, ...remote])];
+      });
+      return { ...state, stats: mergedStats, seen: mergedSeen };
+    }
     default:
       return state;
   }

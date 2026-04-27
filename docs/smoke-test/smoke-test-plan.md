@@ -31,7 +31,7 @@ npx expo start --clear
 - iPhone: scan the QR code with the Camera app (opens in Expo Go)
 - Android emulator: press `a` in this terminal
 
-> **Physical device note:** If your iPhone can't reach `localhost`, set `EXPO_PUBLIC_EMULATOR_HOST` in `.env.local` to your machine's LAN IP (e.g. `192.168.1.x`). Find it with `ipconfig` on Windows.
+> **Simulator/emulator note:** iOS Simulator uses `localhost`; Android Emulator auto-uses `10.0.2.2` — both work with no config. For **physical devices**, set `EXPO_PUBLIC_EMULATOR_HOST` in `.env.local` to your machine's LAN IP (e.g. `192.168.1.x` — find it with `ipconfig` on Windows).
 
 ---
 
@@ -146,12 +146,45 @@ Run on **both devices independently**.
 
 ---
 
+### Block 9 — Stats persistence to Firestore (Phase 4)
+
+**Requires:** signed-in user and Emulator UI open at http://localhost:4000/firestore
+
+| # | Step | Expected |
+|---|---|----|
+| 9.1 | Stay as guest (no sign-in). Play any game to the result screen. Open Firestore in Emulator UI. | `users` collection is empty — no write for anonymous sessions |
+| 9.2 | Sign in (Profile → Sign In or Create Account). Play any game to the result screen. Wait ~2 seconds. | Emulator UI → `users/{uid}/meta/stats` doc exists with `totalPoints`, `dailyStreak`, `lastPlayedDate`, per-game stats, and an `updatedAt` server timestamp |
+| 9.3 | Play a second game. Wait ~2 seconds. Refresh the `stats` doc. | `totalPoints` is higher; the second game's `played` count incremented; `updatedAt` is newer |
+| 9.4 | Profile → Sign Out. In Emulator UI, manually edit the `stats` doc: set `totalPoints` to `9999` and `lastPlayedDate` to today's date. Sign back in. | App shows `9999` points (server date ≥ local date → server wins the merge) |
+
+---
+
+### Block 10 — Self-challenge guard & post-answer sign-up prompt
+
+**Requires:** Device B signed in as the challenge sender (same account that sent the challenge in Block 5).
+
+| # | Step | Expected |
+|---|---|---|
+| 10.1 | Device B (sender): open the same challenge URL you sent in Block 5 | "You Created This Challenge" guard screen appears; no game loads |
+| 10.2 | Device B: tap "Sign Out" on the guard screen | User is signed out and a fresh anonymous session starts; challenge landing page reloads normally |
+| 10.3 | Device B (now anonymous): tap "Play [Game]" | Game opens at the correct question |
+| 10.4 | Device B: answer the question | Result + comparison panel shown |
+| 10.5 | Device B: observe below the comparison panel | "Challenge [sender] Back" sign-up banner appears with "Create Account" and "Maybe Later" |
+| 10.6 | Device B: tap "Maybe Later" | Banner dismisses; "Back to Games" button remains |
+| 10.7 | Device B: reopen the same challenge URL | "This challenge has already been answered" error shown |
+| 10.8 | Device B: Profile → Sign In with original account | Returns to signed-in state; Friends tab does **not** show a spurious "you challenged yourself" row from the guard flow |
+
+---
+
 ## Pass criteria
 
-All items in Blocks 1–8 behave as expected. No crashes, no blank screens, no "Something went wrong" errors during normal flows.
+All items in Blocks 1–9 behave as expected. No crashes, no blank screens, no "Something went wrong" errors during normal flows.
 
 ## Known limitations (emulator)
 
 - Verification emails are not sent. To mark a user verified: http://localhost:4000/auth → Edit → check "Email verified". The app does not require verification to function.
 - Push notifications do not fire on Android emulator (no Google Play Services on AVD by default). The Friends feed update in step 5.7 is driven by a Firestore `onSnapshot` listener, not a push notification — it will still update.
-- Deep links on Android emulator require opening the URL in Chrome and tapping "Open in app", or using `adb shell am start -W -a android.intent.action.VIEW -d "URL" host.exp.exponent`.
+- **Deep links do not work via clicked HTTPS URLs in Expo Go.** Universal links (`https://noodlebowl.app/c/TOKEN`) require a standalone build with `associatedDomains` (iOS) and `intentFilters` (Android) configured and a live domain. For smoke testing, trigger deep links manually:
+  - **Android emulator:** `adb shell am start -W -a android.intent.action.VIEW -d "exp://10.0.2.2:8081/--/games/challenge/TOKEN" host.exp.exponent`
+  - **iOS Simulator:** `xcrun simctl openurl booted "exp://localhost:8081/--/games/challenge/TOKEN"`
+  - Replace `TOKEN` with the token from the copied challenge URL (the part after `/c/`).

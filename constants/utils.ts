@@ -1,3 +1,6 @@
+import * as Clipboard from 'expo-clipboard';
+import { Share } from 'react-native';
+
 export function calculatePoints(correct: boolean, currentStreak: number, baseAmount = 10): number {
   if (!correct) return 0;
   return baseAmount + Math.min(currentStreak * 2, 20);
@@ -88,8 +91,6 @@ export function scoreSpread(guess: number, answer: number): { correct: boolean; 
 // Copies text to clipboard. Falls back to Share.share on Android emulator where
 // the system clipboard is unavailable. Returns true if clipboard succeeded.
 export async function copyToClipboard(text: string): Promise<boolean> {
-  const Clipboard = await import('expo-clipboard');
-  const { Share } = await import('react-native');
   try {
     await Clipboard.setStringAsync(text);
     return true;

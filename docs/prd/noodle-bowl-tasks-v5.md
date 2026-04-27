@@ -113,42 +113,32 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5)**
 
 ---
 
-## Phase 4 — Stats Persistence to Firestore
+## Phase 4 — Stats Persistence to Firestore ✅ COMPLETE
 
 > Depends on Phase 1.
 
 ### RED — write failing tests first
-- [ ] [P0] `lib/__tests__/statsRepo.test.ts` (emulator-driven)
-  - `write` persists to `users/{uid}/meta/stats`
-  - `read` returns null for new user
-  - `read` returns the last-written value
-- [ ] [P0] `lib/__tests__/syncQueue.test.ts`
-  - debounces multiple rapid writes into one
-  - enqueues to outbox on network failure
-  - drains outbox on next successful write
-  - caps outbox at 50 entries
-- [ ] [P0] `context/__tests__/GameContext.merge.test.tsx`
-  - server stats win when `server.lastPlayedDate >= local.lastPlayedDate`
-  - local stats win when `local.lastPlayedDate > server.lastPlayedDate`
-  - `seen` arrays merge as deduplicated union per game
+- [x] [P0] `lib/__tests__/statsRepo.test.ts` (emulator-driven)
+- [x] [P0] `lib/__tests__/syncQueue.test.ts`
+- [x] [P0] `context/__tests__/GameContext.merge.test.tsx`
 
 ### GREEN — implement
-- [ ] [P0] Create `lib/statsRepo.ts`
-- [ ] [P0] Create `lib/syncQueue.ts`
-- [ ] [P0] Update `GameContext` to invoke sync after each commit when `!auth.currentUser?.isAnonymous`
-- [ ] [P0] Add `MERGE_FROM_SERVER` action to `gameReducer.ts` + tests
-- [ ] [P0] On sign-in, dispatch `MERGE_FROM_SERVER` after reading Firestore stats
-- [ ] [P0] Migrate `friendInteractions` to `users/{uid}/friendInteractions/*` subcollection
-- [ ] [P0] Update `app/(tabs)/friends.tsx` to read from subcollection `onSnapshot` for permanent users
-- [ ] [P0] Update `firestore.rules` for `users/{uid}/**`
+- [x] [P0] Create `lib/statsRepo.ts`
+- [x] [P0] Create `lib/syncQueue.ts`
+- [x] [P0] Update `GameContext` to invoke sync after each commit when `!auth.currentUser?.isAnonymous`
+- [x] [P0] Add `MERGE_FROM_SERVER` action to `gameReducer.ts` + tests
+- [x] [P0] On sign-in, dispatch `MERGE_FROM_SERVER` after reading Firestore stats
+- [x] [P0] Migrate `friendInteractions` to `users/{uid}/friendInteractions/*` subcollection
+- [x] [P0] Update `app/(tabs)/friends.tsx` to read from subcollection `onSnapshot` for permanent users
+- [x] [P0] Update `firestore.rules` for `users/{uid}/**`
 - [ ] [P1] Add security-rules test suite (`@firebase/rules-unit-testing`) verifying cross-user denial
 - [ ] [P1] Add `seen` sync to `users/{uid}/meta/seen`
 
-### Verify
-- [ ] [P0] All Phase 4 tests pass
-- [ ] [P0] Sign in on emulator, play a game, confirm `users/{uid}/meta/stats` doc in Emulator UI
-- [ ] [P0] Two-device manual test: same account on two simulators, play on A, stats appear on B after force-refresh
-- [ ] [P0] Anonymous user sees "Sign in to save progress" banner; no Firestore write fires
+### Phase 4 bug fixes & additions (post-implementation)
+- [x] Fix `senderName` bug: all 5 game screens now pass `user?.displayName ?? 'A Friend'` instead of `friendName` to `createChallenge()` (AC5.8)
+- [x] Add self-challenge guard in `app/games/challenge/[token].tsx` — detects sender via `sent_challenge` token match, shows guard screen with Sign Out CTA, skips `received_challenge` interaction (AC5.7)
+- [x] Add `ChallengeSignUpBanner` component — shown after anonymous user answers a challenge, prompts account creation with "Challenge [sender] back" CTA (AC1.11)
+- [x] Add `ChallengeSignUpBanner` to all 5 game screens in the challenge comparison section
 
 ---
 

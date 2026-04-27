@@ -2,7 +2,7 @@
 
 **Prepared:** April 2026  
 **Status:** Living document — updated as PRDs evolve  
-**Source documents:** PRD v1–v4, Backend PRD v1.1
+**Source documents:** PRD v1–v5, Backend PRD v1.1
 
 ---
 
@@ -31,7 +31,7 @@
 
 The app occupies a clear market gap: the intersection of *daily ritual habit* (Wordle, NYT Games), *current news* (NPR quizzes, daily briefings), and *multiple game formats* (Jackbox-style variety). No single competitor currently owns all three.
 
-**Current state:** A working Expo/React Native app with three active games, a social challenge/help loop, and a fully designed backend architecture ready to implement. The frontend is in a pre-backend readiness sprint (PRD v4).
+**Current state (PRD v5 — April 2026):** A working Expo/React Native app with three active games, a live social challenge/help loop, and a Firebase backend in active integration. Real email/password authentication and cross-device stats persistence (Phase 4) are complete. Content-from-Firestore and E2E testing are in progress.
 
 **The core bet:** That a daily brain game app rooted in real-world news — with a social growth loop that rewards both senders and recipients — can achieve Wordle-like organic spread while building stronger retention than single-format puzzle apps.
 
@@ -150,50 +150,68 @@ The gap Noodle Bowl addresses: No app combines the **daily ritual habit** of NYT
 - Four games prototyped; two hidden
 - Core mechanics, scoring, and sharing tested
 
-### Phase 1 — Expo App (Current — PRD v1–v4)
+### Phase 1 — Expo App Foundation ✓ Complete (PRD v1–v4)
 
-**Status:** In active development. Frontend pre-backend readiness sprint underway.
+All frontend social mechanics (challenge/help loops, streak shields, Friends feed, hub played-today states) are shipped. Backend Cloud Functions (challengeCreate/Get/Respond, helpCreate/Respond) are live.
 
-**Remaining frontend work (PRD v4 checklist):**
-- Challenge URL encoding (base64 payload instead of random stub)
-- Friend name capture before challenge send
-- Record all 5 interaction types (`gave_help`, `received_help`, `sent_challenge`, `challenge_accepted`, `received_challenge`)
-- Add `questionIndex` to all `FriendInteraction` records
-- Prediction reveal UI in Friends feed
-- Hub cards show "played today" state (muted, score pill, Play Again)
-- ChallengeModal parity for Quip and Wave
-- Remove `wacky` from active `GameId` union until screen exists
+### Phase 2 — Real Authentication *(In Progress — PRD v5 §1)*
 
-### Phase 2 — Backend Integration (Backend PRD v1.1)
+**Goal:** Users have real accounts. Stats survive device wipes. Social links are gated behind auth.
 
-**Stack:** Firebase (Anonymous Auth + Firestore + Cloud Functions + Expo Push)
+Key deliverables:
+- Firebase email/password sign-up and sign-in screens (`app/auth/`)
+- Anonymous → permanent upgrade via `linkWithCredential` (preserves UID, all stats intact)
+- Profile tab: display name, email, sign-out
+- Auth gate on Stats and Friends tabs for anonymous users
+- "Login to share with friends" modal blocks challenge/help share for anonymous users (no "Members only" language)
+- "Challenge [sender] back" sign-up banner shown to anonymous users after completing a received challenge
+- Verification email sent on account creation; confirmation screen shown
 
-**Implementation order:**
+### Phase 3 — Content from Firestore *(In Progress — PRD v5 §2)*
 
-| Phase | Milestone | Key Deliverable |
-|-------|-----------|----------------|
-| 2a — Foundation | Firebase init, Firestore rules, `challengeCreate`, `challengeGet` | Challenge tokens live; links shareable |
-| 2b — Response Loop | `challengeRespond`, push tokens, Firestore `onSnapshot` | Friend's answer arrives back; feed updates |
-| 2c — Help Flow | `helpCreate`, `helpRespond` | Ask-a-Friend loop fully live; shields earned |
-| 2d — Hardening | Token expiry UI, rate limiting, App Check, push receipts | Production-safe |
+**Goal:** Content updates without app releases. Stale-while-revalidate caching with bundled fallback.
 
-**Firestore collections:** `challenges/{token}` · `helpRequests/{token}` · `pushTokens/{uid}`
+Key deliverables:
+- `ContentContext` / `useContent()` hook powering all 5 game screens
+- `contentVersions/{versionId}` Firestore collection; only one `active: true` at a time
+- AsyncStorage cache keyed by `versionId`; background revalidation
+- Bundled `constants/data.ts` as final fallback
+- `npm run seed:emulator` and `npm run seed:prod` scripts
 
-### Phase 3 — Content Runway
+### Phase 4 — Stats Persistence to Firestore ✅ Complete (PRD v5 §3)
+
+Stats now survive uninstall for permanent accounts. Cross-device sync within seconds.
+
+What shipped:
+- `lib/statsRepo.ts` + `lib/syncQueue.ts` (outbox pattern, max 50 entries)
+- `users/{uid}/meta/stats` and `users/{uid}/meta/seen` Firestore documents
+- `MERGE_FROM_SERVER` reducer action with offline-first merge logic
+- `friendInteractions` migrated to `users/{uid}/friendInteractions/{id}` subcollection
+- `senderName` bug fixed — all 5 game screens pass `displayName` not typed friend name
+- Self-challenge guard in `/games/challenge/[token]` — detects sender, shows guard screen
+- `ChallengeSignUpBanner` on all 5 game screens for anonymous challenge recipients
+
+### Phase 5 — E2E Testing Framework *(Planned — PRD v5 §4–5)*
+
+Manual two-device smoke testing (Android emulator + iPhone via Expo Go, shared Firebase emulator). Maestro automated E2E deferred until native dev build is practical on Windows.
+
+Smoke checklist covers: challenge flow end-to-end, help flow end-to-end, auth flows, content loading, stats survival.
+
+### Phase 6 — Content Runway
 
 Expand question banks to 30+ per game before public launch (see §7 Content Strategy).
 
-### Phase 4 — Launch & Growth
+### Phase 7 — Launch & Growth
 
 - App Store and Play Store submission via EAS Build
-- Smart deep links (Branch.io or equivalent) for challenge/help URLs
+- Smart deep links (Branch.io) for challenge/help URLs
 - Soft launch to primary audience; monitor retention and social metrics
 
-### Phase 5 — Account System (v2)
+### Phase 8 — Account System Expansion (v2)
 
-Replace anonymous Firebase Auth with real accounts (Google/Apple sign-in via `linkWithCredential`). Enables cross-device sync, friend graphs, leaderboards, and persistent interaction history.
+Apple/Google SSO (deferred from v5). Friend graphs, leaderboards, real-time stat sync via `onSnapshot`.
 
-### Phase 6 — Monetization (Post-Validation)
+### Phase 9 — Monetization (Post-Validation)
 
 Once daily-active-user numbers stabilize and retention is proven, introduce monetization layer (see §10).
 
@@ -226,34 +244,71 @@ Once daily-active-user numbers stabilize and retention is proven, introduce mone
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| Auth | Firebase Anonymous Auth | No login for v1; `linkWithCredential` for v2 accounts |
-| Database | Firestore | Real-time `onSnapshot` built in |
+| Auth | Firebase Email/Password + Anonymous | Anonymous first-launch; `linkWithCredential` upgrades to permanent account preserving UID |
+| Database | Firestore | Real-time `onSnapshot` for Friends feed; direct client writes for stats |
 | API | Cloud Functions (TypeScript) | Serverless; `firebase deploy --only functions` |
-| Real-time | Firestore `onSnapshot` | Belt-and-suspenders fallback to push |
+| Real-time | Firestore `onSnapshot` | Friends feed live updates; fallback for push-denied users |
 | Push | Expo Push API (via Cloud Functions) | Single endpoint for iOS + Android |
 | Hosting | Firebase Hosting | Web challenge page served here |
+| Validation | zod | Client-side schema validation for all auth inputs |
 
 **Cloud Functions:**
-- `challengeCreate` — creates challenge token, stores in Firestore
+- `challengeCreate` — creates challenge token (idempotent per uid+game+question+day), stores in Firestore
 - `challengeGet` — serves question data to friend (excludes sender answer pre-submit)
 - `challengeRespond` — records friend's answer, pushes notification to sender, returns comparison data
 - `helpCreate` — creates help request token
 - `helpRespond` — records helper's answer, pushes notification to asker
 
-### 6.3 Repo Structure
+**Auth flows (v5):**
+- First launch → `signInAnonymously()` → app fully playable
+- Sign-up → `linkWithCredential(EmailAuthProvider)` → same UID retained, all stats preserved
+- Sign-out → immediately returns to fresh anonymous session (never unauthenticated state)
+- Sign-in on new device → reads `users/{uid}/meta/stats` from Firestore → merges with local
+
+### 6.3 Firestore Schema (v5)
+
+```
+contentVersions/{versionId}
+  versionId, publishedAt, active (bool), banks: { lede, spread, sof, quip, wave }
+
+users/{uid}
+  displayName, email, isAnonymous, createdAt, lastLoginAt
+
+users/{uid}/meta/stats           ← singleton; debounced write after every game
+  totalPoints, dailyStreak, bestDailyStreak, lastPlayedDate, totalDaysPlayed
+  streakShieldsAvailable, streakShieldUsedToday
+  lede/spread/sof/quip/wave: GameStats
+  contentVersionId, updatedAt
+
+users/{uid}/meta/seen            ← singleton; which questions user has seen
+  lede/spread/sof/quip/wave: number[]
+
+users/{uid}/friendInteractions/{id}
+  type, friendName, gameId, questionIndex, date, shieldEarned
+  token, senderPrediction, friendAnswer, bonusPointsEarned
+
+challenges/{token}               ← existing; unchanged
+helpRequests/{token}             ← existing; unchanged
+pushTokens/{uid}                 ← existing; unchanged
+```
+
+### 6.4 Repo Structure
 
 ```
 noodle-bowl/
 ├── app/                    ← Expo Router screens
-├── components/             ← UI components
-├── constants/              ← Game data, theme, utilities
-├── context/                ← GameContext, gameReducer
-├── hooks/                  ← Color scheme, theme
+│   ├── (tabs)/             ← home, explore, friends, profile
+│   ├── games/              ← lede, spread, sof, wave, quip, challenge/[token]
+│   └── auth/               ← sign-up, sign-in, forgot-password
+├── components/             ← UI components (ChallengeModal, ChallengeSignUpBanner…)
+├── constants/              ← Bundled game data fallback, theme, utilities
+├── context/                ← AuthContext, ContentContext, GameContext, gameReducer
+├── lib/                    ← authApi, contentRepo, statsRepo, syncQueue, pushTokens, firebase, logger
 ├── packages/shared/        ← Shared TypeScript types (app + functions)
-├── functions/              ← Firebase Cloud Functions
-│   └── src/
-├── docs/                   ← PRDs (v1–v4, backend v1.1)
-├── business/               ← Plugin/business workspace
+├── functions/src/          ← Firebase Cloud Functions
+├── e2e/                    ← Maestro flows + smoke scripts (Phase 5)
+├── docs/prd/               ← PRDs (v1–v5, backend v1.1)
+├── business/               ← Business plan, marketing, finance etc.
 ├── firebase.json
 ├── firestore.rules
 └── firestore.indexes.json
@@ -506,11 +561,15 @@ The content editor role is the first critical hire. The limiting factor for grow
 | **Social loop fails (challenge/help not used)** | Medium | High | Monitor usage in beta; if <5% usage, test copy and placement changes before assuming mechanic is wrong |
 | **Streaks break and users churn** | Medium | High | Shield mechanic limits this; monitor shield earn/spend ratio; raise cap if streaks break despite shields |
 | **App Store rejection** | Low | Medium | No obviously objectionable content; news-based satire is fine; review content before submission |
-| **Firebase costs spike unexpectedly** | Low | Medium | Set Firebase budget alert at $50/mo; `onSnapshot` listeners are efficient; add rate limiting in Phase 2d |
+| **Firebase costs spike unexpectedly** | Low | Medium | Set Firebase budget alert at $50/mo; `onSnapshot` listeners are efficient; add rate limiting in hardening phase |
 | **Web challenge page degraded experience** | Medium | Medium | Keep web page as stripped-down but fully styled HTML; test on iOS Safari and Android Chrome before launch |
 | **Weird & True accuracy skew** | Medium | Low | If >85% accuracy, harden fictional claims; if <50%, improve reveal explanations — iteratively tunable |
 | **Competitor launches similar product** | Low | High | First-mover with a distinctive format (The Lede especially) is hard to copy quickly; brand and content depth are moats |
 | **Heuristic judging in The Quip feels broken** | High (already known) | Low | Game is hidden; requires LLM rewrite before re-enabling — not a launch risk |
+| **`linkWithCredential` fails mid-upgrade** | Low | High | Wrapped in try/catch; retains anonymous session and shows retry CTA; stats not lost |
+| **Firestore content doc exceeds 1 MB limit** | Low | Medium | Seed script monitors doc size; split per-game at 700 KB threshold |
+| **Stats outbox grows unbounded (extended offline)** | Low | Low | Hard cap at 50 entries; oldest dropped on overflow; user sees no disruption |
+| **Two-device E2E flakiness** | Medium | Low | Maestro `retry: 2`; unique simulator UDIDs; health check before each flow |
 
 ---
 
@@ -542,5 +601,18 @@ These are unresolved decisions from PRDs v1–v4, organized by urgency.
 
 ---
 
-*End of business plan — updated April 2026*  
-*Next review: after Backend Phase 2a ships*
+### v5 Success Criteria (from PRD v5 §8)
+
+- [ ] Anonymous user can upgrade to permanent without losing stats
+- [ ] Stats survive uninstall on a permanent account
+- [ ] Game content updates without an app release
+- [ ] Single-device E2E smoke runs in CI on every PR
+- [ ] Cross-device E2E runs nightly and passes
+- [ ] All five interaction types verified end-to-end
+- [ ] No regression in existing unit tests (100 app tests + 56 function tests)
+- [ ] Coverage maintained: 80%+ lines/branches for new code
+
+---
+
+*End of business plan — updated April 2026 (PRD v5)*  
+*Next review: after Phases 2 (Auth) and 3 (Content from Firestore) ship*

@@ -39,6 +39,8 @@ and challenge/help links are proven to work across devices via automated E2E tes
 
 - AC1.10 After successful account creation, a verification email is automatically sent to the user's address. The sign-up screen transitions to a themed confirmation state showing: preheader "One more step", title "Check your inbox", the destination email address, and instructions to tap the link then sign in. The confirmation provides three actions: "Back to Games" (returns to game), "Sign in after verifying" (navigates to sign-in), and "Resend email" (resends the verification email).
 
+- AC1.11 After an anonymous user answers a challenge sent by another player, the result screen shows a "Challenge [sender] back" sign-up banner below the comparison panel. The banner has a "Create Account" CTA (navigates to `/auth/sign-up`) and a "Maybe Later" option (dismisses the banner, leaving the "Back to Games" button visible). The banner does not appear for signed-in users.
+
 ### 1.3 Out of scope (v5)
 - Apple/Google/Phone SSO
 - Multi-factor auth
@@ -137,6 +139,9 @@ Run after any change touching challenge, help, auth, or content flows:
 - AC5.4 Challenge and help link creation is idempotent per `(uid, gameId, questionIndex, day)`. If a link already exists for that tuple, the server returns the existing token and URL instead of an error. The client caches the URL locally and skips the API call on repeat opens within the same play session.
 - AC5.5 Each help link is scoped to a specific question (`questionIndex`). A user may generate distinct links for different questions played in the same game on the same day.
 - AC5.6 When a challenge has already been answered (`resolvedAt` is set), the `/c/{token}` screen shows a clear message ("This challenge has already been answered") rather than allowing re-play.
+
+- AC5.7 When the challenge sender opens their own challenge link (same UID as the creator), a guard screen is shown: "You Created This Challenge" with a Sign Out CTA and a "Back to Games" link. The `received_challenge` interaction is not recorded. This is detected client-side by checking if the challenge token appears in the user's `sent_challenge` friend interactions.
+- AC5.8 The `senderName` field stored in Firestore reflects the sender's Firebase Auth `displayName`, not the recipient's name typed in the challenge modal. The recipient's name is stored separately as `friendName` in the sender's friend interaction record.
 
 ### 5.3 Out of scope
 - SMS / direct-share integrations

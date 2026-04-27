@@ -15,8 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
 import { mapAuthError, signIn } from '@/lib/authApi';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SignInScreen() {
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +28,15 @@ export default function SignInScreen() {
     setError(null);
     setPending(true);
     try {
+      // Already signed in as this user (e.g. just linked credentials via sign-up).
+      // Calling signInWithEmailAndPassword again fires a spurious null auth event
+      // without a follow-up user event, leaving the app in anonymous state.
+      if (user && !user.isAnonymous && user.email?.toLowerCase() === email.trim().toLowerCase()) {
+        router.replace('/');
+        return;
+      }
       await signIn(email.trim(), password);
-      router.back();
+      router.replace('/');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'errors' in err) {
         const zodErr = err as { errors: { message: string }[] };

@@ -13,11 +13,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChallengeModal, PredictOption } from '@/components/ChallengeModal';
+import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { WaveItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { copyToClipboard, pickFromBank } from '@/constants/utils';
+import { useAuth } from '@/context/AuthContext';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
@@ -54,6 +56,7 @@ function scoreWave(userPos: number, truthPos: number): { correct: boolean; point
 }
 
 export default function WaveScreen() {
+  const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const { banks } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
@@ -92,6 +95,7 @@ export default function WaveScreen() {
   const [showChallenge, setShowChallenge] = useState(false);
   const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
+  const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
 
   const userPosRef = useRef(50);
   const trackWidthRef = useRef(0);
@@ -373,6 +377,13 @@ export default function WaveScreen() {
                     </Text>
                   </View>
                 </View>
+              {isAnonymous && !signUpBannerDismissed && (
+                <ChallengeSignUpBanner
+                  senderName={challengeSenderName ?? 'your friend'}
+                  onCreateAccount={() => router.push('/auth/sign-up')}
+                  onDismiss={() => setSignUpBannerDismissed(true)}
+                />
+              )}
                 <TouchableOpacity
                   style={styles.primaryBtn}
                   onPress={() => router.back()}
@@ -453,7 +464,7 @@ export default function WaveScreen() {
             questionIndex: questionIdx,
             senderPrediction: prediction,
             senderAnswer: positionToZone(revealData?.userPosition ?? userPosition),
-            senderName: friendName,
+            senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
           return { url: result.url, token: result.token };

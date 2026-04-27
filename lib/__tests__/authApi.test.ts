@@ -34,6 +34,9 @@ beforeEach(() => {
   (auth as { currentUser: unknown }).currentUser = null;
 });
 
+const mockGetIdToken = jest.fn().mockResolvedValue('mock-token');
+const stubUser = (props: Record<string, unknown>) => ({ ...props, getIdToken: mockGetIdToken });
+
 // ---------------------------------------------------------------------------
 // signUp — validation
 // ---------------------------------------------------------------------------
@@ -62,7 +65,7 @@ describe('signUp — anonymous upgrade', () => {
   it('calls linkWithCredential when current user is anonymous', async () => {
     const anonUser = { uid: 'anon-uid', isAnonymous: true };
     (auth as { currentUser: unknown }).currentUser = anonUser;
-    const linkedUser = { uid: 'anon-uid', isAnonymous: false };
+    const linkedUser = stubUser({ uid: 'anon-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
     mockUpdateProfile.mockResolvedValue(undefined);
 
@@ -74,7 +77,7 @@ describe('signUp — anonymous upgrade', () => {
 
   it('preserves uid after anonymous-to-permanent upgrade', async () => {
     (auth as { currentUser: unknown }).currentUser = { uid: 'preserved-uid', isAnonymous: true };
-    const linkedUser = { uid: 'preserved-uid', isAnonymous: false };
+    const linkedUser = stubUser({ uid: 'preserved-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
     mockUpdateProfile.mockResolvedValue(undefined);
 
@@ -84,7 +87,7 @@ describe('signUp — anonymous upgrade', () => {
 
   it('sets displayName during upgrade', async () => {
     (auth as { currentUser: unknown }).currentUser = { uid: 'anon-uid', isAnonymous: true };
-    const linkedUser = { uid: 'anon-uid', isAnonymous: false };
+    const linkedUser = stubUser({ uid: 'anon-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
     mockUpdateProfile.mockResolvedValue(undefined);
 
@@ -94,7 +97,7 @@ describe('signUp — anonymous upgrade', () => {
 
   it('sends a verification email after anonymous upgrade', async () => {
     (auth as { currentUser: unknown }).currentUser = { uid: 'anon-uid', isAnonymous: true };
-    const linkedUser = { uid: 'anon-uid', isAnonymous: false };
+    const linkedUser = stubUser({ uid: 'anon-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
     mockUpdateProfile.mockResolvedValue(undefined);
 
@@ -110,7 +113,7 @@ describe('signUp — anonymous upgrade', () => {
 describe('signUp — new account', () => {
   it('calls createUserWithEmailAndPassword when no current user', async () => {
     (auth as { currentUser: unknown }).currentUser = null;
-    const newUser = { uid: 'new-uid', isAnonymous: false };
+    const newUser = stubUser({ uid: 'new-uid', isAnonymous: false });
     mockCreateUserWithEmailAndPassword.mockResolvedValue({ user: newUser });
     mockUpdateProfile.mockResolvedValue(undefined);
 
@@ -121,7 +124,7 @@ describe('signUp — new account', () => {
   });
 
   it('sets displayName on new account', async () => {
-    const newUser = { uid: 'new-uid', isAnonymous: false };
+    const newUser = stubUser({ uid: 'new-uid', isAnonymous: false });
     mockCreateUserWithEmailAndPassword.mockResolvedValue({ user: newUser });
     mockUpdateProfile.mockResolvedValue(undefined);
 
@@ -130,7 +133,7 @@ describe('signUp — new account', () => {
   });
 
   it('sends a verification email after new account creation', async () => {
-    const newUser = { uid: 'new-uid', isAnonymous: false };
+    const newUser = stubUser({ uid: 'new-uid', isAnonymous: false });
     mockCreateUserWithEmailAndPassword.mockResolvedValue({ user: newUser });
     mockUpdateProfile.mockResolvedValue(undefined);
 

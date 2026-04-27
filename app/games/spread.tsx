@@ -15,11 +15,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChallengeModal } from '@/components/ChallengeModal';
+import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { SpreadItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { copyToClipboard, pickFromBank, scoreSpread } from '@/constants/utils';
+import { useAuth } from '@/context/AuthContext';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
@@ -39,6 +41,7 @@ interface RevealData {
 }
 
 export default function SpreadScreen() {
+  const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
   const { banks } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
@@ -77,6 +80,7 @@ export default function SpreadScreen() {
   const [helpCopied, setHelpCopied] = useState(false);
   const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
+  const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -327,6 +331,13 @@ export default function SpreadScreen() {
                       </Text>
                     </View>
                   </View>
+                {isAnonymous && !signUpBannerDismissed && (
+                  <ChallengeSignUpBanner
+                    senderName={challengeSenderName ?? 'your friend'}
+                    onCreateAccount={() => router.push('/auth/sign-up')}
+                    onDismiss={() => setSignUpBannerDismissed(true)}
+                  />
+                )}
                   <TouchableOpacity
                     style={styles.primaryBtn}
                     onPress={() => router.back()}
@@ -399,7 +410,7 @@ export default function SpreadScreen() {
             questionIndex: questionIdx,
             senderPrediction: prediction,
             senderAnswer: input,
-            senderName: friendName,
+            senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
           return { url: result.url, token: result.token };
