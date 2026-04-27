@@ -1,4 +1,3 @@
-import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -17,7 +16,7 @@ import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { calculatePoints, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { calculatePoints, copyToClipboard, pickFromBank, shuffleIndices } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
@@ -176,9 +175,11 @@ export default function LedeScreen() {
   };
 
   const handleCopyHelp = async () => {
-    await Clipboard.setStringAsync(helpUrl);
-    setHelpCopied(true);
-    setTimeout(() => setHelpCopied(false), 2000);
+    const copied = await copyToClipboard(helpUrl);
+    if (copied) {
+      setHelpCopied(true);
+      setTimeout(() => setHelpCopied(false), 2000);
+    }
   };
 
   if (!question) return null;

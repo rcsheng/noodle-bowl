@@ -16,20 +16,13 @@ import { GameId } from '@/constants/data';
 export default function FriendsScreen() {
   const { isAnonymous } = useAuth();
   const { state, addFriendInteraction } = useGame();
-
-  if (isAnonymous) {
-    return (
-      <AuthGateTab
-        title="Sign in to see friend activity"
-        body="Challenge friends, ask for help, and earn streak shields together."
-      />
-    );
-  }
   const { streakShieldsAvailable } = state.stats;
   const { friendInteractions } = state;
   const unsubscribeRefs = useRef<Map<string, () => void>>(new Map());
 
   useEffect(() => {
+    if (isAnonymous) return;
+
     const resolvedChallengeTokens = new Set(
       friendInteractions.filter(i => i.type === 'challenge_accepted' && i.token).map(i => i.token!)
     );
@@ -92,8 +85,16 @@ export default function FriendsScreen() {
       unsubscribeRefs.current.forEach(unsub => unsub());
       unsubscribeRefs.current.clear();
     };
-  }, [friendInteractions, addFriendInteraction]);
+  }, [friendInteractions, addFriendInteraction, isAnonymous]);
 
+  if (isAnonymous) {
+    return (
+      <AuthGateTab
+        title="Sign in to see friend activity"
+        body="Challenge friends, ask for help, and earn streak shields together."
+      />
+    );
+  }
 
   const acceptedMap = new Map<string, typeof friendInteractions[0]>();
   friendInteractions.forEach(i => {

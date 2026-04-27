@@ -1,8 +1,13 @@
 import React from 'react';
 import { Share } from 'react-native';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import * as Clipboard from 'expo-clipboard';
 import { ChallengeModal, PredictOption } from '../ChallengeModal';
+
+const mockCopyToClipboard = jest.fn().mockResolvedValue(true);
+jest.mock('@/constants/utils', () => ({
+  ...jest.requireActual('@/constants/utils'),
+  copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
+}));
 
 const mockBuildChallengeUrl = jest.fn().mockResolvedValue({ url: 'https://noodlebowl.app/c/testtoken', token: 'TESTTOKEN' });
 
@@ -46,6 +51,7 @@ describe('ChallengeModal', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
+    mockCopyToClipboard.mockResolvedValue(true);
     shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' } as any);
   });
 
@@ -151,14 +157,14 @@ describe('ChallengeModal', () => {
     expect(mockBuildChallengeUrl).toHaveBeenCalledWith('A Friend', '99');
   });
 
-  test('pressing the URL box calls Clipboard.setStringAsync', async () => {
+  test('pressing the URL box calls copyToClipboard', async () => {
     const utils = render(<ChallengeModal {...defaultProps} />);
     await advanceToShareStep(utils);
     const urlElement = utils.getByText('https://noodlebowl.app/c/testtoken');
     await act(async () => {
       fireEvent.press(urlElement);
     });
-    expect(Clipboard.setStringAsync).toHaveBeenCalled();
+    expect(mockCopyToClipboard).toHaveBeenCalledWith('https://noodlebowl.app/c/testtoken');
   });
 
   test('pressing "Share with a Friend" calls Share.share', async () => {

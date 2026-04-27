@@ -60,13 +60,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: F.frauncesXBoldItalic,
     fontSize: 48,
-    lineHeight: 46,
+    lineHeight: 56,
     letterSpacing: -1,
     color: C.ink,
   },
   amp: {
     color: C.accent,
     fontFamily: F.frauncesItalic,
+    fontSize: 48,
   },
   tagline: {
     fontFamily: F.mono,

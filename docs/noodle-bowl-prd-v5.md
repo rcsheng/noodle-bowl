@@ -97,26 +97,28 @@ and challenge/help links are proven to work across devices via automated E2E tes
 
 ---
 
-## 4. Challenge/Help Link E2E Coverage
+## 4. Cross-device Smoke Testing
 
-### 4.1 User stories
-- As a developer, I have a one-command script that proves the entire challenge flow works across two devices.
-- As a developer, every PR that touches challenge code runs the smoke E2E flow before merge.
+### 4.1 Decision
 
-### 4.2 Acceptance criteria
-- AC4.1 `npm run e2e:smoke` boots the emulator, runs Maestro against one simulator, completes the hub-render check.
-- AC4.2 `npm run e2e:cross-device` boots the emulator, runs sender + responder + verification flows on two simulators, exits 0.
-- AC4.3 Cross-device flow asserts:
-  - User A sees the sent challenge in their Friends feed.
-  - User B opens the deep link and reaches the challenge play screen.
-  - After User B answers, User A's Friends feed shows the `challenge_accepted` row with B's answer.
-- AC4.4 Test users `userA@test.local` and `userB@test.local` are seeded automatically.
-- AC4.5 Test runs are deterministic (seeded content, seeded users, fixed timestamps where possible).
+Automated Maestro E2E deferred. The Windows + Expo Go setup makes reliable cross-device automation impractical without a native dev build. Manual two-device smoke testing (Android emulator + iPhone via Expo Go, both hitting the local Firebase emulator) provides equivalent coverage at this stage.
 
-### 4.3 Out of scope
+### 4.2 Manual smoke checklist
+
+Run after any change touching challenge, help, auth, or content flows:
+
+- [ ] Both devices connected to the same `npx expo start` dev server
+- [ ] Firebase emulator running (`npm run emulator`) and seeded (`npm run seed:emulator`)
+- [ ] **Device A (iPhone):** sign in, play a game, tap Challenge → share link
+- [ ] **Device B (Android):** open the deep link → correct game + question loads
+- [ ] **Device B:** submit answer → challenge resolves
+- [ ] **Device A:** Friends feed shows `challenge_accepted` row with Device B's answer
+- [ ] Repeat above with Ask for Help flow
+
+### 4.3 Out of scope (v5)
+- Automated Maestro flows
 - Cloud-hosted device farm (BrowserStack / Sauce / Firebase Test Lab)
-- Performance regression suite
-- Visual regression
+- CI gating on E2E results
 
 ---
 
@@ -147,10 +149,10 @@ and challenge/help links are proven to work across devices via automated E2E tes
 | Area | Decision |
 |---|---|
 | Auth | Firebase email/password + `linkWithCredential` for anon→permanent |
-| E2E framework | Maestro (native) + Playwright (web smoke only) |
+| E2E framework | Manual two-device smoke (Android emulator + iPhone Expo Go); Maestro deferred |
 | Content shape | Single document per version, all banks inline, version pointer pattern |
 | Stats sync | Direct client writes, debounced + outbox; AsyncStorage is UI source of truth |
-| Cross-device test | Two simulators, single emulator, filesystem token handoff |
+| Cross-device test | Android emulator + iPhone Expo Go, shared local Firebase emulator |
 
 ### Auth detail
 `signInAnonymously` stays as the default first-launch behavior. Upgrade calls `linkWithCredential(auth.currentUser, EmailAuthProvider.credential(email, password))` which **preserves the same uid** — no migration needed for stats, challenges, or push tokens.

@@ -1,4 +1,3 @@
-import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -20,7 +19,7 @@ import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { PANEL, QuipPrompt } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { pickFromBank } from '@/constants/utils';
+import { copyToClipboard, pickFromBank } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
@@ -211,9 +210,11 @@ export default function QuipScreen() {
   };
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(helpUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const copied = await copyToClipboard(helpUrl);
+    if (copied) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleShare = async () => {

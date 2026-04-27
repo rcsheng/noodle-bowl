@@ -1,4 +1,4 @@
-import * as Clipboard from 'expo-clipboard';
+import { copyToClipboard } from '@/constants/utils';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -223,9 +223,11 @@ export default function SofScreen() {
   };
 
   const handleCopyHelp = async () => {
-    await Clipboard.setStringAsync(helpUrl);
-    setHelpCopied(true);
-    setTimeout(() => setHelpCopied(false), 2000);
+    const copied = await copyToClipboard(helpUrl);
+    if (copied) {
+      setHelpCopied(true);
+      setTimeout(() => setHelpCopied(false), 2000);
+    }
   };
 
   const allVoted = votes.every((v) => v !== null) && votes.filter(v => v === 'fiction').length === 1;

@@ -84,3 +84,17 @@ export function scoreSpread(guess: number, answer: number): { correct: boolean; 
   const correct = deviation <= 30;
   return { correct, points, deviation };
 }
+
+// Copies text to clipboard. Falls back to Share.share on Android emulator where
+// the system clipboard is unavailable. Returns true if clipboard succeeded.
+export async function copyToClipboard(text: string): Promise<boolean> {
+  const Clipboard = await import('expo-clipboard');
+  const { Share } = await import('react-native');
+  try {
+    await Clipboard.setStringAsync(text);
+    return true;
+  } catch {
+    await Share.share({ message: text });
+    return false;
+  }
+}

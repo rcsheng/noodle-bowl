@@ -14,6 +14,7 @@
     "test:coverage": "jest --coverage",
     "emulator": "firebase emulators:start",
     "emulator:kill": "taskkill /F /IM java.exe 2>nul & echo Killed emulator processes",
+    "avd": "%LOCALAPPDATA%/Android/Sdk/emulator/emulator -avd Pixel_9",
     "seed:emulator": "node scripts/seed-content.js",
     "seed:prod": "SEED_TARGET=prod node scripts/seed-content.js"
   },

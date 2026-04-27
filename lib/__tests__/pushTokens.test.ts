@@ -1,5 +1,7 @@
 import { registerPushToken, getCachedPushToken } from '../pushTokens';
 
+jest.mock('expo-constants', () => ({ default: { appOwnership: null } }));
+
 const mockRequestPermissions = jest.fn();
 const mockGetToken = jest.fn();
 

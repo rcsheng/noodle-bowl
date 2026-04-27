@@ -12,10 +12,9 @@ import {
   View,
 } from 'react-native';
 
-import * as Clipboard from 'expo-clipboard';
-
 import { CopiedToast } from '@/components/CopiedToast';
 import { C, F, cardShadow } from '@/constants/theme';
+import { copyToClipboard } from '@/constants/utils';
 
 export interface PredictOption {
   label: string;
@@ -77,9 +76,11 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
   };
 
   const handleCopyUrl = async () => {
-    await Clipboard.setStringAsync(challengeUrl);
-    setUrlCopied(true);
-    setTimeout(() => setUrlCopied(false), 2000);
+    const copied = await copyToClipboard(challengeUrl);
+    if (copied) {
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    }
   };
 
   const handleShare = async () => {

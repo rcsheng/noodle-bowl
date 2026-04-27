@@ -13,7 +13,7 @@ import {
   JetBrainsMono_500Medium,
   JetBrainsMono_700Bold,
 } from '@expo-google-fonts/jetbrains-mono';
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -31,10 +31,15 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
+const isExpoGo = Constants.appOwnership === 'expo';
+
 function NotificationHandler() {
-  const listenerRef = useRef<ReturnType<typeof Notifications.addNotificationResponseReceivedListener> | null>(null);
+  const listenerRef = useRef<{ remove: () => void } | null>(null);
 
   useEffect(() => {
+    if (isExpoGo) return;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Notifications = require('expo-notifications') as typeof import('expo-notifications');
     listenerRef.current = Notifications.addNotificationResponseReceivedListener((_response) => {
       // Future: navigate to friends tab on challenge_accepted tap
     });

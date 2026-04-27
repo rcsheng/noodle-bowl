@@ -1,6 +1,8 @@
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
+
+const isExpoGo = Constants.appOwnership === 'expo';
 
 let cachedToken: string | null = null;
 
@@ -9,9 +11,11 @@ export function getCachedPushToken(): string | null {
 }
 
 export async function registerPushToken(uid: string): Promise<string | null> {
-  if (!uid) return null;
+  if (!uid || isExpoGo) return null;
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Notifications = require('expo-notifications') as typeof import('expo-notifications');
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') return null;
 
