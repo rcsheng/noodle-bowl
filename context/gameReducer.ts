@@ -2,12 +2,13 @@ import { GameId } from '@/constants/data';
 
 export interface FriendInteraction {
   id: string;
-  type: 'received_help' | 'gave_help' | 'sent_challenge' | 'challenge_accepted' | 'received_challenge';
+  type: 'received_help' | 'gave_help' | 'sent_challenge' | 'challenge_accepted' | 'received_challenge' | 'sent_help';
   friendName: string;
   gameId: GameId;
   questionIndex: number;
   date: string; // YYYY-MM-DD
   shieldEarned: boolean;
+  token?: string;
   senderPrediction?: string;
   friendAnswer?: string;
   bonusPointsEarned?: number;
@@ -77,7 +78,8 @@ export type Action =
   | { type: 'UPDATE_DAILY_STREAK'; today: string }
   | { type: 'SET_SEEN'; game: GameId; seen: number[] }
   | { type: 'EARN_SHIELD' }
-  | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction };
+  | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction }
+  | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] };
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -171,6 +173,8 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case 'ADD_FRIEND_INTERACTION':
       return { ...state, friendInteractions: [action.interaction, ...state.friendInteractions] };
+    case 'SET_FRIEND_INTERACTIONS':
+      return { ...state, friendInteractions: action.interactions };
     default:
       return state;
   }

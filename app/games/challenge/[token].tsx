@@ -6,24 +6,62 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Masthead } from '@/components/Masthead';
 import { GAME_META, GameId } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { ChallengePayload, decodeChallengeToken, getTodayISODate } from '@/constants/utils';
+import { ChallengePayload, decodeChallengeToken } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
+import { fetchChallenge } from '@/lib/challengeApi';
+
+// Short tokens from the backend: 8 uppercase alphanum chars
+const SHORT_TOKEN_RE = /^[A-Z0-9]{8}$/;
+
+interface NormalizedPayload {
+  gameId: string;
+  questionIndex: number;
+  senderName: string;
+  senderPrediction: string;
+  expiresAt?: string;
+}
 
 export default function ChallengeScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const { addFriendInteraction } = useGame();
-  const [payload, setPayload] = useState<ChallengePayload | null>(null);
+  const [payload, setPayload] = useState<NormalizedPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recorded, setRecorded] = useState(false);
 
   useEffect(() => {
     if (!token) { setError('No challenge token found.'); return; }
-    const decoded = decodeChallengeToken(token as string);
+
+    if (SHORT_TOKEN_RE.test(token as string)) {
+      // Backend short token — fetch from API
+      fetchChallenge(token as string).then((result) => {
+        if ('error' in result) {
+          if (result.error === 'expired') {
+            setError('This challenge link has expired. Challenges are valid for 24 hours.');
+          } else if (result.error === 'already_answered') {
+            setError('This challenge has already been answered. Each challenge can only be played once.');
+          } else {
+            setError('This challenge link is invalid or has expired.');
+          }
+          return;
+        }
+        const validGames: GameId[] = ['lede', 'spread', 'sof', 'wave', 'quip'];
+        if (!validGames.includes(result.gameId as GameId)) {
+          setError('This challenge is for a game that is not available.');
+          return;
+        }
+        setPayload(result);
+      }).catch(() => {
+        setError('Could not load challenge. Please check your connection and try again.');
+      });
+      return;
+    }
+
+    // Legacy base64url token — decode locally
+    const decoded: ChallengePayload | null = decodeChallengeToken(token as string);
     if (!decoded) { setError('This challenge link is invalid or has expired.'); return; }
 
     const issuedAt = new Date(decoded.issuedAt);
-    const expiryMs = 24 * 60 * 60 * 1000;
-    if (Date.now() - issuedAt.getTime() > expiryMs) {
+    if (Date.now() - issuedAt.getTime() > 24 * 60 * 60 * 1000) {
       setError('This challenge link has expired. Challenges are valid for 24 hours.');
       return;
     }
@@ -34,7 +72,12 @@ export default function ChallengeScreen() {
       return;
     }
 
-    setPayload(decoded);
+    setPayload({
+      gameId: decoded.gameId,
+      questionIndex: decoded.questionIndex,
+      senderName: decoded.senderName,
+      senderPrediction: decoded.senderPrediction,
+    });
   }, [token]);
 
   useEffect(() => {
@@ -94,7 +137,15 @@ export default function ChallengeScreen() {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => router.replace(`/games/${payload.gameId as GameId}`)}
+          onPress={() => router.replace({
+            pathname: `/games/${payload.gameId as GameId}`,
+            params: {
+              challengeToken: token as string,
+              challengeQuestionIndex: String(payload.questionIndex),
+              challengeSenderName: payload.senderName,
+              challengeSenderPrediction: payload.senderPrediction,
+            },
+          })}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>Play {meta?.title ?? 'the Game'} →</Text>

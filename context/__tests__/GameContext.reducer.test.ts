@@ -334,6 +334,33 @@ describe('reducer: ADD_FRIEND_INTERACTION', () => {
 });
 
 // ---------------------------------------------------------------------------
+// SET_FRIEND_INTERACTIONS
+// ---------------------------------------------------------------------------
+describe('reducer: SET_FRIEND_INTERACTIONS', () => {
+  const makeInteraction = (id: string): FriendInteraction => ({
+    id,
+    type: 'sent_challenge',
+    friendName: 'Alice',
+    gameId: 'lede',
+    questionIndex: 0,
+    date: '2026-04-26',
+    shieldEarned: false,
+  });
+
+  test('replaces the current interactions array', () => {
+    const existing = makeInteraction('old');
+    const state = makeState({ friendInteractions: [existing] });
+    const next = reducer(state, {
+      type: 'SET_FRIEND_INTERACTIONS',
+      interactions: [makeInteraction('a'), makeInteraction('b')],
+    } as Action);
+    expect(next.friendInteractions).toHaveLength(2);
+    expect(next.friendInteractions[0].id).toBe('a');
+    expect(next.friendInteractions[1].id).toBe('b');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Immutability
 // ---------------------------------------------------------------------------
 describe('reducer: immutability', () => {

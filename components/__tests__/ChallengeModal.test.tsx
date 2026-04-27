@@ -4,7 +4,7 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import * as Clipboard from 'expo-clipboard';
 import { ChallengeModal, PredictOption } from '../ChallengeModal';
 
-const mockBuildChallengeUrl = jest.fn().mockReturnValue('https://noodlebowl.app/c/testtoken');
+const mockBuildChallengeUrl = jest.fn().mockResolvedValue({ url: 'https://noodlebowl.app/c/testtoken', token: 'TESTTOKEN' });
 
 const defaultProps = {
   visible: true,
@@ -170,7 +170,7 @@ describe('ChallengeModal', () => {
     expect(shareSpy).toHaveBeenCalled();
   });
 
-  test('onSent is called with prediction and friendName', async () => {
+  test('onSent is called with prediction, friendName, and token', async () => {
     const onSent = jest.fn();
     const utils = render(<ChallengeModal {...defaultProps} onSent={onSent} />);
     await advanceToShareStep(utils, '99');
@@ -178,7 +178,7 @@ describe('ChallengeModal', () => {
       fireEvent.press(utils.getByText('Share with a Friend'));
     });
     await waitFor(() => {
-      expect(onSent).toHaveBeenCalledWith('99', 'A Friend');
+      expect(onSent).toHaveBeenCalledWith('99', 'A Friend', 'TESTTOKEN');
     });
   });
 

@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Modal,
@@ -16,10 +16,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal, PredictOption } from '@/components/ChallengeModal';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
-import { WAVE_BANK, WaveItem } from '@/constants/data';
+import { WaveItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { ChallengePayload, genChallengeUrl, pickFromBank } from '@/constants/utils';
+import { pickFromBank } from '@/constants/utils';
+import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
+import { AuthGateModal } from '@/components/AuthGateModal';
+import { useAuthGate } from '@/lib/authGuard';
+import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
+import { createHelp, respondToHelp } from '@/lib/helpApi';
+import { getCachedPushToken } from '@/lib/pushTokens';
+import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
 type Phase = 'play' | 'reveal';
 
@@ -29,13 +36,6 @@ interface RevealData {
   prevStreak: number;
   userPosition: number;
   truthPosition: number;
-}
-
-function genFakeUrl(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return `https://noodlebowl.app/help/${result}`;
 }
 
 function positionToZone(pos: number): string {
@@ -56,7 +56,28 @@ function scoreWave(userPos: number, truthPos: number): { correct: boolean; point
 
 export default function WaveScreen() {
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
+  const { banks } = useContent();
+  const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
+  const {
+    challengeToken,
+    challengeQuestionIndex,
+    challengeSenderName,
+    challengeSenderPrediction,
+    helpToken: helpTokenParam,
+    helpQuestionIndex,
+    helpAskerName,
+  } = useLocalSearchParams<{
+    challengeToken?: string;
+    challengeQuestionIndex?: string;
+    challengeSenderName?: string;
+    challengeSenderPrediction?: string;
+    helpToken?: string;
+    helpQuestionIndex?: string;
+    helpAskerName?: string;
+  }>();
+  const isChallengeMode = !!challengeToken;
+  const isHelpMode = !!helpTokenParam;
 
   const [question, setQuestion] = useState<WaveItem | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -65,9 +86,13 @@ export default function WaveScreen() {
   const [trackWidth, setTrackWidth] = useState(0);
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
-  const [fakeUrl] = useState(genFakeUrl);
+  const [helpUrl, setHelpUrl] = useState('');
+  const [helpLoading, setHelpLoading] = useState(false);
+  const [helpToken, setHelpToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showChallenge, setShowChallenge] = useState(false);
+  const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
+  const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
 
   const userPosRef = useRef(50);
   const trackWidthRef = useRef(0);
@@ -75,10 +100,20 @@ export default function WaveScreen() {
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { idx, item, newSeen } = pickFromBank(WAVE_BANK, state.seen.wave);
-    setSeen('wave', newSeen);
-    setQuestion(item);
-    setQuestionIdx(idx);
+    if (isChallengeMode && challengeQuestionIndex !== undefined) {
+      const idx = parseInt(challengeQuestionIndex, 10);
+      setQuestion(banks.wave[idx]);
+      setQuestionIdx(idx);
+    } else if (isHelpMode && helpQuestionIndex !== undefined) {
+      const idx = parseInt(helpQuestionIndex, 10);
+      setQuestion(banks.wave[idx]);
+      setQuestionIdx(idx);
+    } else {
+      const { idx, item, newSeen } = pickFromBank(banks.wave, state.seen.wave);
+      setSeen('wave', newSeen);
+      setQuestion(item);
+      setQuestionIdx(idx);
+    }
   }, [isLoaded]);
 
   const panResponder = useRef(
@@ -104,7 +139,7 @@ export default function WaveScreen() {
     })
   ).current;
 
-  const handleLockIn = () => {
+  const handleLockIn = async () => {
     if (!question) return;
     const pos = userPosRef.current;
     const { correct, points } = scoreWave(pos, question.truthPosition);
@@ -112,10 +147,28 @@ export default function WaveScreen() {
     setRevealData({ correct, points, prevStreak, userPosition: pos, truthPosition: question.truthPosition });
     updateGameStats('wave', correct, points);
     setPhase('reveal');
+
+    if (isChallengeMode && challengeToken && !challengeComparison) {
+      try {
+        const comparison = await respondToChallenge({ token: challengeToken, friendAnswer: String(Math.round(pos)) });
+        setChallengeComparison(comparison);
+      } catch {
+        // ignore — user still sees their result
+      }
+    }
+
+    if (isHelpMode && helpTokenParam && !helpRespondResult) {
+      try {
+        const result = await respondToHelp({ token: helpTokenParam, helperAnswer: String(Math.round(pos)) });
+        setHelpRespondResult(result);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromBank(WAVE_BANK, state.seen.wave);
+    const { idx, item, newSeen } = pickFromBank(banks.wave, state.seen.wave);
     setSeen('wave', newSeen);
     setQuestion(item);
     setQuestionIdx(idx);
@@ -123,18 +176,43 @@ export default function WaveScreen() {
     setUserPosition(50);
     userPosRef.current = 50;
     setRevealData(null);
+    setHelpUrl('');
+    setHelpToken(null);
+  };
+
+  const handleOpenHelp = async () => {
+    if (helpUrl) {
+      setShowFriend(true);
+      return;
+    }
+    setShowFriend(true);
+    setHelpLoading(true);
+    try {
+      const result = await createHelp({
+        gameId: 'wave',
+        questionIndex: questionIdx,
+        askerName: null,
+        askerPushToken: getCachedPushToken(),
+      });
+      setHelpUrl(result.url);
+      setHelpToken(result.token);
+    } catch {
+      setHelpUrl('');
+    } finally {
+      setHelpLoading(false);
+    }
   };
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(fakeUrl);
+    await Clipboard.setStringAsync(helpUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {
-    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
     if (result.action === Share.sharedAction) {
-      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'wave', questionIndex: questionIdx, shieldEarned: false });
+      addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'wave', questionIndex: questionIdx, shieldEarned: false, token: helpToken ?? undefined });
     }
   };
 
@@ -230,13 +308,15 @@ export default function WaveScreen() {
               <Text style={styles.primaryBtnText}>Lock In</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              onPress={() => setShowFriend(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.secondaryBtnText}>Ask a Friend for Help</Text>
-            </TouchableOpacity>
+            {!isChallengeMode && !isHelpMode && (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => requireAuth(handleOpenHelp)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.secondaryBtnText}>Ask a Friend for Help</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
 
@@ -271,29 +351,83 @@ export default function WaveScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => setShowChallenge(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
-            </TouchableOpacity>
+            {isChallengeMode && challengeComparison ? (
+              <>
+                <View style={styles.challengePanel}>
+                  <View style={styles.cardInnerBorder} />
+                  <Text style={styles.challengePanelLabel}>Challenge Results</Text>
+                  <View style={styles.challengeRow}>
+                    <Text style={styles.challengeKey}>Your answer</Text>
+                    <Text style={styles.challengeVal}>{Math.round(revealData?.userPosition ?? userPosition)}%</Text>
+                  </View>
+                  <View style={styles.challengeRow}>
+                    <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s answer</Text>
+                    <Text style={styles.challengeVal}>{challengeComparison.senderAnswer}%</Text>
+                  </View>
+                  <View style={styles.challengeRow}>
+                    <Text style={styles.challengeKey}>Their prediction</Text>
+                    <Text style={styles.challengeVal}>
+                      {challengeSenderPrediction}{' '}
+                      {challengeSenderPrediction === positionToZone(revealData?.userPosition ?? userPosition) ? '✓' : '✗'}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => router.back()}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Back to Games</Text>
+                </TouchableOpacity>
+              </>
+            ) : isHelpMode && helpRespondResult ? (
+              <>
+                <View style={styles.challengePanel}>
+                  <View style={styles.cardInnerBorder} />
+                  <Text style={styles.challengePanelLabel}>Help Sent</Text>
+                  <Text style={styles.infoText}>
+                    Your answer has been sent to {helpAskerName || 'your friend'}.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => router.back()}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Back to Games</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {!isChallengeMode && !isHelpMode && (
+                  <TouchableOpacity
+                    style={styles.primaryBtn}
+                    onPress={() => requireAuth(() => setShowChallenge(true))}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+                  </TouchableOpacity>
+                )}
 
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              onPress={handlePlayAgain}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.secondaryBtnText}>Play Again</Text>
-            </TouchableOpacity>
+                {!isHelpMode && (
+                  <TouchableOpacity
+                    style={styles.secondaryBtn}
+                    onPress={handlePlayAgain}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.secondaryBtnText}>Play Again</Text>
+                  </TouchableOpacity>
+                )}
 
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => router.back()}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryBtnText}>Back to Games</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => router.back()}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Back to Games</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </>
         )}
 
@@ -312,23 +446,29 @@ export default function WaveScreen() {
           { label: 'Middle (centre third)', value: 'Middle' },
           { label: 'Over (top third)', value: 'Over' },
         ]}
-        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
-          gameId: 'wave',
-          questionIndex: questionIdx,
-          senderPrediction: prediction,
-          senderAnswer: positionToZone(revealData?.userPosition ?? userPosition),
-          senderName: friendName,
-          issuedAt: new Date().toISOString(),
-        })}
-        onSent={(prediction, friendName) => addFriendInteraction({
+        buildChallengeUrl={async (friendName, prediction) => {
+          const result = await createChallenge({
+            gameId: 'wave',
+            questionIndex: questionIdx,
+            senderPrediction: prediction,
+            senderAnswer: positionToZone(revealData?.userPosition ?? userPosition),
+            senderName: friendName,
+            senderPushToken: getCachedPushToken(),
+          });
+          return { url: result.url, token: result.token };
+        }}
+        onSent={(prediction, friendName, token) => addFriendInteraction({
           type: 'sent_challenge',
           friendName,
           gameId: 'wave',
           questionIndex: questionIdx,
           shieldEarned: false,
           senderPrediction: prediction,
+          token,
         })}
       />
+
+      <AuthGateModal visible={authGateVisible} onDismiss={dismissAuthGate} />
 
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -338,7 +478,9 @@ export default function WaveScreen() {
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopy} activeOpacity={0.7}>
-              <Text style={styles.urlText}>{fakeUrl}</Text>
+              <Text style={styles.urlText}>
+                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalBtn} onPress={handleCopy} activeOpacity={0.85}>
@@ -595,6 +737,44 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: C.muted,
     textAlign: 'center',
+  },
+  challengePanel: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    padding: 20,
+    marginBottom: 16,
+    ...cardShadow,
+  },
+  challengePanelLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginBottom: 14,
+  },
+  challengeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: C.paperDarker,
+  },
+  challengeKey: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: C.muted,
+    flex: 1,
+  },
+  challengeVal: {
+    fontFamily: F.frauncesBold,
+    fontSize: 13,
+    color: C.ink,
+    flex: 1,
+    textAlign: 'right',
   },
   footer: {
     alignItems: 'center',

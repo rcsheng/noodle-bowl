@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
@@ -15,10 +15,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
-import { LEDE_BANK, LedeItem, LedePanelist } from '@/constants/data';
+import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { ChallengePayload, calculatePoints, genChallengeUrl, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { calculatePoints, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
+import { AuthGateModal } from '@/components/AuthGateModal';
+import { useAuthGate } from '@/lib/authGuard';
+import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
+import { createHelp, respondToHelp } from '@/lib/helpApi';
+import { getCachedPushToken } from '@/lib/pushTokens';
+import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
 type Phase = 'play' | 'reveal';
 
@@ -28,16 +35,30 @@ interface RevealData {
   prevStreak: number;
 }
 
-function genFakeUrl(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return `https://noodlebowl.app/help/${result}`;
-}
-
 export default function LedeScreen() {
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
+  const { banks } = useContent();
+  const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
+  const {
+    challengeToken,
+    challengeQuestionIndex,
+    challengeSenderName,
+    challengeSenderPrediction,
+    helpToken: helpTokenParam,
+    helpQuestionIndex,
+    helpAskerName,
+  } = useLocalSearchParams<{
+    challengeToken?: string;
+    challengeQuestionIndex?: string;
+    challengeSenderName?: string;
+    challengeSenderPrediction?: string;
+    helpToken?: string;
+    helpQuestionIndex?: string;
+    helpAskerName?: string;
+  }>();
+  const isChallengeMode = !!challengeToken;
+  const isHelpMode = !!helpTokenParam;
 
   const [question, setQuestion] = useState<LedeItem | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -46,21 +67,39 @@ export default function LedeScreen() {
   const [phase, setPhase] = useState<Phase>('play');
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
-  const [fakeUrl] = useState(genFakeUrl);
+  const [helpUrl, setHelpUrl] = useState('');
+  const [helpLoading, setHelpLoading] = useState(false);
+  const [helpToken, setHelpToken] = useState<string | null>(null);
   const [showChallenge, setShowChallenge] = useState(false);
   const [helpCopied, setHelpCopied] = useState(false);
+  const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
+  const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { idx, item, newSeen } = pickFromBank(LEDE_BANK, state.seen.lede);
-    setSeen('lede', newSeen);
-    setQuestion(item);
-    setQuestionIdx(idx);
-    setOrder(shuffleIndices(item.panelists.length));
+    if (isChallengeMode && challengeQuestionIndex !== undefined) {
+      const idx = parseInt(challengeQuestionIndex, 10);
+      const item = banks.lede[idx];
+      setQuestion(item);
+      setQuestionIdx(idx);
+      setOrder(shuffleIndices(item.panelists.length));
+    } else if (isHelpMode && helpQuestionIndex !== undefined) {
+      const idx = parseInt(helpQuestionIndex, 10);
+      const item = banks.lede[idx];
+      setQuestion(item);
+      setQuestionIdx(idx);
+      setOrder(shuffleIndices(item.panelists.length));
+    } else {
+      const { idx, item, newSeen } = pickFromBank(banks.lede, state.seen.lede);
+      setSeen('lede', newSeen);
+      setQuestion(item);
+      setQuestionIdx(idx);
+      setOrder(shuffleIndices(item.panelists.length));
+    }
   }, [isLoaded]);
 
-  const handleLockIn = () => {
+  const handleLockIn = async () => {
     if (selected === null || !question) return;
     const panelist = question.panelists[selected];
     const correct = panelist.isCorrect;
@@ -69,12 +108,31 @@ export default function LedeScreen() {
     setRevealData({ correct, points, prevStreak });
     updateGameStats('lede', correct, points);
     setPhase('reveal');
+
+    if (isChallengeMode && challengeToken && !challengeComparison) {
+      try {
+        const friendAnswer = question.panelists[selected].name;
+        const comparison = await respondToChallenge({ token: challengeToken, friendAnswer });
+        setChallengeComparison(comparison);
+      } catch {
+        // ignore — user still sees their result
+      }
+    }
+
+    if (isHelpMode && helpTokenParam && !helpRespondResult) {
+      try {
+        const result = await respondToHelp({ token: helpTokenParam, helperAnswer: question.panelists[selected].name });
+        setHelpRespondResult(result);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const scrollRef = useRef<ScrollView>(null);
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromBank(LEDE_BANK, state.seen.lede);
+    const { idx, item, newSeen } = pickFromBank(banks.lede, state.seen.lede);
     setSeen('lede', newSeen);
     setQuestion(item);
     setQuestionIdx(idx);
@@ -82,18 +140,43 @@ export default function LedeScreen() {
     setSelected(null);
     setPhase('play');
     setRevealData(null);
+    setHelpUrl('');
+    setHelpToken(null);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
 
+  const handleOpenHelp = async () => {
+    if (helpUrl) {
+      setShowFriend(true);
+      return;
+    }
+    setShowFriend(true);
+    setHelpLoading(true);
+    try {
+      const result = await createHelp({
+        gameId: 'lede',
+        questionIndex: questionIdx,
+        askerName: null,
+        askerPushToken: getCachedPushToken(),
+      });
+      setHelpUrl(result.url);
+      setHelpToken(result.token);
+    } catch {
+      setHelpUrl('');
+    } finally {
+      setHelpLoading(false);
+    }
+  };
+
   const handleShare = async () => {
-    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
     if (result.action === Share.sharedAction) {
-      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false });
+      addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false, token: helpToken ?? undefined });
     }
   };
 
   const handleCopyHelp = async () => {
-    await Clipboard.setStringAsync(fakeUrl);
+    await Clipboard.setStringAsync(helpUrl);
     setHelpCopied(true);
     setTimeout(() => setHelpCopied(false), 2000);
   };
@@ -214,13 +297,15 @@ export default function LedeScreen() {
               <Text style={styles.primaryBtnText}>Lock In</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              onPress={() => setShowFriend(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
-            </TouchableOpacity>
+            {!isChallengeMode && !isHelpMode && (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={() => requireAuth(handleOpenHelp)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
 
@@ -247,25 +332,81 @@ export default function LedeScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => setShowChallenge(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
-            </TouchableOpacity>
+            {isChallengeMode && challengeComparison ? (
+              <>
+                <View style={styles.comparisonPanel}>
+                  <View style={styles.cardInnerBorder} />
+                  <Text style={styles.comparisonPanelLabel}>Challenge Results</Text>
+                  <View style={styles.comparisonRow}>
+                    <Text style={styles.comparisonKey}>Your answer</Text>
+                    <Text style={styles.comparisonVal}>
+                      {selected !== null ? question.panelists[selected].name : '—'}
+                    </Text>
+                  </View>
+                  <View style={styles.comparisonRow}>
+                    <Text style={styles.comparisonKey}>{challengeSenderName ?? 'Sender'}'s answer</Text>
+                    <Text style={styles.comparisonVal}>{challengeComparison.senderAnswer}</Text>
+                  </View>
+                  <View style={styles.comparisonRow}>
+                    <Text style={styles.comparisonKey}>Their prediction</Text>
+                    <Text style={styles.comparisonVal}>
+                      {challengeSenderPrediction}{' '}
+                      {challengeSenderPrediction === (selected !== null ? question.panelists[selected].name : '') ? '✓' : '✗'}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => router.back()}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Back to Games</Text>
+                </TouchableOpacity>
+              </>
+            ) : isHelpMode && helpRespondResult ? (
+              <>
+                <View style={styles.comparisonPanel}>
+                  <View style={styles.cardInnerBorder} />
+                  <Text style={styles.comparisonPanelLabel}>Help Sent</Text>
+                  <Text style={styles.truthExplanation}>
+                    Your answer has been sent to {helpAskerName || 'your friend'}.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => router.back()}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Back to Games</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {!isChallengeMode && !isHelpMode && (
+                  <TouchableOpacity
+                    style={styles.primaryBtn}
+                    onPress={() => requireAuth(() => setShowChallenge(true))}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+                  </TouchableOpacity>
+                )}
 
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              onPress={handlePlayAgain}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.secondaryBtnText}>Play Again</Text>
-            </TouchableOpacity>
+                {!isHelpMode && (
+                  <TouchableOpacity
+                    style={styles.secondaryBtn}
+                    onPress={handlePlayAgain}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.secondaryBtnText}>Play Again</Text>
+                  </TouchableOpacity>
+                )}
 
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backText}>← Back to Games</Text>
-            </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                  <Text style={styles.backText}>← Back to Games</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </>
         )}
 
@@ -283,23 +424,29 @@ export default function LedeScreen() {
           label: panelist.completion.split(' ').slice(0, 7).join(' ') + '…',
           value: panelist.name,
         })) : []}
-        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
-          gameId: 'lede',
-          questionIndex: questionIdx,
-          senderPrediction: prediction,
-          senderAnswer: selected !== null ? question!.panelists[selected].name : '',
-          senderName: friendName,
-          issuedAt: new Date().toISOString(),
-        })}
-        onSent={(prediction, friendName) => addFriendInteraction({
+        buildChallengeUrl={async (friendName, prediction) => {
+          const result = await createChallenge({
+            gameId: 'lede',
+            questionIndex: questionIdx,
+            senderPrediction: prediction,
+            senderAnswer: selected !== null ? question!.panelists[selected].name : '',
+            senderName: friendName,
+            senderPushToken: getCachedPushToken(),
+          });
+          return { url: result.url, token: result.token };
+        }}
+        onSent={(prediction, friendName, token) => addFriendInteraction({
           type: 'sent_challenge',
           friendName,
           gameId: 'lede',
           questionIndex: questionIdx,
           shieldEarned: false,
           senderPrediction: prediction,
+          token,
         })}
       />
+
+      <AuthGateModal visible={authGateVisible} onDismiss={dismissAuthGate} />
 
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -309,7 +456,9 @@ export default function LedeScreen() {
             <Text style={styles.modalSubtitle}>They'll answer the same puzzle — you'll see what they pick.</Text>
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopyHelp} activeOpacity={0.7}>
-              <Text style={styles.urlText}>{fakeUrl}</Text>
+              <Text style={styles.urlText}>
+                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalBtn} onPress={handleShare} activeOpacity={0.85}>
@@ -625,6 +774,44 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: C.muted,
     marginTop: 6,
+  },
+  comparisonPanel: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    padding: 20,
+    marginBottom: 16,
+    ...cardShadow,
+  },
+  comparisonPanelLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginBottom: 14,
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: C.paperDarker,
+  },
+  comparisonKey: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: C.muted,
+    flex: 1,
+  },
+  comparisonVal: {
+    fontFamily: F.frauncesBold,
+    fontSize: 13,
+    color: C.ink,
+    flex: 1,
+    textAlign: 'right',
   },
   footer: {
     alignItems: 'center',

@@ -1,0 +1,25 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "senderId", "order": "ASCENDING" },
+        { "fieldPath": "gameId", "order": "ASCENDING" },
+        { "fieldPath": "questionIndex", "order": "ASCENDING" },
+        { "fieldPath": "issuedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "helpRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "askerId", "order": "ASCENDING" },
+        { "fieldPath": "gameId", "order": "ASCENDING" },
+        { "fieldPath": "questionIndex", "order": "ASCENDING" },
+        { "fieldPath": "issuedAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

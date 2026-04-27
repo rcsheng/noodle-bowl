@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     KeyboardAvoidingView,
@@ -18,21 +18,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
-import { PANEL, QUIP_PROMPTS, QuipPrompt } from '@/constants/data';
+import { PANEL, QuipPrompt } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { genChallengeUrl, pickFromBank } from '@/constants/utils';
+import { pickFromBank } from '@/constants/utils';
+import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
+import { AuthGateModal } from '@/components/AuthGateModal';
+import { useAuthGate } from '@/lib/authGuard';
+import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
+import { createHelp, respondToHelp } from '@/lib/helpApi';
+import { getCachedPushToken } from '@/lib/pushTokens';
+import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
 type Phase = 'play' | 'judging' | 'result';
 
 const MAX_CHARS = 180;
-
-function genFakeUrl(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return `https://noodlebowl.app/help/${result}`;
-}
 
 interface JudgeResult {
   name: string;
@@ -72,7 +72,28 @@ function getReaction(panelist: typeof PANEL[0], quip: string): { reaction: strin
 
 export default function QuipScreen() {
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
+  const { banks } = useContent();
+  const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
+  const {
+    challengeToken,
+    challengeQuestionIndex,
+    challengeSenderName,
+    challengeSenderPrediction,
+    helpToken: helpTokenParam,
+    helpQuestionIndex,
+    helpAskerName,
+  } = useLocalSearchParams<{
+    challengeToken?: string;
+    challengeQuestionIndex?: string;
+    challengeSenderName?: string;
+    challengeSenderPrediction?: string;
+    helpToken?: string;
+    helpQuestionIndex?: string;
+    helpAskerName?: string;
+  }>();
+  const isChallengeMode = !!challengeToken;
+  const isHelpMode = !!helpTokenParam;
 
   const [prompt, setPrompt] = useState<QuipPrompt | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -82,17 +103,31 @@ export default function QuipScreen() {
   const [revealedCount, setRevealedCount] = useState(0);
   const [points, setPoints] = useState(0);
   const [showFriend, setShowFriend] = useState(false);
-  const [fakeUrl] = useState(genFakeUrl);
+  const [helpUrl, setHelpUrl] = useState('');
+  const [helpLoading, setHelpLoading] = useState(false);
+  const [helpToken, setHelpToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showChallenge, setShowChallenge] = useState(false);
+  const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
+  const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
-    const { idx, item, newSeen } = pickFromBank(QUIP_PROMPTS, state.seen.quip);
-    setSeen('quip', newSeen);
-    setPrompt(item);
-    setQuestionIdx(idx);
+    if (isChallengeMode && challengeQuestionIndex !== undefined) {
+      const idx = parseInt(challengeQuestionIndex, 10);
+      setPrompt(banks.quip[idx]);
+      setQuestionIdx(idx);
+    } else if (isHelpMode && helpQuestionIndex !== undefined) {
+      const idx = parseInt(helpQuestionIndex, 10);
+      setPrompt(banks.quip[idx]);
+      setQuestionIdx(idx);
+    } else {
+      const { idx, item, newSeen } = pickFromBank(banks.quip, state.seen.quip);
+      setSeen('quip', newSeen);
+      setPrompt(item);
+      setQuestionIdx(idx);
+    }
   }, [isLoaded]);
 
   const handleSubmit = () => {
@@ -114,14 +149,32 @@ export default function QuipScreen() {
           const earned = likes === 3 ? 30 : likes === 2 ? 20 : likes === 1 ? 10 : 0;
           setPoints(earned);
           updateGameStats('quip', likes >= 2, earned);
-          setTimeout(() => setPhase('result'), 400);
+          setTimeout(async () => {
+            setPhase('result');
+            if (isChallengeMode && challengeToken && !challengeComparison) {
+              try {
+                const comparison = await respondToChallenge({ token: challengeToken, friendAnswer: quip.trim() });
+                setChallengeComparison(comparison);
+              } catch {
+                // ignore — user still sees their result
+              }
+            }
+            if (isHelpMode && helpTokenParam && !helpRespondResult) {
+              try {
+                const result = await respondToHelp({ token: helpTokenParam, helperAnswer: quip.trim() });
+                setHelpRespondResult(result);
+              } catch {
+                // ignore
+              }
+            }
+          }, 400);
         }
       }, delay + i * 700);
     });
   };
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromBank(QUIP_PROMPTS, state.seen.quip);
+    const { idx, item, newSeen } = pickFromBank(banks.quip, state.seen.quip);
     setSeen('quip', newSeen);
     setPrompt(item);
     setQuestionIdx(idx);
@@ -130,18 +183,43 @@ export default function QuipScreen() {
     setJudgeResults([]);
     setRevealedCount(0);
     setPoints(0);
+    setHelpUrl('');
+    setHelpToken(null);
+  };
+
+  const handleOpenHelp = async () => {
+    if (helpUrl) {
+      setShowFriend(true);
+      return;
+    }
+    setShowFriend(true);
+    setHelpLoading(true);
+    try {
+      const result = await createHelp({
+        gameId: 'quip',
+        questionIndex: questionIdx,
+        askerName: null,
+        askerPushToken: getCachedPushToken(),
+      });
+      setHelpUrl(result.url);
+      setHelpToken(result.token);
+    } catch {
+      setHelpUrl('');
+    } finally {
+      setHelpLoading(false);
+    }
   };
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(fakeUrl);
+    await Clipboard.setStringAsync(helpUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {
-    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${fakeUrl}` });
+    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
     if (result.action === Share.sharedAction) {
-      addFriendInteraction({ type: 'gave_help', friendName: 'A Friend', gameId: 'quip', questionIndex: questionIdx, shieldEarned: false });
+      addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'quip', questionIndex: questionIdx, shieldEarned: false, token: helpToken ?? undefined });
     }
   };
 
@@ -198,13 +276,15 @@ export default function QuipScreen() {
                 <Text style={styles.primaryBtnText}>Submit to Panel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={() => setShowFriend(true)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.secondaryBtnText}>Ask a Friend for Help</Text>
-              </TouchableOpacity>
+              {!isChallengeMode && !isHelpMode && (
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={() => requireAuth(handleOpenHelp)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.secondaryBtnText}>Ask a Friend for Help</Text>
+                </TouchableOpacity>
+              )}
             </>
           )}
 
@@ -261,29 +341,83 @@ export default function QuipScreen() {
                 <Text style={styles.resultPoints}>+{points} pts</Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={() => setShowChallenge(true)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
-              </TouchableOpacity>
+              {isChallengeMode && challengeComparison ? (
+                <>
+                  <View style={styles.challengePanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.challengePanelLabel}>Challenge Results</Text>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>Your quip</Text>
+                      <Text style={styles.challengeVal}>{quip.trim()}</Text>
+                    </View>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s quip</Text>
+                      <Text style={styles.challengeVal}>{challengeComparison.senderAnswer}</Text>
+                    </View>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>Their prediction</Text>
+                      <Text style={styles.challengeVal}>
+                        {challengeSenderPrediction} likes{' '}
+                        {challengeSenderPrediction === String(judgeResults.filter(r => r.liked).length) ? '✓' : '✗'}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryBtn}
+                    onPress={() => router.back()}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.primaryBtnText}>Back to Games</Text>
+                  </TouchableOpacity>
+                </>
+              ) : isHelpMode && helpRespondResult ? (
+                <>
+                  <View style={styles.challengePanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.challengePanelLabel}>Help Sent</Text>
+                    <Text style={styles.judgeReaction}>
+                      Your answer has been sent to {helpAskerName || 'your friend'}.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryBtn}
+                    onPress={() => router.back()}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.primaryBtnText}>Back to Games</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {!isChallengeMode && !isHelpMode && (
+                    <TouchableOpacity
+                      style={styles.primaryBtn}
+                      onPress={() => requireAuth(() => setShowChallenge(true))}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+                    </TouchableOpacity>
+                  )}
 
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={handlePlayAgain}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.secondaryBtnText}>Play Again</Text>
-              </TouchableOpacity>
+                  {!isHelpMode && (
+                    <TouchableOpacity
+                      style={styles.secondaryBtn}
+                      onPress={handlePlayAgain}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.secondaryBtnText}>Play Again</Text>
+                    </TouchableOpacity>
+                  )}
 
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={() => router.back()}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryBtnText}>Back to Games</Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.primaryBtn}
+                    onPress={() => router.back()}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.primaryBtnText}>Back to Games</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </>
           )}
 
@@ -304,23 +438,29 @@ export default function QuipScreen() {
           { label: '2 out of 3', value: '2' },
           { label: 'All 3', value: '3' },
         ]}
-        buildChallengeUrl={(friendName, prediction) => genChallengeUrl({
-          gameId: 'quip',
-          questionIndex: questionIdx,
-          senderPrediction: prediction,
-          senderAnswer: String(judgeResults.filter(r => r.liked).length),
-          senderName: friendName,
-          issuedAt: new Date().toISOString(),
-        })}
-        onSent={(prediction, friendName) => addFriendInteraction({
+        buildChallengeUrl={async (friendName, prediction) => {
+          const result = await createChallenge({
+            gameId: 'quip',
+            questionIndex: questionIdx,
+            senderPrediction: prediction,
+            senderAnswer: String(judgeResults.filter(r => r.liked).length),
+            senderName: friendName,
+            senderPushToken: getCachedPushToken(),
+          });
+          return { url: result.url, token: result.token };
+        }}
+        onSent={(prediction, friendName, token) => addFriendInteraction({
           type: 'sent_challenge',
           friendName,
           gameId: 'quip',
           questionIndex: questionIdx,
           shieldEarned: false,
           senderPrediction: prediction,
+          token,
         })}
       />
+
+      <AuthGateModal visible={authGateVisible} onDismiss={dismissAuthGate} />
 
       <Modal visible={showFriend} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -330,7 +470,9 @@ export default function QuipScreen() {
             <Text style={styles.modalSubtitle}>Share this link — they can peek at the answer.</Text>
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopy} activeOpacity={0.7}>
-              <Text style={styles.urlText}>{fakeUrl}</Text>
+              <Text style={styles.urlText}>
+                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalBtn} onPress={handleCopy} activeOpacity={0.85}>
@@ -616,6 +758,44 @@ const styles = StyleSheet.create({
     fontFamily: F.frauncesXBoldItalic,
     fontSize: 24,
     color: C.accentWarm,
+  },
+  challengePanel: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    padding: 20,
+    marginBottom: 16,
+    ...cardShadow,
+  },
+  challengePanelLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginBottom: 14,
+  },
+  challengeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: C.paperDarker,
+  },
+  challengeKey: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: C.muted,
+    flex: 1,
+  },
+  challengeVal: {
+    fontFamily: F.frauncesBold,
+    fontSize: 13,
+    color: C.ink,
+    flex: 1,
+    textAlign: 'right',
   },
   footer: {
     alignItems: 'center',

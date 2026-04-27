@@ -28,8 +28,8 @@ interface Props {
   correct: boolean;
   predictLabel: string;
   predictOptions?: PredictOption[];
-  buildChallengeUrl: (friendName: string, prediction: string) => string;
-  onSent: (prediction: string, friendName: string) => void;
+  buildChallengeUrl: (friendName: string, prediction: string) => Promise<{ url: string; token: string }>;
+  onSent: (prediction: string, friendName: string, token: string) => void;
 }
 
 type Step = 'name' | 'predict' | 'share' | 'sent';
@@ -39,7 +39,10 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
   const [friendName, setFriendName] = useState('');
   const [prediction, setPrediction] = useState('');
   const [challengeUrl, setChallengeUrl] = useState('');
+  const [challengeToken, setChallengeToken] = useState('');
   const [urlCopied, setUrlCopied] = useState(false);
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const hasOptions = predictOptions && predictOptions.length > 0;
   const displayName = friendName.trim() || 'A Friend';
@@ -49,16 +52,28 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
     setFriendName('');
     setPrediction('');
     setChallengeUrl('');
+    setChallengeToken('');
     setUrlCopied(false);
+    setUrlLoading(false);
+    setUrlError(null);
     onClose();
   };
 
   const handleNameNext = () => setStep('predict');
 
-  const handlePredictNext = () => {
-    const url = buildChallengeUrl(displayName, prediction);
-    setChallengeUrl(url);
-    setStep('share');
+  const handlePredictNext = async () => {
+    setUrlLoading(true);
+    setUrlError(null);
+    try {
+      const { url, token } = await buildChallengeUrl(displayName, prediction);
+      setChallengeUrl(url);
+      setChallengeToken(token);
+      setStep('share');
+    } catch {
+      setUrlError('Could not generate challenge link. Please try again.');
+    } finally {
+      setUrlLoading(false);
+    }
   };
 
   const handleCopyUrl = async () => {
@@ -73,7 +88,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
   };
 
   const markSent = () => {
-    onSent(prediction, displayName);
+    onSent(prediction, displayName, challengeToken);
     setStep('sent');
   };
 
@@ -151,14 +166,16 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
                   />
                 )}
 
+                {urlError && <Text style={styles.errorText}>{urlError}</Text>}
+
                 <TouchableOpacity
                   testID="challenge-next-btn"
-                  style={[styles.primaryBtn, !prediction.trim() && styles.primaryBtnDisabled]}
+                  style={[styles.primaryBtn, (!prediction.trim() || urlLoading) && styles.primaryBtnDisabled]}
                   onPress={handlePredictNext}
-                  disabled={!prediction.trim()}
+                  disabled={!prediction.trim() || urlLoading}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.primaryBtnText}>Next →</Text>
+                  <Text style={styles.primaryBtnText}>{urlLoading ? 'Preparing…' : 'Next →'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.85}>
@@ -339,5 +356,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
+  },
+  errorText: {
+    fontFamily: F.mono,
+    fontSize: 12,
+    color: '#c0392b',
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });

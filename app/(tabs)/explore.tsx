@@ -3,12 +3,24 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Masthead } from '@/components/Masthead';
+import { AuthGateTab } from '@/components/AuthGateTab';
 import { C, F, cardShadow } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { useGame } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function StatsScreen() {
+  const { isAnonymous } = useAuth();
   const { state } = useGame();
+
+  if (isAnonymous) {
+    return (
+      <AuthGateTab
+        title="Sign in to track your stats"
+        body="Your streaks, accuracy, and lifetime points — saved and synced across devices."
+      />
+    );
+  }
   const {
     totalPoints,
     dailyStreak,

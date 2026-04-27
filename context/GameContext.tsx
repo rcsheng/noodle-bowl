@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react';
+import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
 import { GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 import { Action, AppState, FriendInteraction, initialState, reducer } from './gameReducer';
 
 export type { FriendInteraction };
@@ -22,6 +25,8 @@ const STORAGE_KEY = 'daily_state_v9';
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
+  const { user, isAnonymous } = useAuth();
+  const uid = user?.uid ?? null;
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -43,6 +48,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     ).catch(() => {});
   }, [state, isLoaded]);
 
+  useEffect(() => {
+    if (!isLoaded || isAnonymous || !uid) return;
+    getDocs(collection(db, 'users', uid, 'friendInteractions'))
+      .then(snap => {
+        const interactions = snap.docs
+          .map(d => d.data() as FriendInteraction)
+          .sort((a, b) => Number(b.id) - Number(a.id));
+        dispatch({ type: 'SET_FRIEND_INTERACTIONS', interactions });
+      })
+      .catch(() => {});
+  }, [uid, isAnonymous, isLoaded]);
+
   const updateGameStats = useCallback((game: GameId, correct: boolean, points: number) => {
     const today = getTodayISODate();
     dispatch({ type: 'UPDATE_STATS', game, correct, points, today });
@@ -58,11 +75,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addFriendInteraction = useCallback((interaction: Omit<FriendInteraction, 'id' | 'date'>) => {
-    dispatch({
-      type: 'ADD_FRIEND_INTERACTION',
-      interaction: { ...interaction, id: Date.now().toString(), date: getTodayISODate() },
-    });
-  }, []);
+    const id = Date.now().toString();
+    const date = getTodayISODate();
+    const full: FriendInteraction = { ...interaction, id, date };
+    dispatch({ type: 'ADD_FRIEND_INTERACTION', interaction: full });
+    if (!isAnonymous && uid) {
+      setDoc(doc(db, 'users', uid, 'friendInteractions', id), full).catch(() => {});
+    }
+  }, [isAnonymous, uid]);
 
   return (
     <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction }}>

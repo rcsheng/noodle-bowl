@@ -13,13 +13,16 @@ import {
   JetBrainsMono_500Medium,
   JetBrainsMono_700Bold,
 } from '@expo-google-fonts/jetbrains-mono';
+import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 
+import { AuthProvider } from '@/context/AuthContext';
+import { ContentProvider } from '@/context/ContentContext';
 import { GameProvider } from '@/context/GameContext';
 
 export const unstable_settings = {
@@ -27,6 +30,19 @@ export const unstable_settings = {
 };
 
 SplashScreen.preventAutoHideAsync();
+
+function NotificationHandler() {
+  const listenerRef = useRef<ReturnType<typeof Notifications.addNotificationResponseReceivedListener> | null>(null);
+
+  useEffect(() => {
+    listenerRef.current = Notifications.addNotificationResponseReceivedListener((_response) => {
+      // Future: navigate to friends tab on challenge_accepted tap
+    });
+    return () => listenerRef.current?.remove();
+  }, []);
+
+  return null;
+}
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -44,22 +60,24 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
+    if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) return null;
 
   return (
-    <GameProvider>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="games" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="dark" />
-    </GameProvider>
+    <AuthProvider>
+      <ContentProvider>
+        <GameProvider>
+          <NotificationHandler />
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="games" options={{ headerShown: false }} />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style="dark" />
+        </GameProvider>
+      </ContentProvider>
+    </AuthProvider>
   );
 }

@@ -24,5 +24,12 @@ jest.mock('expo-haptics', () => ({
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useLocalSearchParams: () => ({}),
   Link: 'Link',
+}));
+
+jest.mock('expo-notifications', () => ({
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'denied' }),
+  getExpoPushTokenAsync: jest.fn().mockResolvedValue({ data: null }),
 }));

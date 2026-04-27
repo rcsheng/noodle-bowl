@@ -1,17 +1,99 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 import { Masthead } from '@/components/Masthead';
+import { AuthGateTab } from '@/components/AuthGateTab';
 import { C, F, cardShadow } from '@/constants/theme';
 import { GAME_META } from '@/constants/data';
 import { useGame } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 import { formatRelativeDate } from '@/constants/utils';
+import { db } from '@/lib/firebase';
+import { GameId } from '@/constants/data';
 
 export default function FriendsScreen() {
-  const { state } = useGame();
+  const { isAnonymous } = useAuth();
+  const { state, addFriendInteraction } = useGame();
+
+  if (isAnonymous) {
+    return (
+      <AuthGateTab
+        title="Sign in to see friend activity"
+        body="Challenge friends, ask for help, and earn streak shields together."
+      />
+    );
+  }
   const { streakShieldsAvailable } = state.stats;
   const { friendInteractions } = state;
+  const unsubscribeRefs = useRef<Map<string, () => void>>(new Map());
+
+  useEffect(() => {
+    const resolvedChallengeTokens = new Set(
+      friendInteractions.filter(i => i.type === 'challenge_accepted' && i.token).map(i => i.token!)
+    );
+    const resolvedHelpTokens = new Set(
+      friendInteractions.filter(i => i.type === 'received_help' && i.token).map(i => i.token!)
+    );
+
+    friendInteractions
+      .filter(i => i.type === 'sent_challenge' && i.token)
+      .forEach(sent => {
+        const token = sent.token!;
+        if (resolvedChallengeTokens.has(token) || unsubscribeRefs.current.has(token)) return;
+
+        const unsub = onSnapshot(doc(db, 'challenges', token), (snap) => {
+          const data = snap.data();
+          if (!data?.resolvedAt) return;
+          addFriendInteraction({
+            type: 'challenge_accepted',
+            friendName: sent.friendName,
+            gameId: data.gameId as GameId,
+            questionIndex: data.questionIndex as number,
+            shieldEarned: false,
+            token,
+            senderPrediction: sent.senderPrediction,
+            friendAnswer: data.friendAnswer as string,
+          });
+          unsubscribeRefs.current.get(token)?.();
+          unsubscribeRefs.current.delete(token);
+        });
+
+        unsubscribeRefs.current.set(token, unsub);
+      });
+
+    friendInteractions
+      .filter(i => i.type === 'sent_help' && i.token)
+      .forEach(sent => {
+        const token = sent.token!;
+        if (resolvedHelpTokens.has(token) || unsubscribeRefs.current.has(token)) return;
+
+        const unsub = onSnapshot(doc(db, 'helpRequests', token), (snap) => {
+          const data = snap.data();
+          if (!data?.resolvedAt) return;
+          addFriendInteraction({
+            type: 'received_help',
+            friendName: 'A Friend',
+            gameId: data.gameId as GameId,
+            questionIndex: data.questionIndex as number,
+            shieldEarned: false,
+            token,
+            friendAnswer: data.helperAnswer as string,
+          });
+          unsubscribeRefs.current.get(token)?.();
+          unsubscribeRefs.current.delete(token);
+        });
+
+        unsubscribeRefs.current.set(token, unsub);
+      });
+
+    return () => {
+      unsubscribeRefs.current.forEach(unsub => unsub());
+      unsubscribeRefs.current.clear();
+    };
+  }, [friendInteractions, addFriendInteraction]);
+
 
   const acceptedMap = new Map<string, typeof friendInteractions[0]>();
   friendInteractions.forEach(i => {
@@ -117,6 +199,9 @@ export default function FriendsScreen() {
               } else if (interaction.type === 'gave_help') {
                 icon = '📤';
                 line = <>{'You helped '}<Text style={styles.feedBold}>{interaction.friendName}</Text>{' with '}{meta.title}</>;
+              } else if (interaction.type === 'sent_help') {
+                icon = '🙋';
+                line = <>{'You asked a friend for help with '}{meta.title}</>;
               } else if (interaction.type === 'sent_challenge') {
                 icon = '⚔️';
                 line = <>{'You challenged '}<Text style={styles.feedBold}>{interaction.friendName}</Text>{' to '}{meta.title}</>;
@@ -129,7 +214,9 @@ export default function FriendsScreen() {
                 line = <><Text style={styles.feedBold}>{interaction.friendName}</Text>{' challenged you to '}{meta.title}</>;
               }
 
-              const isPending = interaction.type === 'sent_challenge' && !resolvedEntry;
+              const isPendingHelp = interaction.type === 'sent_help' &&
+                !friendInteractions.some(i => i.type === 'received_help' && i.token === interaction.token);
+              const isPending = (interaction.type === 'sent_challenge' && !resolvedEntry) || isPendingHelp;
 
               return (
                 <View key={interaction.id} style={styles.feedItem}>
@@ -141,8 +228,11 @@ export default function FriendsScreen() {
                       {interaction.shieldEarned ? '  🛡 Shield earned' : ''}
                       {resolvedEntry?.bonusPointsEarned ? `  +${resolvedEntry.bonusPointsEarned} pts` : ''}
                     </Text>
-                    {isPending && (
+                    {interaction.type === 'sent_challenge' && isPending && (
                       <Text style={[styles.feedMeta, styles.feedPending]}>Waiting for them to play…</Text>
+                    )}
+                    {isPendingHelp && (
+                      <Text style={[styles.feedMeta, styles.feedPending]}>Waiting for a friend to help…</Text>
                     )}
                     {resolvedEntry && interaction.senderPrediction && (
                       <View style={styles.predictionReveal}>
