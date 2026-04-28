@@ -55,17 +55,12 @@ export async function signUp(email: string, password: string, displayName: strin
   try {
     if (currentUser?.isAnonymous) {
       const credential = EmailAuthProvider.credential(email, password);
-      const result = await linkWithCredential(currentUser, credential);
-      await updateProfile(result.user, { displayName });
-      user = result.user;
+      await linkWithCredential(currentUser, credential);
     } else {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(result.user, { displayName });
-      user = result.user;
+      await createUserWithEmailAndPassword(auth, email, password);
     }
-    // updateProfile mutates the User in place but does not fire any auth listener.
-    // Force a token refresh so onIdTokenChanged fires with the updated displayName.
-    await user.getIdToken(true);
+    user = auth.currentUser!;
+    await updateProfile(user, { displayName });
     await sendEmailVerification(user);
   } catch (err) {
     logger.error('[signUp]', err);

@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { signOutAndGoAnonymous } from '@/lib/authApi';
 
 export default function ProfileScreen() {
-  const { user, isAnonymous } = useAuth();
+  const { user, isAnonymous, displayName } = useAuth();
 
   async function handleSignOut() {
     await signOutAndGoAnonymous();
@@ -56,12 +56,12 @@ export default function ProfileScreen() {
               <View style={styles.profileRow}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {(user?.displayName ?? user?.email ?? '?')[0].toUpperCase()}
+                    {(displayName ?? user?.email ?? '?')[0].toUpperCase()}
                   </Text>
                 </View>
                 <View style={styles.profileInfo}>
                   <Text style={styles.displayName}>
-                    {user?.displayName ?? 'No name set'}
+                    {displayName ?? 'No name set'}
                   </Text>
                   <Text style={styles.emailText}>{user?.email}</Text>
                 </View>

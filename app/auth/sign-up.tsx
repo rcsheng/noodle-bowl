@@ -20,7 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 type Phase = 'form' | 'verify';
 
 export default function SignUpScreen() {
-  const { isAnonymous } = useAuth();
+  const { isAnonymous, reloadUser } = useAuth();
   const [phase, setPhase] = useState<Phase>('form');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,7 +34,9 @@ export default function SignUpScreen() {
     setError(null);
     setPending(true);
     try {
-      await signUp(email.trim(), password, displayName.trim());
+      const trimmedName = displayName.trim();
+      await signUp(email.trim(), password, trimmedName);
+      reloadUser(trimmedName);
       setPhase('verify');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'errors' in err) {

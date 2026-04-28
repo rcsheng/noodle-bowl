@@ -73,7 +73,8 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
       // set up and the friend's response never reaches the Friends tab.
       onSent(prediction, displayName, token);
       setStep('share');
-    } catch {
+    } catch (err) {
+      console.error('[ChallengeModal] buildChallengeUrl failed', err);
       setUrlError('Could not generate challenge link. Please try again.');
     } finally {
       setUrlLoading(false);
