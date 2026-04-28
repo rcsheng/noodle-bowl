@@ -8,7 +8,14 @@ const config = {
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|react-native-worklets)',
   ],
-  testPathIgnorePatterns: ['/node_modules/', '/.expo/', '/android/', '/ios/', '/functions/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/.expo/',
+    '/android/',
+    '/ios/',
+    '/functions/',
+    '/__tests__/firestore-rules\\.test\\.ts$',
+  ],
   collectCoverageFrom: [
     'constants/**/*.ts',
     'context/**/*.ts',

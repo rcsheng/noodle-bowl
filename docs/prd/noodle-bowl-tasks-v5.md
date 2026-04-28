@@ -8,15 +8,15 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 
 ## What's Next (snapshot — 2026-04-28)
 
-**Phases shipped:** 1, 2, 4, 6, 7.
+**Phases shipped:** 1, 2, 4, 6, 7. **All P0 manual smokes verified 2026-04-28** (Device A iPhone Expo Go + Device B Android emulator Pixel_9 against local Firebase emulator). See `docs/smoke-test/smoke-test-plan.md` for the canonical block-1–10 plan; Phase 6/7 ACs were verified ad hoc and are listed there as "Future blocks to add".
 **Phases deferred:** 3 + 5 (Maestro / cross-device E2E — replaced by manual smoke per PRD §4.1).
 
-### Immediate (P0) — manual smoke before declaring Phase 6 done
-- [ ] Sign in on iOS device → ask for help → Close share modal → confirm "Link sent" modal opens, "Got it" returns to home.
-- [ ] Have friend (or 2nd device) open the link, answer → asker's home shows enriched card with question, friend pick, correct answer, ✓/✗.
-- [ ] × dismiss the card → reload app → card stays dismissed.
-- [ ] Friends tab `received_help` row shows enriched detail (friend pick + ✓/✗).
-- [ ] AC6.10 sanity: wipe `helpRequests` collection in emulator UI → reload home → card disappears.
+### ~~Immediate (P0) — manual smoke before declaring Phase 6 done~~ ✅ ALL PASSED 2026-04-28
+- [x] Sign in on iOS device → ask for help → Close share modal → confirm "Link sent" modal opens, "Got it" returns to home.
+- [x] Have friend (or 2nd device) open the link, answer → asker's home shows enriched card with question, friend pick, correct answer, ✓/✗.
+- [x] × dismiss the card → reload app → card stays dismissed.
+- [x] Friends tab `received_help` row shows enriched detail (friend pick + ✓/✗).
+- [x] AC6.10 sanity: wipe `helpRequests` collection in emulator UI → reload home → card disappears.
 
 ### Next sprint candidates (pick one)
 - **A. Phase 0 hygiene** — small, low-risk, unblocks logging and CI plumbing:
@@ -25,7 +25,7 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
   - Already done: `zod` is installed and used in `lib/authApi.ts`
 - **B. Phase 4 P1 finish-up** — closes Phase 4 fully:
   - `seen` sync to `users/{uid}/meta/seen` (P1)
-  - `@firebase/rules-unit-testing` security-rules suite (P1)
+  - ~~`@firebase/rules-unit-testing` security-rules suite (P1)~~ ✅ done 2026-04-28 (`npm run test:rules`)
 - **C. Phase 6 follow-ups** — listed in §Phase 6 below.
 - **D. Help-flow push notifications** — currently only challenge responses push. Hooking help responses into the same pipeline gives parity with challenges and removes the need for the user to open the app to see the home card.
 
@@ -161,7 +161,7 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [x] [P0] Migrate `friendInteractions` to `users/{uid}/friendInteractions/*` subcollection
 - [x] [P0] Update `app/(tabs)/friends.tsx` to read from subcollection `onSnapshot` for permanent users
 - [x] [P0] Update `firestore.rules` for `users/{uid}/**`
-- [ ] [P1] Add security-rules test suite (`@firebase/rules-unit-testing`) verifying cross-user denial
+- [x] [P1] Add security-rules test suite (`@firebase/rules-unit-testing`) verifying cross-user denial — `__tests__/firestore-rules.test.ts` (34 tests, run via `npm run test:rules`)
 - [ ] [P1] Add `seen` sync to `users/{uid}/meta/seen`
 
 ### Phase 4 bug fixes & additions (post-implementation)
@@ -227,16 +227,16 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [x] [P0] New `components/ChallengeReplyCard.tsx` with friend pick + correct answer + your prediction + dual ✓/✗ tags + × dismiss
 - [x] [P0] Home screen validates `challenge_accepted` candidates against `challenges/{token}` via `getDoc`; orphans GC'd via `removeFriendInteraction`
 - [x] [P0] Home screen renders challenge reply cards above help reply cards in the "Friend Replies" section
-- [ ] [P0] Manual smoke (AC6.11): friend answers a challenge → asker's home shows challenge reply card with their pick, correct answer, and prediction comparison; × dismisses; reload → stays dismissed
+- [x] [P0] Manual smoke (AC6.11): friend answers a challenge → asker's home shows challenge reply card with their pick, correct answer, and prediction comparison; × dismisses; reload → stays dismissed
 
 ### Verify
 - [x] [P0] All Phase 6 tests pass (+24 new tests across evaluator, reducer, modal, card)
 - [x] [P0] Full suite: 214 passing (4 pre-existing `authApi` failures unrelated)
 - [x] [P0] No new TypeScript errors in changed files
-- [ ] [P0] Manual smoke: anon user blocked at "Stuck? Ask a Friend" → AuthGate (existing); signed-in user shares link → Close → "Link sent" modal → Got it → home screen
-- [ ] [P0] Manual smoke: friend answers help → home shows result card with question, their pick, correct answer, ✓/✗; × dismisses; reload → stays dismissed
-- [ ] [P0] Manual smoke: Friends tab shows enriched `received_help` row
-- [ ] [P0] Manual smoke (AC6.10): wipe `helpRequests` in Emulator UI → reload home → orphan card disappears
+- [x] [P0] Manual smoke: anon user blocked at "Stuck? Ask a Friend" → AuthGate (existing); signed-in user shares link → Close → "Link sent" modal → Got it → home screen
+- [x] [P0] Manual smoke: friend answers help → home shows result card with question, their pick, correct answer, ✓/✗; × dismisses; reload → stays dismissed
+- [x] [P0] Manual smoke: Friends tab shows enriched `received_help` row
+- [x] [P0] Manual smoke (AC6.10): wipe `helpRequests` in Emulator UI → reload home → orphan card disappears
 
 ### Phase 6 follow-ups (open work)
 - [ ] [P1] Push notification on help response (parity with challenge response push) — would let the home card appear without manual app reopen
@@ -265,9 +265,9 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 
 ### Verify
 - [x] [P0] All Phase 7 tests pass; full suite green (4 pre-existing `authApi` failures unrelated)
-- [ ] [P0] Manual smoke (AC7.1–AC7.3, AC7.6): from a second device, open a help link the asker sent → answer the question on the helper side → confirm the helper sees the "🛡 Shield earned" toast → navigate to Friends tab → shield slot count increased by 1 (capped at 3) → `gave_help` row shows "🛡 Shield earned" badge.
-- [ ] [P0] Manual smoke (AC7.2): open a help link, then back out without answering → no `gave_help` interaction recorded, no shield earned.
-- [ ] [P0] Manual smoke (AC7.4–AC7.5, AC7.7): home Stats label reads "Day Streak"; Friends shield explainer + empty state read the new copy.
+- [x] [P0] Manual smoke (AC7.1–AC7.3, AC7.6): from a second device, open a help link the asker sent → answer the question on the helper side → confirm the helper sees the "🛡 Shield earned" toast → navigate to Friends tab → shield slot count increased by 1 (capped at 3) → `gave_help` row shows "🛡 Shield earned" badge.
+- [x] [P0] Manual smoke (AC7.2): open a help link, then back out without answering → no `gave_help` interaction recorded, no shield earned.
+- [x] [P0] Manual smoke (AC7.4–AC7.5, AC7.7): home Stats label reads "Day Streak"; Friends shield explainer + empty state read the new copy.
 
 ### Phase 7.5 — Sign-in gating + challenge earning + anon banner (post-feedback)
 - [x] [P0] Revise PRD AC7.1 to gate shield earn on `!isAnonymous`; add AC7.8 (challenge response earns) and AC7.9 (anon banner)
@@ -277,9 +277,9 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [x] [P0] Render `ShieldSignUpBanner` for anonymous responders in help reveal AND challenge reveal (alongside existing `ChallengeSignUpBanner` in challenge mode per AC1.11)
 - [x] [P0] Friends tab shield explainer copy → "Help a friend or take their challenge to earn a shield..." (AC7.4)
 - [x] [P0] Friends tab empty state copy → adds "or take a challenge they send" (AC7.5)
-- [ ] [P0] Manual smoke (AC7.1, AC7.6): signed-in helper answers help → "🛡 Shield earned" toast → shield count increments
-- [ ] [P0] Manual smoke (AC7.8): signed-in user answers a challenge they received → toast → shield count increments → Friends feed shows `received_challenge` row with shield badge
-- [ ] [P0] Manual smoke (AC7.9): anonymous user answers help OR challenge → no toast, no shield grant, ShieldSignUpBanner appears with three CTAs
+- [x] [P0] Manual smoke (AC7.1, AC7.6): signed-in helper answers help → "🛡 Shield earned" toast → shield count increments
+- [x] [P0] Manual smoke (AC7.8): signed-in user answers a challenge they received → toast → shield count increments → Friends feed shows `received_challenge` row with shield badge
+- [x] [P0] Manual smoke (AC7.9): anonymous user answers help OR challenge → no toast, no shield grant, ShieldSignUpBanner appears with three CTAs
 
 ### Phase 7.6 — Remove shield cap, switch Friends UI to counter (AC7.1 revised + AC7.10)
 - [x] [P0] PRD §7.2 + AC7.1: shields no longer capped at 3
@@ -291,8 +291,8 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [x] [P0] Update `components/Masthead.tsx` to render "🛡 N" instead of bare "🛡" (AC7.11)
 - [x] [P0] Replace `SET_FRIEND_INTERACTIONS` wholesale-replace with merge + Firestore write for local-only items (AC7.12)
 - [x] [P0] RED: test in `GameContext.test.tsx` that local-only interactions are setDoc'd on first signed-in load AND retained in merged state
-- [ ] [P0] Manual smoke (AC7.11): home screen with 0 shields → no 🛡 in masthead; with N>0 shields → "🛡 N" appears
-- [ ] [P0] Manual smoke (AC7.12): anonymous user answers a help link → ShieldSignUpBanner → Create Account → Friends tab now shows the `gave_help` row that was earned during the anon session (and persists after reload — it was synced to Firestore)
+- [x] [P0] Manual smoke (AC7.11): home screen with 0 shields → no 🛡 in masthead; with N>0 shields → "🛡 N" appears
+- [x] [P0] Manual smoke (AC7.12): anonymous user answers a help link → ShieldSignUpBanner → Create Account → Friends tab now shows the `gave_help` row that was earned during the anon session (and persists after reload — it was synced to Firestore)
 
 ### Phase 7.9 — Navigation semantics: "Back to Home" vs "Back to Answers" (AC7.13, AC1.10 revised)
 - [x] [P0] PRD: AC1.10 revised; AC7.13 (new) defines the two CTA labels + destinations
@@ -302,14 +302,14 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [x] [P0] `app/auth/sign-up.tsx` verify screen — read `from` param; render `Back to Answers` (router.back) only when `from=reveal`; always render `Back to Home` (router.replace('/'))
 - [x] [P0] `app/auth/sign-in.tsx` — same conditional pattern after successful sign-in
 - [x] [P0] Tests: verify-screen renders correct CTAs under both `from=reveal` and `from=undefined`
-- [ ] [P0] Manual smoke (verify screen): anon user answers help → ShieldSignUpBanner → Create Account → fill form → success → see BOTH "Back to Answers" and "Back to Home" CTAs. Tap each and confirm destinations.
-- [ ] [P0] Manual smoke (Profile entry): tap Profile → Create Account → fill form → success → see ONLY "Back to Home" CTA.
+- [x] [P0] Manual smoke (verify screen): anon user answers help → ShieldSignUpBanner → Create Account → fill form → success → see BOTH "Back to Answers" and "Back to Home" CTAs. Tap each and confirm destinations.
+- [x] [P0] Manual smoke (Profile entry): tap Profile → Create Account → fill form → success → see ONLY "Back to Home" CTA.
 
 ### Phase 7.7 — Anonymous DOES earn shield locally (AC7.1 / AC7.6 / AC7.9 revised)
 - [x] [P0] Drop `if (!isAnonymous)` gate in all 5 game screens — `earnStreakShield()` + toast + `shieldEarned: true` fire for any user
 - [x] [P0] PRD §7 revised: anon earns locally; ShieldSignUpBanner reframed as "save your progress"; sign-in (vs sign-up) caveat documented
-- [ ] [P0] Manual smoke (anon → sign-up): anonymous user answers help → sees toast → ShieldSignUpBanner → taps Create Account → completes sign-up → Friends tab now shows the shield count carried over (`linkWithCredential` preserved local state)
-- [ ] [P0] Manual smoke (anon → sign-in to existing): same flow but tap Sign In and authenticate to a different account → existing account's stats win the merge; the just-earned anon shield is lost (acceptable per §7.4)
+- [x] [P0] Manual smoke (anon → sign-up): anonymous user answers help → sees toast → ShieldSignUpBanner → taps Create Account → completes sign-up → Friends tab now shows the shield count carried over (`linkWithCredential` preserved local state)
+- [x] [P0] Manual smoke (anon → sign-in to existing): same flow but tap Sign In and authenticate to a different account → existing account's stats win the merge; the just-earned anon shield is lost (acceptable per §7.4)
 
 ### Phase 7 follow-ups (future work)
 - [ ] [P1] "Streak saved!" celebration banner on home when a shield was consumed (requires fixing `streakShieldUsedToday` flag persistence in `UPDATE_DAILY_STREAK` — currently it doesn't reset on normal continuation)

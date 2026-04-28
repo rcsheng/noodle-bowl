@@ -3,5 +3,18 @@
     "allow": [
       "Bash(npx tsc *)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/release-reminder.sh"
+          }
+        ]
+      }
+    ]
   }
 }

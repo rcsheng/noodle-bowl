@@ -2,6 +2,10 @@
 
 **Purpose:** Verify that auth, content, gameplay, and the cross-device challenge/help flows work end-to-end before shipping or after any significant change.
 
+**Last verified:** 2026-04-28 — Blocks 1–10 ✅ PASSED on iPhone (Expo Go, Device A) + Android emulator `Pixel_9` (Expo Go, Device B) against local Firebase emulator.
+
+> **Coverage gap:** Blocks 1–10 cover Phases 1–5 plus the self-challenge guard / `ChallengeSignUpBanner` (AC1.11). Phase 6 (Help-Sent modal, home reply cards, orphan GC, challenge reply card on home) and Phase 7 (shields, masthead counter, anon→signup interaction migration, "Back to Home/Answers" navigation) ACs are confirmed via the matching items in `docs/prd/noodle-bowl-tasks-v5.md` but are not yet written into this plan as repeatable steps. See "Future blocks to add" at the bottom.
+
 **Devices:**
 - **Device A** — iPhone running Expo Go (physical device)
 - **Device B** — Android emulator (`Pixel_9` AVD) running Expo Go
@@ -179,6 +183,35 @@ Run on **both devices independently**.
 ## Pass criteria
 
 All items in Blocks 1–9 behave as expected. No crashes, no blank screens, no "Something went wrong" errors during normal flows.
+
+## Future blocks to add (Phase 6/7 — verified ad hoc, not yet scripted here)
+
+The following ACs were confirmed during the 2026-04-28 verification round but are not yet in the block table above. Add them as Blocks 11–13 next time the plan is touched.
+
+### Block 11 — Help-Sent modal & home help-result card (Phase 6)
+- AC6.1/6.2: Device A shares help link, closes share modal → "Link sent" modal opens → "Got it" returns to home.
+- AC6.4/6.5/6.9: Device B answers → Device A's home shows enriched help-result card (question prompt, friend's pick, correct answer, ✓/✗).
+- AC6.5 dismiss: × on the card → reload app → card stays dismissed (Firestore mirror for signed-in users).
+- AC6.6: Friends tab `received_help` row shows enriched detail (friend pick + ✓/✗) via `evaluateHelperAnswer`.
+- AC6.10: Wipe `helpRequests/{token}` in Emulator UI → reload home → orphan card disappears.
+- AC6.11: Friend answers a *challenge* → asker's home shows challenge reply card with their pick, correct answer, prediction comparison; × dismisses; reload → stays dismissed.
+
+### Block 12 — Streak Shields (Phase 7)
+- AC7.1/7.6: Signed-in helper answers help link → "🛡 Shield earned" toast → shield count increments (no cap).
+- AC7.2: Open help link, back out without answering → no `gave_help` interaction recorded, no shield earned.
+- AC7.4/7.5/7.7: Home masthead reads "Day Streak"; Friends tab shield explainer + empty state read the new copy.
+- AC7.8: Signed-in user answers a challenge they received → toast → shield count increments → Friends feed shows `received_challenge` row with shield badge.
+- AC7.9: Anonymous user answers help OR challenge → `ShieldSignUpBanner` appears with Create Account / Sign In / Maybe Later CTAs.
+- AC7.11: Home masthead with 0 shields → no 🛡; with N>0 → "🛡 N" appears.
+- AC7.12: Anonymous user answers help → ShieldSignUpBanner → Create Account → Friends tab shows the `gave_help` row earned during anon session, persists after reload (synced to Firestore on link).
+- AC7.7-anon-earn: Anonymous user earns shield locally → completes sign-up → Friends shield count carries over via `linkWithCredential`.
+- AC7.7-anon-signin-loss: Anonymous user earns shield → Sign In to *different existing account* → existing-account stats win the merge (expected loss per §7.4).
+
+### Block 13 — Navigation semantics: Back to Home / Back to Answers (AC7.13)
+- Verify-from-reveal: anon answers help → ShieldSignUpBanner → Create Account → success screen shows BOTH "Back to Answers" and "Back to Home" CTAs; tap each, confirm correct destinations.
+- Verify-from-profile: Profile → Create Account → fill form → success screen shows ONLY "Back to Home" CTA.
+
+---
 
 ## Known limitations (emulator)
 
