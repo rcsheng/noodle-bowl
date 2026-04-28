@@ -9,9 +9,12 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.noodlebowl.noodlebowl",
+      "associatedDomains": ["applinks:noodlebowl.app"]
     },
     "android": {
+      "package": "app.noodlebowl.noodlebowl",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
