@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 
+import { ChallengeReplyCard } from '@/components/ChallengeReplyCard';
 import { HelpResultCard } from '@/components/HelpResultCard';
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
@@ -21,7 +22,7 @@ import { db } from '@/lib/firebase';
 import { evaluateHelperAnswer } from '@/lib/helpAnswerEvaluator';
 
 export default function HubScreen() {
-  const { state, dismissHelpCard } = useGame();
+  const { state, dismissHelpCard, removeFriendInteraction } = useGame();
   const { banks } = useContent();
   const { totalPoints, dailyStreak } = state.stats;
   const assists = state.friendInteractions.filter(i => i.type === 'gave_help').length;
@@ -30,30 +31,41 @@ export default function HubScreen() {
   const candidateHelpResults = state.friendInteractions.filter(
     i => i.type === 'received_help' && i.token && !i.homeCardDismissed,
   );
+  const candidateChallengeResults = state.friendInteractions.filter(
+    i => i.type === 'challenge_accepted' && i.token && !i.homeCardDismissed,
+  );
 
   // Verify each candidate against Firestore — only render cards that have a
-  // live, resolved helpRequests/{token} doc. Avoids stale local state showing
-  // a card after the underlying request was deleted or never persisted.
+  // live, resolved doc. Orphans are GC'd from local state. Help cards check
+  // helpRequests/{token}; challenge cards check challenges/{token}.
   const [validatedTokens, setValidatedTokens] = useState<Set<string>>(new Set());
   useEffect(() => {
     let cancelled = false;
-    const tokens = candidateHelpResults
-      .map(i => i.token!)
-      .filter(t => !validatedTokens.has(t));
-    if (tokens.length === 0) return;
+    const checks: { interaction: typeof state.friendInteractions[0]; collection: string }[] = [
+      ...candidateHelpResults
+        .filter(i => !validatedTokens.has(i.token!))
+        .map(i => ({ interaction: i, collection: 'helpRequests' })),
+      ...candidateChallengeResults
+        .filter(i => !validatedTokens.has(i.token!))
+        .map(i => ({ interaction: i, collection: 'challenges' })),
+    ];
+    if (checks.length === 0) return;
 
     Promise.all(
-      tokens.map(async token => {
+      checks.map(async ({ interaction, collection }) => {
         try {
-          const snap = await getDoc(doc(db, 'helpRequests', token));
-          return snap.exists() && snap.data()?.resolvedAt ? token : null;
+          const snap = await getDoc(doc(db, collection, interaction.token!));
+          if (snap.exists() && snap.data()?.resolvedAt) return { interaction, live: true };
+          return { interaction, live: false };
         } catch {
-          return null;
+          // Network error: don't GC, just skip this round.
+          return { interaction, live: null };
         }
       }),
     ).then(results => {
       if (cancelled) return;
-      const live = results.filter((t): t is string => t !== null);
+      const live = results.filter(r => r.live === true).map(r => r.interaction.token!);
+      const orphans = results.filter(r => r.live === false).map(r => r.interaction.id);
       if (live.length > 0) {
         setValidatedTokens(prev => {
           const next = new Set(prev);
@@ -61,13 +73,19 @@ export default function HubScreen() {
           return next;
         });
       }
+      orphans.forEach(id => removeFriendInteraction(id));
     });
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidateHelpResults.map(i => i.token).join('|')]);
+  }, [
+    candidateHelpResults.map(i => i.token).join('|'),
+    candidateChallengeResults.map(i => i.token).join('|'),
+  ]);
 
   const helpResults = candidateHelpResults.filter(i => validatedTokens.has(i.token!));
+  const challengeResults = candidateChallengeResults.filter(i => validatedTokens.has(i.token!));
+  const hasReplies = helpResults.length > 0 || challengeResults.length > 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -84,7 +102,7 @@ export default function HubScreen() {
             <View style={styles.statDivider} />
             <View style={styles.statBlock}>
               <Text style={styles.statValue}>{dailyStreak > 0 ? `🔥 ${dailyStreak}` : '—'}</Text>
-              <Text style={styles.statLabel}>Streak</Text>
+              <Text style={styles.statLabel}>Day Streak</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBlock}>
@@ -94,12 +112,37 @@ export default function HubScreen() {
           </View>
         </View>
 
-        {helpResults.length > 0 && (
+        {hasReplies && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>Friend Replies</Text>
               <View style={styles.sectionLine} />
             </View>
+            {challengeResults.map(interaction => {
+              const evaluation = evaluateHelperAnswer(
+                interaction.gameId,
+                interaction.questionIndex,
+                interaction.friendAnswer ?? '',
+                banks,
+              );
+              const predictionCorrect =
+                !!interaction.senderPrediction &&
+                interaction.senderPrediction === interaction.friendAnswer;
+              return (
+                <ChallengeReplyCard
+                  key={interaction.id}
+                  friendName={interaction.friendName}
+                  gameTitle={GAME_META[interaction.gameId].title}
+                  questionText={evaluation.questionText}
+                  friendAnswerLabel={evaluation.label}
+                  correctLabel={evaluation.correctLabel}
+                  friendCorrect={evaluation.correct}
+                  predictionLabel={interaction.senderPrediction ?? '—'}
+                  predictionCorrect={predictionCorrect}
+                  onDismiss={() => dismissHelpCard(interaction.token!)}
+                />
+              );
+            })}
             {helpResults.map(interaction => {
               const evaluation = evaluateHelperAnswer(
                 interaction.gameId,

@@ -383,6 +383,41 @@ describe('reducer: DISMISS_HELP_CARD', () => {
     expect(next.friendInteractions[0].homeCardDismissed).toBe(true);
   });
 
+  test('also flags challenge_accepted interactions matching the token', () => {
+    const challenge: FriendInteraction = {
+      id: 'c1',
+      type: 'challenge_accepted',
+      friendName: 'Bob',
+      gameId: 'lede',
+      questionIndex: 0,
+      date: '2026-04-28',
+      shieldEarned: false,
+      token: 'CTOKEN',
+      senderPrediction: 'Alex',
+      friendAnswer: 'Bea',
+    };
+    const state = makeState({ friendInteractions: [challenge] });
+    const next = reducer(state, { type: 'DISMISS_HELP_CARD', token: 'CTOKEN' } as Action);
+    expect(next.friendInteractions[0].homeCardDismissed).toBe(true);
+  });
+
+  test('does NOT flag sent_challenge interactions even with matching token', () => {
+    const sent: FriendInteraction = {
+      id: 's1',
+      type: 'sent_challenge',
+      friendName: 'Bob',
+      gameId: 'lede',
+      questionIndex: 0,
+      date: '2026-04-28',
+      shieldEarned: false,
+      token: 'CTOKEN',
+      senderPrediction: 'Alex',
+    };
+    const state = makeState({ friendInteractions: [sent] });
+    const next = reducer(state, { type: 'DISMISS_HELP_CARD', token: 'CTOKEN' } as Action);
+    expect(next.friendInteractions[0].homeCardDismissed).toBeUndefined();
+  });
+
   test('leaves other interactions alone', () => {
     const a = makeReceivedHelp('1', 'TOKEN1');
     const b = makeReceivedHelp('2', 'TOKEN2');
@@ -397,6 +432,34 @@ describe('reducer: DISMISS_HELP_CARD', () => {
     const state = makeState({ friendInteractions: [interaction] });
     const next = reducer(state, { type: 'DISMISS_HELP_CARD', token: 'NOPE' } as Action);
     expect(next.friendInteractions[0].homeCardDismissed).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REMOVE_FRIEND_INTERACTION
+// ---------------------------------------------------------------------------
+describe('reducer: REMOVE_FRIEND_INTERACTION', () => {
+  const make = (id: string, type: FriendInteraction['type'] = 'received_help'): FriendInteraction => ({
+    id,
+    type,
+    friendName: 'Alice',
+    gameId: 'lede',
+    questionIndex: 0,
+    date: '2026-04-27',
+    shieldEarned: false,
+  });
+
+  test('removes interaction with matching id', () => {
+    const state = makeState({ friendInteractions: [make('1'), make('2')] });
+    const next = reducer(state, { type: 'REMOVE_FRIEND_INTERACTION', id: '1' } as Action);
+    expect(next.friendInteractions).toHaveLength(1);
+    expect(next.friendInteractions[0].id).toBe('2');
+  });
+
+  test('no-op when id does not match', () => {
+    const state = makeState({ friendInteractions: [make('1')] });
+    const next = reducer(state, { type: 'REMOVE_FRIEND_INTERACTION', id: 'nope' } as Action);
+    expect(next.friendInteractions).toHaveLength(1);
   });
 });
 

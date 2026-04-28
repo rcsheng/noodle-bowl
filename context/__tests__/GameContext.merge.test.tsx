@@ -5,10 +5,16 @@ import { act, renderHook } from '@testing-library/react-native';
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockReadStats = jest.fn();
+const mockReadSeen = jest.fn();
 
 jest.mock('@/lib/statsRepo', () => ({
   readStats: (...args: unknown[]) => mockReadStats(...args),
   writeStats: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/lib/seenRepo', () => ({
+  readSeen: (...args: unknown[]) => mockReadSeen(...args),
+  writeSeen: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@/lib/syncQueue', () => ({
@@ -20,6 +26,7 @@ jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
   getDocs: jest.fn().mockResolvedValue({ docs: [] }),
   setDoc: jest.fn().mockResolvedValue(undefined),
+  deleteDoc: jest.fn().mockResolvedValue(undefined),
   onSnapshot: jest.fn(() => () => {}),
 }));
 
@@ -120,6 +127,7 @@ describe('GameContext: sign-in merge', () => {
     jest.clearAllMocks();
     await AsyncStorage.clear();
     mockReadStats.mockResolvedValue(null);
+    mockReadSeen.mockResolvedValue(null);
   });
 
   test('calls readStats with uid when signed-in user mounts', async () => {
@@ -164,5 +172,38 @@ describe('GameContext: sign-in merge', () => {
     await act(async () => { await flushEffects(); });
 
     expect(result.current.state.stats.totalPoints).toBe(0);
+  });
+
+  test('calls readSeen with uid when signed-in user mounts', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+
+    renderHook(() => useGame(), { wrapper });
+
+    await act(async () => { await flushEffects(); });
+
+    expect(mockReadSeen).toHaveBeenCalledWith('user1');
+  });
+
+  test('does not call readSeen for anonymous users', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'anon1', isAnonymous: true }, isAnonymous: true });
+
+    renderHook(() => useGame(), { wrapper });
+
+    await act(async () => { await flushEffects(); });
+
+    expect(mockReadSeen).not.toHaveBeenCalled();
+  });
+
+  test('merges server seen into local state when readSeen returns data', async () => {
+    const serverSeen = { lede: [9, 10], spread: [], sof: [], quip: [], wave: [] };
+    mockReadStats.mockResolvedValue({ ...initialState.stats, lastPlayedDate: '2026-04-27' });
+    mockReadSeen.mockResolvedValue(serverSeen);
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    await act(async () => { await flushEffects(); });
+
+    expect(result.current.state.seen.lede).toEqual(expect.arrayContaining([9, 10]));
   });
 });

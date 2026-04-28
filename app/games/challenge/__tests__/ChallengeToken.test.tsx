@@ -100,12 +100,11 @@ describe('ChallengeScreen - self-challenge guard', () => {
     expect(queryByTestId('self-challenge-guard')).toBeNull();
   });
 
-  test('records received_challenge when not the sender', async () => {
+  test('does NOT record received_challenge when the link is opened (moved to post-respond per AC7.8)', async () => {
     const addFriendInteraction = jest.fn();
     useGame.mockReturnValue({ ...makeGame([]), addFriendInteraction });
     render(<ChallengeScreen />);
-    await waitFor(() => expect(addFriendInteraction).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'received_challenge' }),
-    ));
+    await waitFor(() => expect(fetchChallenge).toHaveBeenCalled());
+    expect(addFriendInteraction).not.toHaveBeenCalled();
   });
 });

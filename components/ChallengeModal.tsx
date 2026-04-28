@@ -15,6 +15,7 @@ import {
 import { CopiedToast } from '@/components/CopiedToast';
 import { C, F, cardShadow } from '@/constants/theme';
 import { copyToClipboard } from '@/constants/utils';
+import { logger } from '@/lib/logger';
 
 export interface PredictOption {
   label: string;
@@ -74,7 +75,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
       onSent(prediction, displayName, token);
       setStep('share');
     } catch (err) {
-      console.error('[ChallengeModal] buildChallengeUrl failed', err);
+      logger.error('[ChallengeModal] buildChallengeUrl failed', err);
       setUrlError('Could not generate challenge link. Please try again.');
     } finally {
       setUrlLoading(false);

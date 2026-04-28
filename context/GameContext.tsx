@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
-import { collection, doc, getDocs, onSnapshot, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, setDoc } from 'firebase/firestore';
 import { GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { db } from '@/lib/firebase';
+import { readSeen, writeSeen } from '@/lib/seenRepo';
 import { readStats, writeStats } from '@/lib/statsRepo';
 import { scheduleWrite } from '@/lib/syncQueue';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +19,7 @@ interface GameContextType {
   setSeen: (game: GameId, seen: number[]) => void;
   earnStreakShield: () => void;
   addFriendInteraction: (interaction: Omit<FriendInteraction, 'id' | 'date'>) => void;
+  removeFriendInteraction: (id: string) => void;
   dismissHelpCard: (token: string) => void;
 }
 
@@ -58,11 +60,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded || isAnonymous || !uid) return;
-    readStats(uid)
-      .then(serverStats => {
-        if (serverStats) dispatch({ type: 'MERGE_FROM_SERVER', serverStats });
+    scheduleWrite('seen', state.seen, (s) => writeSeen(uid, s), 1500);
+  }, [state.seen, isLoaded, isAnonymous, uid]);
+
+  useEffect(() => {
+    if (!isLoaded || isAnonymous || !uid) return;
+    Promise.all([readStats(uid).catch(() => null), readSeen(uid).catch(() => null)])
+      .then(([serverStats, serverSeen]) => {
+        if (serverStats || serverSeen) {
+          dispatch({
+            type: 'MERGE_FROM_SERVER',
+            serverStats: serverStats ?? state.stats,
+            serverSeen: serverSeen ?? undefined,
+          });
+        }
       })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, isAnonymous, isLoaded]);
 
   useEffect(() => {
@@ -101,10 +115,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAnonymous, uid]);
 
+  const removeFriendInteraction = useCallback((id: string) => {
+    dispatch({ type: 'REMOVE_FRIEND_INTERACTION', id });
+    if (!isAnonymous && uid) {
+      deleteDoc(doc(db, 'users', uid, 'friendInteractions', id)).catch(() => {});
+    }
+  }, [isAnonymous, uid]);
+
   const dismissHelpCard = useCallback((token: string) => {
     dispatch({ type: 'DISMISS_HELP_CARD', token });
     if (!isAnonymous && uid) {
-      const target = state.friendInteractions.find(i => i.token === token && i.type === 'received_help');
+      const target = state.friendInteractions.find(
+        i => i.token === token && (i.type === 'received_help' || i.type === 'challenge_accepted'),
+      );
       if (target) {
         setDoc(
           doc(db, 'users', uid, 'friendInteractions', target.id),
@@ -185,7 +208,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [uid]);
 
   return (
-    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, dismissHelpCard }}>
+    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard }}>
       {children}
     </GameContext.Provider>
   );

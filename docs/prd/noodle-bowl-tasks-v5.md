@@ -2,7 +2,37 @@
 
 Legend: `[P0]`=blocker, `[P1]`=needed for milestone, `[P2]`=nice to have
 
-Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5)**
+Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
+
+---
+
+## What's Next (snapshot — 2026-04-28)
+
+**Phases shipped:** 1, 2, 4, 6, 7.
+**Phases deferred:** 3 + 5 (Maestro / cross-device E2E — replaced by manual smoke per PRD §4.1).
+
+### Immediate (P0) — manual smoke before declaring Phase 6 done
+- [ ] Sign in on iOS device → ask for help → Close share modal → confirm "Link sent" modal opens, "Got it" returns to home.
+- [ ] Have friend (or 2nd device) open the link, answer → asker's home shows enriched card with question, friend pick, correct answer, ✓/✗.
+- [ ] × dismiss the card → reload app → card stays dismissed.
+- [ ] Friends tab `received_help` row shows enriched detail (friend pick + ✓/✗).
+- [ ] AC6.10 sanity: wipe `helpRequests` collection in emulator UI → reload home → card disappears.
+
+### Next sprint candidates (pick one)
+- **A. Phase 0 hygiene** — small, low-risk, unblocks logging and CI plumbing:
+  - `lib/logger.ts` + replace `console.log` (P2)
+  - Add `firebase-tools` as devDependency (P1)
+  - Already done: `zod` is installed and used in `lib/authApi.ts`
+- **B. Phase 4 P1 finish-up** — closes Phase 4 fully:
+  - `seen` sync to `users/{uid}/meta/seen` (P1)
+  - `@firebase/rules-unit-testing` security-rules suite (P1)
+- **C. Phase 6 follow-ups** — listed in §Phase 6 below.
+- **D. Help-flow push notifications** — currently only challenge responses push. Hooking help responses into the same pipeline gives parity with challenges and removes the need for the user to open the app to see the home card.
+
+### Permanently deferred unless re-prioritized
+- Phase 3 (Maestro E2E framework) — see PRD §4.1
+- Phase 5 (cross-device E2E flows) — see PRD §4.1
+- AC6.3 (auto-open Help Sent modal on share-sheet dismiss) — needs platform-specific Share return handling
 
 ---
 
@@ -92,9 +122,9 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5)**
 
 ---
 
-## Phase 3 — E2E Framework Setup
+## Phase 3 — E2E Framework Setup ⏸ DEFERRED
 
-> Blocks Phase 5. Depends on Phase 1 (sign-in screen needed for non-anon flows).
+> Replaced by manual two-device smoke testing per PRD §4.1. Re-open if/when a native dev build is available and a CI macOS runner is justified.
 
 - [ ] [P0] Install Maestro CLI on dev machines and CI macOS runner
 - [ ] [P0] Create `e2e/maestro/config.yaml`
@@ -142,9 +172,9 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5)**
 
 ---
 
-## Phase 5 — Cross-device E2E Flow
+## Phase 5 — Cross-device E2E Flow ⏸ DEFERRED
 
-> Depends on Phases 1 + 3.
+> Replaced by manual two-device smoke testing per PRD §4.1. The acceptance criteria from the original §5 are validated by hand against `firebase emulators:start` + iPhone Expo Go + Android emulator.
 
 - [ ] [P0] Create `e2e/maestro/flows/sender.yaml` — sign in as userA, play lede, send challenge, write token to `/tmp/noodle-e2e/token.txt`
 - [ ] [P0] Create `e2e/maestro/flows/responder.yaml` — sign in as userB, open deep link, respond to challenge
@@ -186,13 +216,76 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5)**
 - [x] [P0] Update `received_help` row in `app/(tabs)/friends.tsx` to show friend's pick + ✓/✗ via `evaluateHelperAnswer` (AC6.6)
 - [ ] [P1] AC6.3 — auto-open `HelpSentModal` on share-sheet dismiss (not just on Close tap). Deferred — needs platform-specific Share return handling.
 
+### Phase 6 enrichment (post-feedback, AC6.9 + AC6.10)
+- [x] [P0] Extend `evaluateHelperAnswer` to return `questionText` and `correctLabel`; update tests
+- [x] [P0] `HelpResultCard` renders the question prompt + "Correct answer" row; ✓/✗ tag positioned below (AC6.9)
+- [x] [P0] Home screen validates each candidate card against `helpRequests/{token}` via `getDoc`; orphans render no card (AC6.10)
+
+### Phase 6 challenge replies on home (AC6.11–AC6.13)
+- [x] [P0] Generalize `DISMISS_HELP_CARD` reducer to flag `homeCardDismissed` for `received_help` OR `challenge_accepted`; update tests
+- [x] [P0] `dismissHelpCard()` finds + Firestore-mirrors either type
+- [x] [P0] New `components/ChallengeReplyCard.tsx` with friend pick + correct answer + your prediction + dual ✓/✗ tags + × dismiss
+- [x] [P0] Home screen validates `challenge_accepted` candidates against `challenges/{token}` via `getDoc`; orphans GC'd via `removeFriendInteraction`
+- [x] [P0] Home screen renders challenge reply cards above help reply cards in the "Friend Replies" section
+- [ ] [P0] Manual smoke (AC6.11): friend answers a challenge → asker's home shows challenge reply card with their pick, correct answer, and prediction comparison; × dismisses; reload → stays dismissed
+
 ### Verify
-- [x] [P0] All Phase 6 tests pass (+23 new tests)
-- [x] [P0] Full suite: 213 passing (4 pre-existing `authApi` failures unrelated to this phase)
+- [x] [P0] All Phase 6 tests pass (+24 new tests across evaluator, reducer, modal, card)
+- [x] [P0] Full suite: 214 passing (4 pre-existing `authApi` failures unrelated)
 - [x] [P0] No new TypeScript errors in changed files
 - [ ] [P0] Manual smoke: anon user blocked at "Stuck? Ask a Friend" → AuthGate (existing); signed-in user shares link → Close → "Link sent" modal → Got it → home screen
-- [ ] [P0] Manual smoke: friend answers help → home shows result card with their pick + correctness; × dismisses; reload → stays dismissed
+- [ ] [P0] Manual smoke: friend answers help → home shows result card with question, their pick, correct answer, ✓/✗; × dismisses; reload → stays dismissed
 - [ ] [P0] Manual smoke: Friends tab shows enriched `received_help` row
+- [ ] [P0] Manual smoke (AC6.10): wipe `helpRequests` in Emulator UI → reload home → orphan card disappears
+
+### Phase 6 follow-ups (open work)
+- [ ] [P1] Push notification on help response (parity with challenge response push) — would let the home card appear without manual app reopen
+- [ ] [P1] Garbage-collect orphaned local `received_help` interactions after N days when AC6.10 validation fails
+- [ ] [P2] Animated entry/exit for the Help Result Card
+- [ ] [P2] Persist `homeCardDismissed` to Firestore so dismissals survive across devices for signed-in users
+
+---
+
+## Phase 7 — Streak Shields ✅ COMPLETE
+
+> Implements PRD §7. Helper earns +1 shield on successful `respondToHelp`; streak-saving shield consumption already wired in reducer.
+
+### RED — write failing tests first
+- [x] [P0] `context/__tests__/GameContext.reducer.test.ts` — confirm existing `EARN_SHIELD` action increments capped at 3 (already covered, re-verified)
+- [x] [P0] `components/__tests__/ShieldEarnedToast.test.tsx` — renders text, calls onHide after timeout
+
+### GREEN — implement
+- [x] [P0] Remove early `addFriendInteraction({ type: 'gave_help', shieldEarned: false })` from `app/games/help/[token].tsx` (AC7.2)
+- [x] [P0] In each game's `handleLockIn`, after `respondToHelp` resolves: dispatch `addFriendInteraction({ type: 'gave_help', shieldEarned: true, ... })` and call `earnStreakShield()` (AC7.1, AC7.3)
+- [x] [P0] `components/ShieldEarnedToast.tsx` — themed mini-toast, auto-dismiss after ~2s (AC7.6)
+- [x] [P0] Wire `ShieldEarnedToast` into all 5 game screens; show briefly after `respondToHelp` succeeds in help mode
+- [x] [P0] Friends tab shield explainer copy → "Help a friend to earn a shield. Each shield protects your streak for one missed day." (AC7.4)
+- [x] [P0] Friends tab empty state copy → drops "you both earn"; uses single-sided "Help a friend back to earn yourself a streak shield." (AC7.5)
+- [x] [P0] Home stats label → "Day Streak" instead of "Streak" (AC7.7)
+
+### Verify
+- [x] [P0] All Phase 7 tests pass; full suite green (4 pre-existing `authApi` failures unrelated)
+- [ ] [P0] Manual smoke (AC7.1–AC7.3, AC7.6): from a second device, open a help link the asker sent → answer the question on the helper side → confirm the helper sees the "🛡 Shield earned" toast → navigate to Friends tab → shield slot count increased by 1 (capped at 3) → `gave_help` row shows "🛡 Shield earned" badge.
+- [ ] [P0] Manual smoke (AC7.2): open a help link, then back out without answering → no `gave_help` interaction recorded, no shield earned.
+- [ ] [P0] Manual smoke (AC7.4–AC7.5, AC7.7): home Stats label reads "Day Streak"; Friends shield explainer + empty state read the new copy.
+
+### Phase 7.5 — Sign-in gating + challenge earning + anon banner (post-feedback)
+- [x] [P0] Revise PRD AC7.1 to gate shield earn on `!isAnonymous`; add AC7.8 (challenge response earns) and AC7.9 (anon banner)
+- [x] [P0] New `components/ShieldSignUpBanner.tsx` + tests — "🛡 Sign up to keep your shield" with Create Account / Sign In / Maybe Later
+- [x] [P0] Remove early `received_challenge` add from `app/games/challenge/[token].tsx`; move to post-respond in each game (AC7.8)
+- [x] [P0] In each game's `handleLockIn`, gate `addFriendInteraction({shieldEarned: ...})` + `earnStreakShield()` + toast on `!isAnonymous` for both help and challenge response paths
+- [x] [P0] Render `ShieldSignUpBanner` for anonymous responders in help reveal AND challenge reveal (alongside existing `ChallengeSignUpBanner` in challenge mode per AC1.11)
+- [x] [P0] Friends tab shield explainer copy → "Help a friend or take their challenge to earn a shield..." (AC7.4)
+- [x] [P0] Friends tab empty state copy → adds "or take a challenge they send" (AC7.5)
+- [ ] [P0] Manual smoke (AC7.1, AC7.6): signed-in helper answers help → "🛡 Shield earned" toast → shield count increments
+- [ ] [P0] Manual smoke (AC7.8): signed-in user answers a challenge they received → toast → shield count increments → Friends feed shows `received_challenge` row with shield badge
+- [ ] [P0] Manual smoke (AC7.9): anonymous user answers help OR challenge → no toast, no shield grant, ShieldSignUpBanner appears with three CTAs
+
+### Phase 7 follow-ups (future work)
+- [ ] [P1] "Streak saved!" celebration banner on home when a shield was consumed (requires fixing `streakShieldUsedToday` flag persistence in `UPDATE_DAILY_STREAK` — currently it doesn't reset on normal continuation)
+- [ ] [P2] Daily push reminder before streak rolls over
+- [ ] [P2] Shield-fill animation when a shield is earned
+- [ ] [P2] Retroactive shield credit when an anonymous user signs up shortly after seeing the ShieldSignUpBanner (currently out of scope per AC7.9)
 
 ---
 

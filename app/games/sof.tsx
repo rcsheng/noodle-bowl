@@ -18,6 +18,8 @@ import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
 import { HelpSentModal } from '@/components/HelpSentModal';
 import { Masthead } from '@/components/Masthead';
+import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
+import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { SofItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -58,7 +60,7 @@ function pickFromSof(
 
 export default function SofScreen() {
   const { user, isAnonymous } = useAuth();
-  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
   const { banks } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
@@ -98,6 +100,8 @@ export default function SofScreen() {
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [showHelpSent, setShowHelpSent] = useState(false);
+  const [shieldToastVisible, setShieldToastVisible] = useState(false);
+  const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -156,6 +160,18 @@ export default function SofScreen() {
         const friendAnswer = String(votes.findIndex(v => v === 'fiction') + 1);
         const comparison = await respondToChallenge({ token: challengeToken, friendAnswer });
         setChallengeComparison(comparison);
+        addFriendInteraction({
+          type: 'received_challenge',
+          friendName: challengeSenderName ?? 'A Friend',
+          gameId: 'sof',
+          questionIndex: questionIdx,
+          shieldEarned: !isAnonymous,
+        });
+        if (!isAnonymous) {
+          earnStreakShield();
+          setShieldToastVisible(true);
+          setTimeout(() => setShieldToastVisible(false), 2200);
+        }
       } catch {
         // ignore — user still sees their result
       }
@@ -166,6 +182,18 @@ export default function SofScreen() {
         const helperAnswer = String(votes.findIndex(v => v === 'fiction') + 1);
         const result = await respondToHelp({ token: helpTokenParam, helperAnswer });
         setHelpRespondResult(result);
+        addFriendInteraction({
+          type: 'gave_help',
+          friendName: helpAskerName || 'A Friend',
+          gameId: 'sof',
+          questionIndex: questionIdx,
+          shieldEarned: !isAnonymous,
+        });
+        if (!isAnonymous) {
+          earnStreakShield();
+          setShieldToastVisible(true);
+          setTimeout(() => setShieldToastVisible(false), 2200);
+        }
       } catch {
         // ignore
       }
@@ -243,9 +271,11 @@ export default function SofScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Masthead />
 
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back to Games</Text>
-        </TouchableOpacity>
+        {phase === 'play' && (
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Text style={styles.backText}>← Back to Games</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.labelRow}>
           <Text style={styles.label}>Science or Fiction</Text>
@@ -409,6 +439,13 @@ export default function SofScreen() {
                   onDismiss={() => setSignUpBannerDismissed(true)}
                 />
               )}
+              {isAnonymous && !shieldSignUpDismissed && (
+                <ShieldSignUpBanner
+                  onCreateAccount={() => router.push('/auth/sign-up')}
+                  onSignIn={() => router.push('/auth/sign-in')}
+                  onDismiss={() => setShieldSignUpDismissed(true)}
+                />
+              )}
                 <TouchableOpacity
                   style={styles.primaryBtn}
                   onPress={() => router.back()}
@@ -426,6 +463,13 @@ export default function SofScreen() {
                     Your answer has been sent to {helpAskerName || 'your friend'}.
                   </Text>
                 </View>
+                {isAnonymous && !shieldSignUpDismissed && (
+                  <ShieldSignUpBanner
+                    onCreateAccount={() => router.push('/auth/sign-up')}
+                    onSignIn={() => router.push('/auth/sign-in')}
+                    onDismiss={() => setShieldSignUpDismissed(true)}
+                  />
+                )}
                 <TouchableOpacity
                   style={styles.primaryBtn}
                   onPress={() => router.back()}
@@ -535,6 +579,8 @@ export default function SofScreen() {
         visible={showHelpSent}
         onDismiss={() => { setShowHelpSent(false); router.replace('/'); }}
       />
+
+      <ShieldEarnedToast visible={shieldToastVisible} />
     </SafeAreaView>
   );
 }

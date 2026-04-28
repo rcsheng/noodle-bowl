@@ -7,6 +7,7 @@ jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
   getDocs: jest.fn(),
   setDoc: jest.fn(),
+  deleteDoc: jest.fn(),
   onSnapshot: jest.fn(() => () => {}),
 }));
 
@@ -17,9 +18,10 @@ jest.mock('@/context/AuthContext', () => ({
 }));
 
 const { useAuth } = require('@/context/AuthContext') as { useAuth: jest.Mock };
-const { getDocs, setDoc } = require('firebase/firestore') as {
+const { getDocs, setDoc, deleteDoc } = require('firebase/firestore') as {
   getDocs: jest.Mock;
   setDoc: jest.Mock;
+  deleteDoc: jest.Mock;
 };
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -65,6 +67,99 @@ describe('GameContext Firestore persistence', () => {
     });
 
     expect(setDoc).toHaveBeenCalledTimes(1);
+  });
+
+  test('dismissHelpCard mirrors the dismissed flag to Firestore for signed-in users', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+    // Seed via getDocs so the load effect populates state.friendInteractions
+    // with the interaction we want to dismiss.
+    getDocs.mockResolvedValue({
+      docs: [
+        {
+          data: () => ({
+            id: 'rh-1',
+            type: 'received_help',
+            friendName: 'A',
+            gameId: 'lede',
+            questionIndex: 0,
+            date: '2026-04-27',
+            shieldEarned: false,
+            token: 'TOKEN42',
+            friendAnswer: 'Bea',
+          }),
+        },
+      ],
+    });
+    setDoc.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    // Flush AsyncStorage + getDocs effect chain so state has the seeded interaction.
+    await act(async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    });
+
+    setDoc.mockClear();
+    await act(async () => {
+      result.current.dismissHelpCard('TOKEN42');
+    });
+
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    const [, payload] = setDoc.mock.calls[0];
+    expect(payload.homeCardDismissed).toBe(true);
+    expect(payload.token).toBe('TOKEN42');
+  });
+
+  test('dismissHelpCard does NOT call setDoc for anonymous users', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'anon1', isAnonymous: true }, isAnonymous: true });
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    await act(async () => {
+      result.current.addFriendInteraction({
+        type: 'received_help',
+        friendName: 'A',
+        gameId: 'lede',
+        questionIndex: 0,
+        shieldEarned: false,
+        token: 'TOKEN42',
+      });
+    });
+
+    setDoc.mockClear();
+    await act(async () => {
+      result.current.dismissHelpCard('TOKEN42');
+    });
+
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  test('removeFriendInteraction calls deleteDoc when signed in', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+    getDocs.mockResolvedValue({ docs: [] });
+    deleteDoc.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    await act(async () => {
+      result.current.removeFriendInteraction('orphan-id');
+    });
+
+    expect(deleteDoc).toHaveBeenCalledTimes(1);
+    expect(result.current.state.friendInteractions).toHaveLength(0);
+  });
+
+  test('removeFriendInteraction does NOT call deleteDoc for anonymous users', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'anon1', isAnonymous: true }, isAnonymous: true });
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    deleteDoc.mockClear();
+    await act(async () => {
+      result.current.removeFriendInteraction('orphan-id');
+    });
+
+    expect(deleteDoc).not.toHaveBeenCalled();
   });
 
   test('loads friendInteractions from Firestore when user is not anonymous', async () => {

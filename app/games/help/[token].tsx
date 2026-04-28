@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Masthead } from '@/components/Masthead';
 import { GAME_META, GameId } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { useGame } from '@/context/GameContext';
 import { fetchHelp } from '@/lib/helpApi';
 import type { HelpGetResponse } from '@/packages/shared/types';
 
@@ -14,10 +13,8 @@ const SHORT_TOKEN_RE = /^[A-Z0-9]{8}$/;
 
 export default function HelpScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
-  const { addFriendInteraction } = useGame();
   const [payload, setPayload] = useState<HelpGetResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [recorded, setRecorded] = useState(false);
 
   useEffect(() => {
     if (!token) { setError('No help token found.'); return; }
@@ -46,18 +43,6 @@ export default function HelpScreen() {
       setError('Could not load help request. Please check your connection and try again.');
     });
   }, [token]);
-
-  useEffect(() => {
-    if (!payload || recorded) return;
-    addFriendInteraction({
-      type: 'gave_help',
-      friendName: payload.askerName ?? 'A Friend',
-      gameId: payload.gameId as GameId,
-      questionIndex: payload.questionIndex,
-      shieldEarned: false,
-    });
-    setRecorded(true);
-  }, [payload, recorded]);
 
   if (error) {
     return (

@@ -165,16 +165,60 @@ Run after any change touching challenge, help, auth, or content flows:
 - AC6.5 The Help Result Card has a small **×** button in the top-right that dispatches `DISMISS_HELP_CARD` for that token, which sets `homeCardDismissed = true` on the matching interaction. Dismissed cards do not reappear after reload.
 - AC6.6 The Friends tab `received_help` row is enriched to show the friend's pick and the same ✓/✗ tag, so the activity log matches what was on the home card before dismissal.
 - AC6.7 The Firestore `helpRequests/{token}` and `challenges/{token}` `onSnapshot` subscriptions live in `GameProvider` (not in the Friends tab). Help and challenge resolutions are recorded as friend interactions whether or not the user has opened the Friends tab in the current session.
-- AC6.8 Right/wrong evaluation runs locally on the asker's device using the cached `banks` from `ContentContext`. The pure helper `isHelperAnswerCorrect(gameId, questionIndex, helperAnswer, banks)` returns `{ correct: boolean | null, label: string }` where `correct === null` for Quip or when the bank entry is missing.
+- AC6.8 Right/wrong evaluation runs locally on the asker's device using the cached `banks` from `ContentContext`. The pure helper `evaluateHelperAnswer(gameId, questionIndex, helperAnswer, banks)` returns `{ correct: boolean | null, label: string, questionText: string, correctLabel: string | null }` where `correct === null` for Quip or when the bank entry is missing, and `correctLabel === null` for Quip (no objective answer).
+- AC6.9 The Help Result Card displays the question prompt the friend saw (lede partial headline, spread question, sof topic, wave story, quip setup) and a "**Correct answer**" row alongside "**They picked**". The Correct answer row is hidden for Quip.
+- AC6.10 The home screen validates each non-dismissed `received_help` interaction against Firestore by reading `helpRequests/{token}` once on mount. A card only renders when the doc exists and has `resolvedAt` set. Orphaned local interactions (e.g., from a wiped emulator) are removed from state via `REMOVE_FRIEND_INTERACTION`.
+
+- AC6.11 The same "Friend Replies" surface on the home screen also renders a card per non-dismissed `challenge_accepted` interaction. The card shows: friend name, game title, question prompt, the answer the friend picked + a ✓ Correct / ✗ Wrong tag (where determinable from the bank), the correct answer, and the asker's original prediction with a ✓ "You called it" / ✗ "Off this time" tag based on `senderPrediction === friendAnswer`. The × dismiss flag uses the same `homeCardDismissed` mechanism as help cards.
+- AC6.12 The home screen validates each non-dismissed `challenge_accepted` interaction against Firestore by reading `challenges/{token}` once on mount. A card only renders when the doc exists and has `resolvedAt` set. Orphans are removed from state via `REMOVE_FRIEND_INTERACTION`.
+- AC6.13 The single `DISMISS_HELP_CARD` reducer action (kept under that name for compatibility) flags `homeCardDismissed = true` on any matching interaction whose `type` is either `received_help` OR `challenge_accepted` and whose `token` matches. The exposed `useGame()` method `dismissHelpCard(token)` works for both card types.
 
 ### 6.3 Out of scope (v5)
 - Push notification when the friend's answer arrives (existing push pipeline already handles this for challenge responses; reusing it for help is a separate task).
 - Animated entry/exit for the Help Result Card.
 - Persisting `homeCardDismissed` to Firestore for signed-in users (local-only is sufficient — last-write-wins per device matches the existing friendInteraction sync model).
+- Garbage-collecting orphaned `received_help` interactions from local state (AC6.10 hides the card; the underlying interaction is left untouched).
 
 ---
 
-## 7. Architecture Decisions Summary
+## 7. Streak Shields
+
+### 7.1 User stories
+- As a player, I want to earn streak shields by helping my friends — so being helpful directly protects my own progress.
+- As a player who's been on a streak, I don't want one missed day to wipe out a long streak as long as I have a shield.
+- As a new user, I want the rules to be obvious from the UI — not "you both earn a shield" copy that doesn't reflect reality.
+
+### 7.2 Rules
+- A user has between 0 and 3 shields available at any time (capped at 3).
+- Shields are **only** earned by signed-in users. Anonymous users see an upsell instead of a granted shield (see AC7.9).
+- A shield is earned when the signed-in user successfully:
+  - **Answers another user's help request** (`respondToHelp` resolves), OR
+  - **Answers a challenge sent by another user** (`respondToChallenge` resolves).
+- Opening a help or challenge link without answering does NOT earn a shield (and does NOT record an interaction).
+- If the user misses a day AND has at least 1 shield available AND a shield hasn't already been used today, the system consumes 1 shield and preserves the streak. The streak does NOT increment for the missed day.
+- If the user misses a day with no shields available, the streak resets to 1 on the next play.
+
+### 7.3 Acceptance criteria
+- AC7.1 On successful `respondToHelp` resolution **for a signed-in user** (`!isAnonymous`), the app dispatches `EARN_SHIELD` (incrementing `streakShieldsAvailable`, capped at 3) and records a `gave_help` `FriendInteraction` with `shieldEarned: true`. Both happen fire-and-forget; failures do not block the "Help Sent" UI.
+- AC7.2 The `gave_help` `FriendInteraction` is recorded **only** when `respondToHelp` succeeds — not when the helper merely opens the help link. (The pre-existing add in `app/games/help/[token].tsx` is removed.)
+- AC7.3 The Friends tab shows a "🛡 Shield earned" badge on every `gave_help` or `received_challenge` row where `shieldEarned === true`.
+- AC7.4 The Friends tab shield explainer reads: **"Help a friend or take their challenge to earn a shield. Each shield protects your streak for one missed day."**
+- AC7.5 The Friends tab empty state reads: **"Tap _Ask a Friend for Help_ the next time you're stuck — they'll see just the question, no answers. Help a friend back, or take a challenge they send, to earn yourself a streak shield."**
+- AC7.6 Immediately after a shield-earning event (`respondToHelp` or `respondToChallenge` success **for a signed-in user**) and before the helper navigates back, a brief themed toast appears with the text **"🛡 Shield earned"**. Auto-dismisses after ~2s. Does not block the back-to-games CTA. Anonymous users do NOT see this toast.
+- AC7.7 The home screen stats card labels the streak counter **"Day Streak"** (not "Streak") so the unit is unambiguous to new users.
+- AC7.8 On successful `respondToChallenge` resolution **for a signed-in user**, the app dispatches `EARN_SHIELD` and records a `received_challenge` `FriendInteraction` with `shieldEarned: true`. The pre-existing `received_challenge` add in `app/games/challenge/[token].tsx` (which fired on link open) is removed; the interaction is recorded only on successful answer.
+- AC7.9 An anonymous user who successfully answers a help request OR a challenge sees a themed **Shield Sign-Up Banner** on the result screen with: heading "🛡 Sign up to keep your shield", body referencing that helping friends and answering challenges earn streak shields when signed in, and three actions — "Create Account" (→ `/auth/sign-up`), "Sign In" (→ `/auth/sign-in`), and "Maybe Later" (dismisses the banner). NO shield is granted to anonymous users (`streakShieldsAvailable` does not change), and no `EARN_SHIELD` action is dispatched. The banner is independent of the existing `ChallengeSignUpBanner` ("Challenge them back") which continues to render in challenge mode for anonymous responders.
+
+### 7.4 Out of scope (v5)
+- Retroactive shield grants when an anonymous user later signs up. The banner is an upsell only; signing up does not back-fill earned shields. The user must answer another help/challenge after signing up to earn one.
+- "Streak saved!" celebration banner on home when a shield was just consumed (separate phase — also requires fixing the `streakShieldUsedToday` flag persistence bug in `UPDATE_DAILY_STREAK`).
+- Daily push reminders to play.
+- Animated counters or shield-fill animation.
+- Earning shields via any path other than answering a help request or a challenge (e.g., perfect-streak bonus, weekly play).
+
+---
+
+## 8. Architecture Decisions Summary
 
 | Area | Decision |
 |---|---|
@@ -225,7 +269,7 @@ pushTokens/{uid}                      // existing — unchanged
 
 ---
 
-## 8. Risks & Mitigations
+## 9. Risks & Mitigations
 
 | Risk | Mitigation |
 |---|---|
@@ -237,7 +281,7 @@ pushTokens/{uid}                      // existing — unchanged
 
 ---
 
-## 9. Success Criteria
+## 10. Success Criteria
 
 - [ ] Anonymous user can upgrade to permanent without losing stats
 - [ ] Stats survive uninstall on a permanent account

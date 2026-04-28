@@ -77,7 +77,7 @@ export default function FriendsScreen() {
               : `${streakShieldsAvailable} shield${streakShieldsAvailable > 1 ? 's' : ''} available`}
           </Text>
           <Text style={styles.shieldExplainer}>
-            Shields protect your streak if you miss a day.
+            Help a friend or take their challenge to earn a shield. Each shield protects your streak for one missed day.
           </Text>
         </View>
 
@@ -94,7 +94,7 @@ export default function FriendsScreen() {
               Tap{' '}
               <Text style={styles.emptyBold}>Ask a Friend for Help</Text>
               {' '}the next time you're stuck — they'll see just the question, no answers.{'\n\n'}
-              You both earn a streak shield when they respond.
+              Help a friend back, or take a challenge they send, to earn yourself a streak shield.
             </Text>
           </View>
         ) : (

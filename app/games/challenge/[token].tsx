@@ -26,11 +26,10 @@ interface NormalizedPayload {
 
 export default function ChallengeScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
-  const { state, isLoaded: gameLoaded, addFriendInteraction } = useGame();
+  const { state, isLoaded: gameLoaded } = useGame();
   const { isAnonymous } = useAuth();
   const [payload, setPayload] = useState<NormalizedPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [recorded, setRecorded] = useState(false);
 
   const isSender = !isAnonymous && gameLoaded && !!token && state.friendInteractions.some(
     (i) => i.type === 'sent_challenge' && i.token === (token as string),
@@ -87,18 +86,6 @@ export default function ChallengeScreen() {
       senderPrediction: decoded.senderPrediction,
     });
   }, [token]);
-
-  useEffect(() => {
-    if (!payload || recorded || !gameLoaded || isSender) return;
-    addFriendInteraction({
-      type: 'received_challenge',
-      friendName: payload.senderName,
-      gameId: payload.gameId as GameId,
-      questionIndex: payload.questionIndex,
-      shieldEarned: false,
-    });
-    setRecorded(true);
-  }, [payload, recorded, gameLoaded, isSender]);
 
   if (payload && isSender) {
     return (

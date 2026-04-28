@@ -81,6 +81,7 @@ export type Action =
   | { type: 'EARN_SHIELD' }
   | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction }
   | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] }
+  | { type: 'REMOVE_FRIEND_INTERACTION'; id: string }
   | { type: 'DISMISS_HELP_CARD'; token: string }
   | { type: 'MERGE_FROM_SERVER'; serverStats: AppState['stats']; serverSeen?: Partial<AppState['seen']> };
 
@@ -178,11 +179,16 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, friendInteractions: [action.interaction, ...state.friendInteractions] };
     case 'SET_FRIEND_INTERACTIONS':
       return { ...state, friendInteractions: action.interactions };
+    case 'REMOVE_FRIEND_INTERACTION':
+      return {
+        ...state,
+        friendInteractions: state.friendInteractions.filter(i => i.id !== action.id),
+      };
     case 'DISMISS_HELP_CARD':
       return {
         ...state,
         friendInteractions: state.friendInteractions.map(i =>
-          i.token === action.token && i.type === 'received_help'
+          i.token === action.token && (i.type === 'received_help' || i.type === 'challenge_accepted')
             ? { ...i, homeCardDismissed: true }
             : i,
         ),
