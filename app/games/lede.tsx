@@ -128,13 +128,11 @@ export default function LedeScreen() {
           friendName: challengeSenderName ?? 'A Friend',
           gameId: 'lede',
           questionIndex: questionIdx,
-          shieldEarned: !isAnonymous,
+          shieldEarned: true,
         });
-        if (!isAnonymous) {
-          earnStreakShield();
-          setShieldToastVisible(true);
-          setTimeout(() => setShieldToastVisible(false), 2200);
-        }
+        earnStreakShield();
+        setShieldToastVisible(true);
+        setTimeout(() => setShieldToastVisible(false), 2200);
       } catch {
         // ignore — user still sees their result
       }
@@ -149,13 +147,11 @@ export default function LedeScreen() {
           friendName: helpAskerName || 'A Friend',
           gameId: 'lede',
           questionIndex: questionIdx,
-          shieldEarned: !isAnonymous,
+          shieldEarned: true,
         });
-        if (!isAnonymous) {
-          earnStreakShield();
-          setShieldToastVisible(true);
-          setTimeout(() => setShieldToastVisible(false), 2200);
-        }
+        earnStreakShield();
+        setShieldToastVisible(true);
+        setTimeout(() => setShieldToastVisible(false), 2200);
       } catch {
         // ignore
       }
@@ -255,8 +251,8 @@ export default function LedeScreen() {
         <Masthead />
 
         {phase === 'play' && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>← Back to Games</Text>
+          <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+            <Text style={styles.backText}>← Back to Home</Text>
           </TouchableOpacity>
         )}
 
@@ -396,23 +392,23 @@ export default function LedeScreen() {
               {isAnonymous && !signUpBannerDismissed && (
                 <ChallengeSignUpBanner
                   senderName={challengeSenderName ?? 'your friend'}
-                  onCreateAccount={() => router.push('/auth/sign-up')}
+                  onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
                   onDismiss={() => setSignUpBannerDismissed(true)}
                 />
               )}
               {isAnonymous && !shieldSignUpDismissed && (
                 <ShieldSignUpBanner
-                  onCreateAccount={() => router.push('/auth/sign-up')}
-                  onSignIn={() => router.push('/auth/sign-in')}
+                  onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
+                  onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
                   onDismiss={() => setShieldSignUpDismissed(true)}
                 />
               )}
                 <TouchableOpacity
                   style={styles.primaryBtn}
-                  onPress={() => router.back()}
+                  onPress={() => router.replace('/')}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.primaryBtnText}>Back to Games</Text>
+                  <Text style={styles.primaryBtnText}>Back to Home</Text>
                 </TouchableOpacity>
               </>
             ) : isHelpMode && helpRespondResult ? (
@@ -426,17 +422,17 @@ export default function LedeScreen() {
                 </View>
                 {isAnonymous && !shieldSignUpDismissed && (
                   <ShieldSignUpBanner
-                    onCreateAccount={() => router.push('/auth/sign-up')}
-                    onSignIn={() => router.push('/auth/sign-in')}
+                    onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
+                    onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
                     onDismiss={() => setShieldSignUpDismissed(true)}
                   />
                 )}
                 <TouchableOpacity
                   style={styles.primaryBtn}
-                  onPress={() => router.back()}
+                  onPress={() => router.replace('/')}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.primaryBtnText}>Back to Games</Text>
+                  <Text style={styles.primaryBtnText}>Back to Home</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -461,8 +457,8 @@ export default function LedeScreen() {
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                  <Text style={styles.backText}>← Back to Games</Text>
+                <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+                  <Text style={styles.backText}>← Back to Home</Text>
                 </TouchableOpacity>
               </>
             )}

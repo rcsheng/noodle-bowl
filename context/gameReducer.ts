@@ -172,7 +172,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         stats: {
           ...state.stats,
-          streakShieldsAvailable: Math.min(state.stats.streakShieldsAvailable + 1, 3),
+          streakShieldsAvailable: state.stats.streakShieldsAvailable + 1,
         },
       };
     case 'ADD_FRIEND_INTERACTION':

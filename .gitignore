@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# business assets (separate projects, not part of the app repo)
+/business/

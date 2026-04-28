@@ -281,6 +281,36 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [ ] [P0] Manual smoke (AC7.8): signed-in user answers a challenge they received → toast → shield count increments → Friends feed shows `received_challenge` row with shield badge
 - [ ] [P0] Manual smoke (AC7.9): anonymous user answers help OR challenge → no toast, no shield grant, ShieldSignUpBanner appears with three CTAs
 
+### Phase 7.6 — Remove shield cap, switch Friends UI to counter (AC7.1 revised + AC7.10)
+- [x] [P0] PRD §7.2 + AC7.1: shields no longer capped at 3
+- [x] [P0] Replace `Math.min(..., 3)` in `EARN_SHIELD` reducer with simple increment
+- [x] [P0] Update reducer test "caps at 3" → "no cap, increments past 3"
+- [x] [P0] Friends tab: replace fixed 3-slot grid with a single counter "🛡 N" (singular/plural label, "No shields yet" at zero) per AC7.10
+
+### Phase 7.8 — Shield count in header + anon→signup interactions migration (AC7.11, AC7.12)
+- [x] [P0] Update `components/Masthead.tsx` to render "🛡 N" instead of bare "🛡" (AC7.11)
+- [x] [P0] Replace `SET_FRIEND_INTERACTIONS` wholesale-replace with merge + Firestore write for local-only items (AC7.12)
+- [x] [P0] RED: test in `GameContext.test.tsx` that local-only interactions are setDoc'd on first signed-in load AND retained in merged state
+- [ ] [P0] Manual smoke (AC7.11): home screen with 0 shields → no 🛡 in masthead; with N>0 shields → "🛡 N" appears
+- [ ] [P0] Manual smoke (AC7.12): anonymous user answers a help link → ShieldSignUpBanner → Create Account → Friends tab now shows the `gave_help` row that was earned during the anon session (and persists after reload — it was synced to Firestore)
+
+### Phase 7.9 — Navigation semantics: "Back to Home" vs "Back to Answers" (AC7.13, AC1.10 revised)
+- [x] [P0] PRD: AC1.10 revised; AC7.13 (new) defines the two CTA labels + destinations
+- [x] [P0] All 5 game screens — challenge/help reveal `Back to Games` → `Back to Home` with `router.replace('/')`
+- [x] [P0] All 5 game screens — regular reveal `← Back to Games` link → `← Back to Home` with `router.replace('/')`
+- [x] [P0] `ChallengeSignUpBanner` + `ShieldSignUpBanner` — when invoked from a reveal panel, callbacks navigate with `params: { from: 'reveal' }`
+- [x] [P0] `app/auth/sign-up.tsx` verify screen — read `from` param; render `Back to Answers` (router.back) only when `from=reveal`; always render `Back to Home` (router.replace('/'))
+- [x] [P0] `app/auth/sign-in.tsx` — same conditional pattern after successful sign-in
+- [x] [P0] Tests: verify-screen renders correct CTAs under both `from=reveal` and `from=undefined`
+- [ ] [P0] Manual smoke (verify screen): anon user answers help → ShieldSignUpBanner → Create Account → fill form → success → see BOTH "Back to Answers" and "Back to Home" CTAs. Tap each and confirm destinations.
+- [ ] [P0] Manual smoke (Profile entry): tap Profile → Create Account → fill form → success → see ONLY "Back to Home" CTA.
+
+### Phase 7.7 — Anonymous DOES earn shield locally (AC7.1 / AC7.6 / AC7.9 revised)
+- [x] [P0] Drop `if (!isAnonymous)` gate in all 5 game screens — `earnStreakShield()` + toast + `shieldEarned: true` fire for any user
+- [x] [P0] PRD §7 revised: anon earns locally; ShieldSignUpBanner reframed as "save your progress"; sign-in (vs sign-up) caveat documented
+- [ ] [P0] Manual smoke (anon → sign-up): anonymous user answers help → sees toast → ShieldSignUpBanner → taps Create Account → completes sign-up → Friends tab now shows the shield count carried over (`linkWithCredential` preserved local state)
+- [ ] [P0] Manual smoke (anon → sign-in to existing): same flow but tap Sign In and authenticate to a different account → existing account's stats win the merge; the just-earned anon shield is lost (acceptable per §7.4)
+
 ### Phase 7 follow-ups (future work)
 - [ ] [P1] "Streak saved!" celebration banner on home when a shield was consumed (requires fixing `streakShieldUsedToday` flag persistence in `UPDATE_DAILY_STREAK` — currently it doesn't reset on normal continuation)
 - [ ] [P2] Daily push reminder before streak rolls over

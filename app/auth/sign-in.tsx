@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -19,10 +19,20 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function SignInScreen() {
   const { user } = useAuth();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const cameFromReveal = from === 'reveal';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  // When launched from a reveal panel (AC7.13), success returns the user to
+  // the answers they just saw via router.back() ("Back to Answers" semantics).
+  // Otherwise success goes to the home tab.
+  function navigateOnSuccess() {
+    if (cameFromReveal) router.back();
+    else router.replace('/');
+  }
 
   async function handleSignIn() {
     setError(null);
@@ -32,11 +42,11 @@ export default function SignInScreen() {
       // Calling signInWithEmailAndPassword again fires a spurious null auth event
       // without a follow-up user event, leaving the app in anonymous state.
       if (user && !user.isAnonymous && user.email?.toLowerCase() === email.trim().toLowerCase()) {
-        router.replace('/');
+        navigateOnSuccess();
         return;
       }
       await signIn(email.trim(), password);
-      router.replace('/');
+      navigateOnSuccess();
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'errors' in err) {
         const zodErr = err as { errors: { message: string }[] };

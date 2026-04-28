@@ -23,9 +23,11 @@ export function Masthead() {
           <Text style={styles.amp}>Bowl</Text>
         </View>
         <Text style={styles.tagline}>A Daily Mix Of Brain Games</Text>
-        {dailyStreak > 0 && (
+        {(dailyStreak > 0 || streakShieldsAvailable > 0) && (
           <Text style={styles.streakLine}>
-            🔥 {dailyStreak}{streakShieldsAvailable > 0 ? '  🛡' : ''}
+            {dailyStreak > 0 ? `🔥 ${dailyStreak}` : ''}
+            {dailyStreak > 0 && streakShieldsAvailable > 0 ? '  ' : ''}
+            {streakShieldsAvailable > 0 ? `🛡 ${streakShieldsAvailable}` : ''}
           </Text>
         )}
       </View>

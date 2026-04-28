@@ -79,14 +79,33 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, isAnonymous, isLoaded]);
 
+  // Keep a live ref to the latest interactions so the signed-in load effect
+  // can read them without re-firing on every interaction change. Used to push
+  // local-only interactions to Firestore when an anon user signs up.
+  const interactionsRef = useRef<FriendInteraction[]>(state.friendInteractions);
+  useEffect(() => {
+    interactionsRef.current = state.friendInteractions;
+  }, [state.friendInteractions]);
+
   useEffect(() => {
     if (!isLoaded || isAnonymous || !uid) return;
     getDocs(collection(db, 'users', uid, 'friendInteractions'))
       .then(snap => {
-        const interactions = snap.docs
-          .map(d => d.data() as FriendInteraction)
-          .sort((a, b) => Number(b.id) - Number(a.id));
-        dispatch({ type: 'SET_FRIEND_INTERACTIONS', interactions });
+        const serverInteractions = snap.docs.map(d => d.data() as FriendInteraction);
+        const serverIds = new Set(serverInteractions.map(i => i.id));
+
+        // Anon→signup migration (AC7.12): any local interaction not yet in
+        // Firestore (because the anon session never wrote there) is pushed up.
+        const localOnly = interactionsRef.current.filter(i => !serverIds.has(i.id));
+        localOnly.forEach(i => {
+          setDoc(doc(db, 'users', uid, 'friendInteractions', i.id), i).catch(() => {});
+        });
+
+        // Merge: server wins on id collision, then sort newest-first.
+        const merged = [...serverInteractions, ...localOnly].sort(
+          (a, b) => Number(b.id) - Number(a.id),
+        );
+        dispatch({ type: 'SET_FRIEND_INTERACTIONS', interactions: merged });
       })
       .catch(() => {});
   }, [uid, isAnonymous, isLoaded]);

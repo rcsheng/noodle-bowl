@@ -59,23 +59,17 @@ export default function FriendsScreen() {
 
         <View style={styles.shieldCard}>
           <View style={styles.cardInnerBorder} />
-          <View style={styles.shieldSlots}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <View
-                key={i}
-                style={[styles.shieldSlot, i < streakShieldsAvailable && styles.shieldSlotFilled]}
-              >
-                <Text style={styles.shieldSlotText}>
-                  {i < streakShieldsAvailable ? '🛡' : '—'}
-                </Text>
-              </View>
-            ))}
-          </View>
-          <Text style={styles.shieldCount}>
-            {streakShieldsAvailable === 0
-              ? 'No shields available'
-              : `${streakShieldsAvailable} shield${streakShieldsAvailable > 1 ? 's' : ''} available`}
-          </Text>
+          {streakShieldsAvailable === 0 ? (
+            <Text style={styles.shieldCount}>No shields yet</Text>
+          ) : (
+            <View style={styles.shieldCounterRow}>
+              <Text style={styles.shieldCounterIcon}>🛡</Text>
+              <Text style={styles.shieldCounterValue}>{streakShieldsAvailable}</Text>
+              <Text style={styles.shieldCounterLabel}>
+                {streakShieldsAvailable === 1 ? 'shield' : 'shields'}
+              </Text>
+            </View>
+          )}
           <Text style={styles.shieldExplainer}>
             Help a friend or take their challenge to earn a shield. Each shield protects your streak for one missed day.
           </Text>
@@ -264,32 +258,34 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     ...cardShadow,
   },
-  shieldSlots: {
+  shieldCounterRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 14,
+    alignItems: 'baseline',
+    gap: 10,
+    marginBottom: 12,
   },
-  shieldSlot: {
-    width: 44,
-    height: 44,
-    borderWidth: 1,
-    borderColor: C.paperDarker,
-    alignItems: 'center',
-    justifyContent: 'center',
+  shieldCounterIcon: {
+    fontSize: 32,
+    lineHeight: 36,
   },
-  shieldSlotFilled: {
-    borderColor: C.accent,
-    backgroundColor: 'rgba(184,74,53,0.06)',
+  shieldCounterValue: {
+    fontFamily: F.frauncesXBold,
+    fontSize: 36,
+    color: C.ink,
+    lineHeight: 40,
   },
-  shieldSlotText: {
-    fontSize: 18,
-    lineHeight: 22,
+  shieldCounterLabel: {
+    fontFamily: F.mono,
+    fontSize: 12,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
   },
   shieldCount: {
     fontFamily: F.frauncesSemiBold,
-    fontSize: 16,
-    color: C.ink,
-    marginBottom: 6,
+    fontSize: 18,
+    color: C.muted,
+    marginBottom: 12,
   },
   shieldExplainer: {
     fontFamily: F.fraunces,

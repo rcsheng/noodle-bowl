@@ -291,10 +291,24 @@ describe('reducer: EARN_SHIELD', () => {
     expect(next.stats.streakShieldsAvailable).toBe(2);
   });
 
-  test('caps at 3 (EARN_SHIELD when already at 3 stays at 3)', () => {
+  test('has no cap — increments past 3', () => {
     const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 3 } });
     const next = reducer(state, action);
-    expect(next.stats.streakShieldsAvailable).toBe(3);
+    expect(next.stats.streakShieldsAvailable).toBe(4);
+  });
+
+  test('keeps incrementing on repeated dispatches (e.g., reaches 12)', () => {
+    let state: AppState = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 0 } });
+    for (let i = 0; i < 12; i++) state = reducer(state, action);
+    expect(state.stats.streakShieldsAvailable).toBe(12);
+  });
+
+  test('reducer is auth-agnostic — same increment regardless of any external auth state', () => {
+    // Reducer takes no auth context; regression guard against re-introducing
+    // a "skip earn for anonymous" gate inside the reducer itself.
+    const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 5 } });
+    const next = reducer(state, action);
+    expect(next.stats.streakShieldsAvailable).toBe(6);
   });
 });
 

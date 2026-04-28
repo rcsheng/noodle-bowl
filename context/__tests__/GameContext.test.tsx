@@ -1,4 +1,5 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, renderHook } from '@testing-library/react-native';
 import { GameProvider, useGame } from '../GameContext';
 
@@ -37,8 +38,9 @@ const baseInteraction = {
 };
 
 describe('GameContext Firestore persistence', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    await AsyncStorage.clear();
     getDocs.mockResolvedValue({ docs: [] });
   });
 
@@ -61,6 +63,14 @@ describe('GameContext Firestore persistence', () => {
     setDoc.mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useGame(), { wrapper });
+
+    // Let AsyncStorage load + signed-in Firestore load chain settle before
+    // testing addFriendInteraction in isolation. Otherwise the load's
+    // migration logic (AC7.12) would legitimately also call setDoc.
+    await act(async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    });
+    setDoc.mockClear();
 
     await act(async () => {
       result.current.addFriendInteraction(baseInteraction);
@@ -195,5 +205,83 @@ describe('GameContext Firestore persistence', () => {
     });
 
     expect(result.current.state.friendInteractions.some(i => i.id === '123')).toBe(true);
+  });
+
+  test('migrates local-only friendInteractions to Firestore on signed-in load (AC7.12)', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+
+    // Simulate: anon session left a gave_help in AsyncStorage; Firestore has nothing yet.
+    const anonInteraction = {
+      id: 'anon-earned-1',
+      type: 'gave_help',
+      friendName: 'A Friend',
+      gameId: 'lede',
+      questionIndex: 0,
+      date: '2026-04-28',
+      shieldEarned: true,
+    };
+    await AsyncStorage.setItem(
+      'daily_state_v9',
+      JSON.stringify({
+        stats: {},
+        seen: {},
+        friendInteractions: [anonInteraction],
+      }),
+    );
+
+    getDocs.mockResolvedValue({ docs: [] }); // Firestore empty (nothing synced yet)
+    setDoc.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    // Flush AsyncStorage + Firestore + dispatch chain.
+    await act(async () => {
+      for (let i = 0; i < 12; i++) await Promise.resolve();
+    });
+
+    // The local-only interaction must remain in state (NOT replaced with empty server result).
+    expect(result.current.state.friendInteractions.some(i => i.id === 'anon-earned-1')).toBe(true);
+
+    // And it must have been written up to Firestore so it persists across devices.
+    const setDocCalls = setDoc.mock.calls.filter(call => {
+      const payload = call[1];
+      return payload && payload.id === 'anon-earned-1';
+    });
+    expect(setDocCalls.length).toBeGreaterThan(0);
+  });
+
+  test('does not double-write interactions that already exist in Firestore', async () => {
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+
+    const sharedInteraction = {
+      id: 'shared-1',
+      type: 'gave_help',
+      friendName: 'A',
+      gameId: 'lede',
+      questionIndex: 0,
+      date: '2026-04-28',
+      shieldEarned: true,
+    };
+    // Same id in BOTH local and server — should not trigger setDoc for this one.
+    await AsyncStorage.setItem(
+      'daily_state_v9',
+      JSON.stringify({ stats: {}, seen: {}, friendInteractions: [sharedInteraction] }),
+    );
+    getDocs.mockResolvedValue({ docs: [{ data: () => sharedInteraction }] });
+
+    setDoc.mockClear();
+    setDoc.mockResolvedValue(undefined);
+
+    renderHook(() => useGame(), { wrapper });
+
+    await act(async () => {
+      for (let i = 0; i < 12; i++) await Promise.resolve();
+    });
+
+    const migrationCalls = setDoc.mock.calls.filter(call => {
+      const payload = call[1];
+      return payload && payload.id === 'shared-1';
+    });
+    expect(migrationCalls.length).toBe(0);
   });
 });

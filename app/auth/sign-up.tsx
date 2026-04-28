@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -21,6 +21,8 @@ type Phase = 'form' | 'verify';
 
 export default function SignUpScreen() {
   const { isAnonymous, reloadUser } = useAuth();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const cameFromReveal = from === 'reveal';
   const [phase, setPhase] = useState<Phase>('form');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -83,25 +85,38 @@ export default function SignUpScreen() {
             )}
           </View>
 
-          <TouchableOpacity
-            testID="verify-back-btn"
-            style={styles.primaryBtn}
-            onPress={() => router.back()}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Back to Games</Text>
-          </TouchableOpacity>
+          {cameFromReveal && (
+            <TouchableOpacity
+              testID="verify-back-to-answers-btn"
+              style={styles.primaryBtn}
+              onPress={() => router.back()}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>Back to Answers</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
-            testID="verify-signin-btn"
-            style={styles.secondaryBtn}
-            onPress={() => isAnonymous ? router.replace('/auth/sign-in') : router.replace('/')}
+            testID="verify-back-to-home-btn"
+            style={cameFromReveal ? styles.secondaryBtn : styles.primaryBtn}
+            onPress={() => router.replace('/')}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryBtnText}>
-              {isAnonymous ? 'Sign in after verifying' : 'Continue to Games'}
+            <Text style={cameFromReveal ? styles.secondaryBtnText : styles.primaryBtnText}>
+              Back to Home
             </Text>
           </TouchableOpacity>
+
+          {isAnonymous && (
+            <TouchableOpacity
+              testID="verify-signin-btn"
+              style={styles.ghostBtn}
+              onPress={() => router.replace('/auth/sign-in')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.ghostBtnText}>Sign in after verifying</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             testID="verify-resend-btn"
