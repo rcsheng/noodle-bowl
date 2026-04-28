@@ -163,6 +163,39 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5)**
 
 ---
 
+## Phase 6 — Help Flow UX ✅ COMPLETE
+
+> Independent of other phases. Implements PRD §6 (post-share confirmation, home result card, Friends feed enrichment).
+
+### RED — write failing tests first
+- [x] [P0] `lib/__tests__/helpAnswerEvaluator.test.ts` — 13 tests covering correctness for lede/spread/sof/wave/quip + missing-bank fallback
+- [x] [P0] `context/__tests__/GameContext.reducer.test.ts` — 3 tests for `DISMISS_HELP_CARD` (matches token, leaves others alone, no-op on miss)
+- [x] [P0] `components/__tests__/HelpSentModal.test.tsx` — renders title/body, dismiss callback fires
+- [x] [P0] `components/__tests__/HelpResultCard.test.tsx` — renders fields, ✓/✗ tag visibility per `correct` value, dismiss callback fires
+
+### GREEN — implement
+- [x] [P0] `lib/helpAnswerEvaluator.ts` — `evaluateHelperAnswer(gameId, questionIndex, helperAnswer, banks): { correct: boolean | null, label: string }` (Quip + missing bank → null)
+- [x] [P0] Extend `FriendInteraction` with optional `homeCardDismissed` flag
+- [x] [P0] Add `DISMISS_HELP_CARD` action to `gameReducer.ts`
+- [x] [P0] `components/HelpSentModal.tsx` — "Link sent / We'll let you know when your friend answers / Got it" (AC6.1)
+- [x] [P0] `components/HelpResultCard.tsx` — friend name, game title, answer label, ✓/✗ tag, × dismiss (AC6.4, AC6.5)
+- [x] [P0] Hoist `helpRequests`/`challenges` `onSnapshot` listeners from `app/(tabs)/friends.tsx` into `context/GameContext.tsx` `GameProvider` (AC6.7)
+- [x] [P0] Expose `dismissHelpCard(token)` from `useGame()`; signed-in users mirror dismiss to Firestore
+- [x] [P0] Wire `HelpSentModal` into all 5 game screens — share modal "Close" → confirmation modal → `Got it` → `router.replace('/')` (AC6.1, AC6.2)
+- [x] [P0] Render "Friend Replies" section above Today's Games on `app/(tabs)/index.tsx` for non-dismissed `received_help` interactions
+- [x] [P0] Update `received_help` row in `app/(tabs)/friends.tsx` to show friend's pick + ✓/✗ via `evaluateHelperAnswer` (AC6.6)
+- [ ] [P1] AC6.3 — auto-open `HelpSentModal` on share-sheet dismiss (not just on Close tap). Deferred — needs platform-specific Share return handling.
+
+### Verify
+- [x] [P0] All Phase 6 tests pass (+23 new tests)
+- [x] [P0] Full suite: 213 passing (4 pre-existing `authApi` failures unrelated to this phase)
+- [x] [P0] No new TypeScript errors in changed files
+- [ ] [P0] Manual smoke: anon user blocked at "Stuck? Ask a Friend" → AuthGate (existing); signed-in user shares link → Close → "Link sent" modal → Got it → home screen
+- [ ] [P0] Manual smoke: friend answers help → home shows result card with their pick + correctness; × dismisses; reload → stays dismissed
+- [ ] [P0] Manual smoke: Friends tab shows enriched `received_help` row
+
+---
+
 ## Cross-cutting tasks
 
 - [ ] [P1] Code review via **code-reviewer** agent after each phase

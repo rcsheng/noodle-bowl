@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal, PredictOption } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
+import { HelpSentModal } from '@/components/HelpSentModal';
 import { Masthead } from '@/components/Masthead';
 import { WaveItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
@@ -96,6 +97,7 @@ export default function WaveScreen() {
   const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
+  const [showHelpSent, setShowHelpSent] = useState(false);
 
   const userPosRef = useRef(50);
   const trackWidthRef = useRef(0);
@@ -199,6 +201,7 @@ export default function WaveScreen() {
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
+      addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'wave', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch {
       setHelpUrl('');
     } finally {
@@ -215,10 +218,7 @@ export default function WaveScreen() {
   };
 
   const handleShare = async () => {
-    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
-    if (result.action === Share.sharedAction) {
-      addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'wave', questionIndex: questionIdx, shieldEarned: false, token: helpToken ?? undefined });
-    }
+    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
   };
 
   if (!question) return null;
@@ -511,7 +511,7 @@ export default function WaveScreen() {
 
             <TouchableOpacity
               style={[styles.modalBtn, styles.modalBtnSecondary]}
-              onPress={() => setShowFriend(false)}
+              onPress={() => { setShowFriend(false); setShowHelpSent(true); }}
               activeOpacity={0.85}
             >
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
@@ -520,6 +520,11 @@ export default function WaveScreen() {
           <CopiedToast visible={copied} />
         </View>
       </Modal>
+
+      <HelpSentModal
+        visible={showHelpSent}
+        onDismiss={() => { setShowHelpSent(false); router.replace('/'); }}
+      />
     </SafeAreaView>
   );
 }

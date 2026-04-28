@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react';
-import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
+import React, { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
+import { collection, doc, getDocs, onSnapshot, setDoc } from 'firebase/firestore';
 import { GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { db } from '@/lib/firebase';
@@ -18,6 +18,7 @@ interface GameContextType {
   setSeen: (game: GameId, seen: number[]) => void;
   earnStreakShield: () => void;
   addFriendInteraction: (interaction: Omit<FriendInteraction, 'id' | 'date'>) => void;
+  dismissHelpCard: (token: string) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -100,8 +101,91 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAnonymous, uid]);
 
+  const dismissHelpCard = useCallback((token: string) => {
+    dispatch({ type: 'DISMISS_HELP_CARD', token });
+    if (!isAnonymous && uid) {
+      const target = state.friendInteractions.find(i => i.token === token && i.type === 'received_help');
+      if (target) {
+        setDoc(
+          doc(db, 'users', uid, 'friendInteractions', target.id),
+          { ...target, homeCardDismissed: true },
+        ).catch(() => {});
+      }
+    }
+  }, [isAnonymous, uid, state.friendInteractions]);
+
+  // Always-on subscription to outstanding sent_help / sent_challenge tokens so
+  // the home card and Friends feed stay in sync regardless of which tab is open.
+  const unsubRefs = useRef<Map<string, () => void>>(new Map());
+  useEffect(() => {
+    if (!isLoaded || isAnonymous) return;
+
+    const interactions = state.friendInteractions;
+    const resolvedChallenge = new Set(
+      interactions.filter(i => i.type === 'challenge_accepted' && i.token).map(i => i.token!),
+    );
+    const resolvedHelp = new Set(
+      interactions.filter(i => i.type === 'received_help' && i.token).map(i => i.token!),
+    );
+
+    interactions
+      .filter(i => i.type === 'sent_challenge' && i.token)
+      .forEach(sent => {
+        const token = sent.token!;
+        if (resolvedChallenge.has(token) || unsubRefs.current.has(token)) return;
+        const unsub = onSnapshot(doc(db, 'challenges', token), snap => {
+          const data = snap.data();
+          if (!data?.resolvedAt) return;
+          addFriendInteraction({
+            type: 'challenge_accepted',
+            friendName: sent.friendName,
+            gameId: data.gameId as GameId,
+            questionIndex: data.questionIndex as number,
+            shieldEarned: false,
+            token,
+            senderPrediction: sent.senderPrediction,
+            friendAnswer: data.friendAnswer as string,
+          });
+          unsubRefs.current.get(token)?.();
+          unsubRefs.current.delete(token);
+        });
+        unsubRefs.current.set(token, unsub);
+      });
+
+    interactions
+      .filter(i => i.type === 'sent_help' && i.token)
+      .forEach(sent => {
+        const token = sent.token!;
+        if (resolvedHelp.has(token) || unsubRefs.current.has(token)) return;
+        const unsub = onSnapshot(doc(db, 'helpRequests', token), snap => {
+          const data = snap.data();
+          if (!data?.resolvedAt) return;
+          addFriendInteraction({
+            type: 'received_help',
+            friendName: 'A Friend',
+            gameId: data.gameId as GameId,
+            questionIndex: data.questionIndex as number,
+            shieldEarned: false,
+            token,
+            friendAnswer: data.helperAnswer as string,
+          });
+          unsubRefs.current.get(token)?.();
+          unsubRefs.current.delete(token);
+        });
+        unsubRefs.current.set(token, unsub);
+      });
+  }, [state.friendInteractions, isAnonymous, isLoaded, addFriendInteraction]);
+
+  // Cleanup on unmount or auth change.
+  useEffect(() => {
+    return () => {
+      unsubRefs.current.forEach(unsub => unsub());
+      unsubRefs.current.clear();
+    };
+  }, [uid]);
+
   return (
-    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction }}>
+    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, dismissHelpCard }}>
       {children}
     </GameContext.Provider>
   );

@@ -12,6 +12,7 @@ export interface FriendInteraction {
   senderPrediction?: string;
   friendAnswer?: string;
   bonusPointsEarned?: number;
+  homeCardDismissed?: boolean;
 }
 
 interface GameStats {
@@ -80,6 +81,7 @@ export type Action =
   | { type: 'EARN_SHIELD' }
   | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction }
   | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] }
+  | { type: 'DISMISS_HELP_CARD'; token: string }
   | { type: 'MERGE_FROM_SERVER'; serverStats: AppState['stats']; serverSeen?: Partial<AppState['seen']> };
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -176,6 +178,15 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, friendInteractions: [action.interaction, ...state.friendInteractions] };
     case 'SET_FRIEND_INTERACTIONS':
       return { ...state, friendInteractions: action.interactions };
+    case 'DISMISS_HELP_CARD':
+      return {
+        ...state,
+        friendInteractions: state.friendInteractions.map(i =>
+          i.token === action.token && i.type === 'received_help'
+            ? { ...i, homeCardDismissed: true }
+            : i,
+        ),
+      };
     case 'MERGE_FROM_SERVER': {
       const { serverStats, serverSeen = {} } = action;
       const serverDate = serverStats.lastPlayedDate;

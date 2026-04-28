@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -8,18 +8,66 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
 
+import { HelpResultCard } from '@/components/HelpResultCard';
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
+import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
+import { db } from '@/lib/firebase';
+import { evaluateHelperAnswer } from '@/lib/helpAnswerEvaluator';
 
 export default function HubScreen() {
-  const { state } = useGame();
+  const { state, dismissHelpCard } = useGame();
+  const { banks } = useContent();
   const { totalPoints, dailyStreak } = state.stats;
   const assists = state.friendInteractions.filter(i => i.type === 'gave_help').length;
   const today = getTodayISODate();
+
+  const candidateHelpResults = state.friendInteractions.filter(
+    i => i.type === 'received_help' && i.token && !i.homeCardDismissed,
+  );
+
+  // Verify each candidate against Firestore — only render cards that have a
+  // live, resolved helpRequests/{token} doc. Avoids stale local state showing
+  // a card after the underlying request was deleted or never persisted.
+  const [validatedTokens, setValidatedTokens] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    const tokens = candidateHelpResults
+      .map(i => i.token!)
+      .filter(t => !validatedTokens.has(t));
+    if (tokens.length === 0) return;
+
+    Promise.all(
+      tokens.map(async token => {
+        try {
+          const snap = await getDoc(doc(db, 'helpRequests', token));
+          return snap.exists() && snap.data()?.resolvedAt ? token : null;
+        } catch {
+          return null;
+        }
+      }),
+    ).then(results => {
+      if (cancelled) return;
+      const live = results.filter((t): t is string => t !== null);
+      if (live.length > 0) {
+        setValidatedTokens(prev => {
+          const next = new Set(prev);
+          live.forEach(t => next.add(t));
+          return next;
+        });
+      }
+    });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidateHelpResults.map(i => i.token).join('|')]);
+
+  const helpResults = candidateHelpResults.filter(i => validatedTokens.has(i.token!));
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -45,6 +93,35 @@ export default function HubScreen() {
             </View>
           </View>
         </View>
+
+        {helpResults.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Friend Replies</Text>
+              <View style={styles.sectionLine} />
+            </View>
+            {helpResults.map(interaction => {
+              const evaluation = evaluateHelperAnswer(
+                interaction.gameId,
+                interaction.questionIndex,
+                interaction.friendAnswer ?? '',
+                banks,
+              );
+              return (
+                <HelpResultCard
+                  key={interaction.id}
+                  friendName={interaction.friendName}
+                  gameTitle={GAME_META[interaction.gameId].title}
+                  questionText={evaluation.questionText}
+                  answerLabel={evaluation.label}
+                  correctLabel={evaluation.correctLabel}
+                  correct={evaluation.correct}
+                  onDismiss={() => dismissHelpCard(interaction.token!)}
+                />
+              );
+            })}
+          </>
+        )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>Today's Games</Text>

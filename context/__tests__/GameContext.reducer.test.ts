@@ -361,6 +361,46 @@ describe('reducer: SET_FRIEND_INTERACTIONS', () => {
 });
 
 // ---------------------------------------------------------------------------
+// DISMISS_HELP_CARD
+// ---------------------------------------------------------------------------
+describe('reducer: DISMISS_HELP_CARD', () => {
+  const makeReceivedHelp = (id: string, token: string): FriendInteraction => ({
+    id,
+    type: 'received_help',
+    friendName: 'Alice',
+    gameId: 'lede',
+    questionIndex: 0,
+    date: '2026-04-27',
+    shieldEarned: false,
+    token,
+    friendAnswer: 'Bea',
+  });
+
+  test('flags the matching received_help interaction as homeCardDismissed', () => {
+    const interaction = makeReceivedHelp('1', 'TOKEN1');
+    const state = makeState({ friendInteractions: [interaction] });
+    const next = reducer(state, { type: 'DISMISS_HELP_CARD', token: 'TOKEN1' } as Action);
+    expect(next.friendInteractions[0].homeCardDismissed).toBe(true);
+  });
+
+  test('leaves other interactions alone', () => {
+    const a = makeReceivedHelp('1', 'TOKEN1');
+    const b = makeReceivedHelp('2', 'TOKEN2');
+    const state = makeState({ friendInteractions: [a, b] });
+    const next = reducer(state, { type: 'DISMISS_HELP_CARD', token: 'TOKEN1' } as Action);
+    expect(next.friendInteractions[0].homeCardDismissed).toBe(true);
+    expect(next.friendInteractions[1].homeCardDismissed).toBeUndefined();
+  });
+
+  test('no-op when token does not match', () => {
+    const interaction = makeReceivedHelp('1', 'TOKEN1');
+    const state = makeState({ friendInteractions: [interaction] });
+    const next = reducer(state, { type: 'DISMISS_HELP_CARD', token: 'NOPE' } as Action);
+    expect(next.friendInteractions[0].homeCardDismissed).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Immutability
 // ---------------------------------------------------------------------------
 describe('reducer: immutability', () => {

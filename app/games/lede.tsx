@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
+import { HelpSentModal } from '@/components/HelpSentModal';
 import { Masthead } from '@/components/Masthead';
 import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
@@ -77,6 +78,7 @@ export default function LedeScreen() {
   const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
+  const [showHelpSent, setShowHelpSent] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -164,6 +166,10 @@ export default function LedeScreen() {
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
+      // Record sent_help now — the request exists on the server regardless of
+      // how the user delivers the URL (Share, copy, manual). Without this, the
+      // Friends tab never subscribes and the helper's response is never seen.
+      addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch {
       setHelpUrl('');
     } finally {
@@ -172,10 +178,7 @@ export default function LedeScreen() {
   };
 
   const handleShare = async () => {
-    const result = await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
-    if (result.action === Share.sharedAction) {
-      addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false, token: helpToken ?? undefined });
-    }
+    await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
   };
 
   const handleCopyHelp = async () => {
@@ -479,7 +482,7 @@ export default function LedeScreen() {
 
             <TouchableOpacity
               style={[styles.modalBtn, styles.modalBtnSecondary]}
-              onPress={() => setShowFriend(false)}
+              onPress={() => { setShowFriend(false); setShowHelpSent(true); }}
               activeOpacity={0.85}
             >
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
@@ -488,6 +491,11 @@ export default function LedeScreen() {
           <CopiedToast visible={helpCopied} />
         </View>
       </Modal>
+
+      <HelpSentModal
+        visible={showHelpSent}
+        onDismiss={() => { setShowHelpSent(false); router.replace('/'); }}
+      />
     </SafeAreaView>
   );
 }

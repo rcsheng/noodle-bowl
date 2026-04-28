@@ -20,6 +20,7 @@ jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
   getDocs: jest.fn().mockResolvedValue({ docs: [] }),
   setDoc: jest.fn().mockResolvedValue(undefined),
+  onSnapshot: jest.fn(() => () => {}),
 }));
 
 jest.mock('@/lib/firebase', () => ({ db: {} }));

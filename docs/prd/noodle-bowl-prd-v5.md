@@ -149,7 +149,32 @@ Run after any change touching challenge, help, auth, or content flows:
 
 ---
 
-## 6. Architecture Decisions Summary
+## 6. Help Flow UX (post-share confirmation, home result card, friend feed enrichment)
+
+### 6.1 User stories
+- As an asker, after I copy or share the help link and dismiss the share sheet, I want a clear confirmation that I'll be notified when my friend answers — not a silent return to the game.
+- As an asker, I want to land back on the home screen after acknowledging the confirmation, not on the game I was playing.
+- As an asker, when my friend has answered, I want to see a card on the home screen showing what they picked and whether they got it right — and I want to dismiss it when I'm done.
+- As an asker, I want my Friends feed to show the same enriched detail (friend's pick + right/wrong) for the help interactions, not just "[Friend] helped you with The Lede".
+
+### 6.2 Acceptance criteria
+- AC6.1 The "Ask a Friend for Help" share modal's **Close** button dismisses the share modal and immediately opens a themed **Help Sent** confirmation modal. Title: "Link sent". Body: "We'll let you know when your friend answers." Single primary action: "Got it".
+- AC6.2 Tapping **Got it** on the Help Sent modal calls `router.replace('/')`, returning the asker to the home tab. The originating game screen is unmounted.
+- AC6.3 The Help Sent modal also appears after the **Share with a Friend** flow returns control to the app, immediately after the share sheet is dismissed (sender does not have to also tap Close). _Out of scope for v5 if not trivial — minimum bar is AC6.1/AC6.2._
+- AC6.4 When a `received_help` friend interaction is in state and `homeCardDismissed` is not true, the home screen renders one **Help Result Card** per interaction directly above "Today's Games", newest first. Each card shows: friend name, game title, the answer the friend picked (formatted per-game, e.g., panelist name for Lede, "Claim 2" for SoF, "37%" for Wave), and a ✓ Correct / ✗ Wrong tag (omitted for Quip).
+- AC6.5 The Help Result Card has a small **×** button in the top-right that dispatches `DISMISS_HELP_CARD` for that token, which sets `homeCardDismissed = true` on the matching interaction. Dismissed cards do not reappear after reload.
+- AC6.6 The Friends tab `received_help` row is enriched to show the friend's pick and the same ✓/✗ tag, so the activity log matches what was on the home card before dismissal.
+- AC6.7 The Firestore `helpRequests/{token}` and `challenges/{token}` `onSnapshot` subscriptions live in `GameProvider` (not in the Friends tab). Help and challenge resolutions are recorded as friend interactions whether or not the user has opened the Friends tab in the current session.
+- AC6.8 Right/wrong evaluation runs locally on the asker's device using the cached `banks` from `ContentContext`. The pure helper `isHelperAnswerCorrect(gameId, questionIndex, helperAnswer, banks)` returns `{ correct: boolean | null, label: string }` where `correct === null` for Quip or when the bank entry is missing.
+
+### 6.3 Out of scope (v5)
+- Push notification when the friend's answer arrives (existing push pipeline already handles this for challenge responses; reusing it for help is a separate task).
+- Animated entry/exit for the Help Result Card.
+- Persisting `homeCardDismissed` to Firestore for signed-in users (local-only is sufficient — last-write-wins per device matches the existing friendInteraction sync model).
+
+---
+
+## 7. Architecture Decisions Summary
 
 | Area | Decision |
 |---|---|
@@ -200,7 +225,7 @@ pushTokens/{uid}                      // existing — unchanged
 
 ---
 
-## 7. Risks & Mitigations
+## 8. Risks & Mitigations
 
 | Risk | Mitigation |
 |---|---|
@@ -212,7 +237,7 @@ pushTokens/{uid}                      // existing — unchanged
 
 ---
 
-## 8. Success Criteria
+## 9. Success Criteria
 
 - [ ] Anonymous user can upgrade to permanent without losing stats
 - [ ] Stats survive uninstall on a permanent account
