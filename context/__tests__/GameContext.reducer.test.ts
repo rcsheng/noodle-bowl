@@ -340,6 +340,82 @@ describe('reducer: DISMISS_STREAK_SAVED_BANNER', () => {
 });
 
 // ---------------------------------------------------------------------------
+// MERGE_FROM_SERVER — covers seen sync from users/{uid}/meta/seen
+// ---------------------------------------------------------------------------
+describe('reducer: MERGE_FROM_SERVER (seen sync)', () => {
+  test('unions local and remote seen per game', () => {
+    const state = makeState({
+      seen: { ...initialState.seen, lede: [0, 1], spread: [5] },
+    });
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: state.stats,
+      serverSeen: { lede: [1, 2, 3], sof: [7] },
+    });
+    expect(next.seen.lede.sort()).toEqual([0, 1, 2, 3]);
+    expect(next.seen.spread).toEqual([5]);
+    expect(next.seen.sof).toEqual([7]);
+  });
+
+  test('result equals remote when local seen is empty', () => {
+    const state = makeState();
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: state.stats,
+      serverSeen: { lede: [10, 11], wave: [4] },
+    });
+    expect(next.seen.lede).toEqual([10, 11]);
+    expect(next.seen.wave).toEqual([4]);
+  });
+
+  test('result equals local when serverSeen is undefined', () => {
+    const state = makeState({
+      seen: { ...initialState.seen, quip: [9] },
+    });
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats: state.stats });
+    expect(next.seen.quip).toEqual([9]);
+  });
+
+  test('union dedupes overlapping ids', () => {
+    const state = makeState({ seen: { ...initialState.seen, lede: [1, 2, 3] } });
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: state.stats,
+      serverSeen: { lede: [2, 3, 4] },
+    });
+    expect(next.seen.lede.sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  test('server stats win when server lastPlayedDate is newer', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedDate: '2026-04-20', totalPoints: 100 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...state.stats,
+      lastPlayedDate: '2026-04-25',
+      totalPoints: 250,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.totalPoints).toBe(250);
+    expect(next.stats.lastPlayedDate).toBe('2026-04-25');
+  });
+
+  test('local stats kept when local lastPlayedDate is newer', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', totalPoints: 250 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...state.stats,
+      lastPlayedDate: '2026-04-20',
+      totalPoints: 100,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.totalPoints).toBe(250);
+    expect(next.stats.lastPlayedDate).toBe('2026-04-25');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // SET_SEEN
 // ---------------------------------------------------------------------------
 describe('reducer: SET_SEEN', () => {
