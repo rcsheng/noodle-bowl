@@ -229,6 +229,28 @@ Run after any change touching challenge, help, auth, or content flows:
 
 ---
 
+## 7.5 Hardening & maintenance
+
+### 7.5.1 User stories
+- As a user signing into prod, my brand-new account starts with 0 streak and 0 friend activity — never anything from a previous emulator session on the same device.
+- As a user opening the app on a cold start, I do not see a "permission denied" warning while Firebase auth is still resolving.
+
+### 7.5.2 Acceptance criteria
+
+- AC8.1 The local AsyncStorage cache (`daily_state_v9`) is tagged with `ownerUid`. On load, cache is applied only when `ownerUid === auth.currentUser.uid`. Untagged legacy cache and mismatched-uid cache are discarded. Mid-session uid changes (sign-out → sign-in as a different account) reset in-memory state.
+- AC8.2 `ContentProvider` does not invoke `findActive()` (Firestore read) until `useAuth()` returns a non-null `user`. While auth is pending, the app serves cached or bundled fallback content. Once auth resolves, the background refresh runs as before. No `Missing or insufficient permissions` warning is logged on cold start under normal sign-in.
+- AC8.3 `signUp` derives the post-mutation user from the resolved `UserCredential.user` returned by `linkWithCredential` and `createUserWithEmailAndPassword`. It does not re-read `auth.currentUser` between the await boundary and `updateProfile`/`sendEmailVerification`.
+- AC8.4 The Profile tab exposes a debug "Clear local data" button only when `__DEV__ === true`. The button calls `AsyncStorage.clear()` then `signOutAndGoAnonymous()`. Metro tree-shakes the conditional in production bundles, so the button does not ship in release builds (TestFlight, App Store, EAS prod profile).
+- AC8.5 The Cloud Functions runtime targets Node 22 (`functions/package.json` `engines.node === "22"`). The deployed runtime matches local declaration; the Node 20 deprecation warning is gone from `firebase deploy` output.
+- AC8.6 The Cloud Functions devDeps stay current within the v6 line: `@types/node ^22`, `firebase-functions ^6` (latest minor). Major bumps (`firebase-functions` v7) are tracked separately because they introduce breaking API changes.
+
+### 7.5.3 Out of scope (v5)
+- `firebase-functions` v7 (major upgrade) — own session
+- Migrating away from `daily_state_v9` global key to per-uid storage keys (the uid-tag approach is sufficient for v5 isolation; per-uid keys are a v6 concern if multi-account-on-device becomes a real use case)
+- Retiring the debug "Clear local data" button — currently strips from release builds via `__DEV__`
+
+---
+
 ## 8. Architecture Decisions Summary
 
 | Area | Decision |
@@ -289,6 +311,9 @@ pushTokens/{uid}                      // existing — unchanged
 | Stats outbox grows unbounded (extended offline) | Cap at 50 entries; drop oldest on overflow |
 | Maestro flaky on simulator boot | Add `retry: 2` in CI; use `extendedWaitUntil` in flows |
 | Two-device E2E port/simulator conflicts | Use unique simulator UDIDs; verify both healthy before flow start |
+| Local cache from prior identity leaks into a new sign-in on the same device | Cache tagged with `ownerUid`; load discards mismatched or untagged blobs (§7.5.2 AC8.1) |
+| Cold-start Firestore read fires before auth resolves → permission-denied noise | `ContentProvider` gates `findActive()` on `useAuth()` (§7.5.2 AC8.2) |
+| Node 20 runtime deprecation 2026-04-30 / decommission 2026-10-30 | Functions on Node 22; `@types/node`+`firebase-functions` kept current within v6 (§7.5.2 AC8.5–8.6) |
 
 ---
 
@@ -302,3 +327,4 @@ pushTokens/{uid}                      // existing — unchanged
 - [ ] All five interaction types verified end-to-end
 - [ ] No regression in 100 existing app unit tests + 56 function tests
 - [ ] Coverage maintained: 80%+ lines/branches for new code
+- [x] Identity-boundary regression covered by tests: cross-uid cache leak, untagged cache, ContentContext auth race (271 app tests + 59 function tests, 0 failing)

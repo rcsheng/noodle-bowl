@@ -101,7 +101,7 @@ export default function HubScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{dailyStreak > 0 ? `🔥 ${dailyStreak}` : '—'}</Text>
+              <Text style={styles.statValue}>{dailyStreak > 0 ? `🔥 ${dailyStreak}` : 0}</Text>
               <Text style={styles.statLabel}>Day Streak</Text>
             </View>
             <View style={styles.statDivider} />

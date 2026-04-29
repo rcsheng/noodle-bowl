@@ -223,6 +223,7 @@ describe('GameContext Firestore persistence', () => {
     await AsyncStorage.setItem(
       'daily_state_v9',
       JSON.stringify({
+        ownerUid: 'user1',
         stats: {},
         seen: {},
         friendInteractions: [anonInteraction],
@@ -250,6 +251,87 @@ describe('GameContext Firestore persistence', () => {
     expect(setDocCalls.length).toBeGreaterThan(0);
   });
 
+  test('discards cache whose ownerUid does not match the current user', async () => {
+    // Cache was written by user1 (e.g. a previous session or another account).
+    await AsyncStorage.setItem(
+      'daily_state_v9',
+      JSON.stringify({
+        ownerUid: 'user1',
+        stats: {
+          totalPoints: 999,
+          dailyStreak: 3,
+          bestDailyStreak: 3,
+          lastPlayedDate: '2026-04-26',
+          totalDaysPlayed: 3,
+          streakShieldsAvailable: 0,
+          streakShieldUsedToday: false,
+        },
+        seen: {},
+        friendInteractions: [
+          {
+            id: 'leak-1',
+            type: 'gave_help',
+            friendName: 'A',
+            gameId: 'lede',
+            questionIndex: 0,
+            date: '2026-04-26',
+            shieldEarned: false,
+          },
+        ],
+      }),
+    );
+
+    // Now a different user (user2) signs in on the same device.
+    useAuth.mockReturnValue({ user: { uid: 'user2', isAnonymous: false }, isAnonymous: false });
+    getDocs.mockResolvedValue({ docs: [] });
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    await act(async () => {
+      for (let i = 0; i < 12; i++) await Promise.resolve();
+    });
+
+    // Streak and friend interactions from user1 must NOT leak into user2's session.
+    expect(result.current.state.stats.dailyStreak).toBe(0);
+    expect(result.current.state.stats.totalPoints).toBe(0);
+    expect(result.current.state.friendInteractions).toHaveLength(0);
+  });
+
+  test('discards untagged legacy cache (no ownerUid field)', async () => {
+    // Pre-uid-tagging cache shape — must not be loaded for any user.
+    await AsyncStorage.setItem(
+      'daily_state_v9',
+      JSON.stringify({
+        stats: { totalPoints: 50, dailyStreak: 2 },
+        seen: {},
+        friendInteractions: [
+          {
+            id: 'legacy-1',
+            type: 'gave_help',
+            friendName: 'A',
+            gameId: 'lede',
+            questionIndex: 0,
+            date: '2026-04-26',
+            shieldEarned: false,
+          },
+        ],
+      }),
+    );
+
+    useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
+    getDocs.mockResolvedValue({ docs: [] });
+
+    const { result } = renderHook(() => useGame(), { wrapper });
+
+    await act(async () => {
+      for (let i = 0; i < 12; i++) await Promise.resolve();
+    });
+
+    expect(result.current.state.stats.totalPoints).toBe(0);
+    expect(result.current.state.stats.dailyStreak).toBe(0);
+    expect(result.current.state.friendInteractions).toHaveLength(0);
+  });
+
   test('does not double-write interactions that already exist in Firestore', async () => {
     useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
 
@@ -265,7 +347,7 @@ describe('GameContext Firestore persistence', () => {
     // Same id in BOTH local and server — should not trigger setDoc for this one.
     await AsyncStorage.setItem(
       'daily_state_v9',
-      JSON.stringify({ stats: {}, seen: {}, friendInteractions: [sharedInteraction] }),
+      JSON.stringify({ ownerUid: 'user1', stats: {}, seen: {}, friendInteractions: [sharedInteraction] }),
     );
     getDocs.mockResolvedValue({ docs: [{ data: () => sharedInteraction }] });
 

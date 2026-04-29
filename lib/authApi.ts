@@ -51,22 +51,23 @@ export function mapAuthError(code: string, rawMessage = ''): string {
 export async function signUp(email: string, password: string, displayName: string) {
   signUpSchema.parse({ email, password, displayName });
   const currentUser = auth.currentUser;
-  let user;
   try {
+    let user;
     if (currentUser?.isAnonymous) {
       const credential = EmailAuthProvider.credential(email, password);
-      await linkWithCredential(currentUser, credential);
+      const result = await linkWithCredential(currentUser, credential);
+      user = result.user;
     } else {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      user = result.user;
     }
-    user = auth.currentUser!;
     await updateProfile(user, { displayName });
     await sendEmailVerification(user);
+    return user;
   } catch (err) {
     logger.error('[signUp]', err);
     throw err;
   }
-  return user;
 }
 
 export async function resendVerificationEmail() {

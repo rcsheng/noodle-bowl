@@ -33,25 +33,53 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const { user, isAnonymous } = useAuth();
   const uid = user?.uid ?? null;
 
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then(saved => {
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          dispatch({ type: 'LOAD', payload: parsed });
-        }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoaded(true));
-  }, []);
+  // Track which identity owns the current in-memory state so we can detect
+  // mid-session uid changes (sign-out → sign-in as a different account) and
+  // reset. The cache on disk is also tagged with ownerUid; mismatches are
+  // discarded on load.
+  const loadedForUidRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!uid) return;
+
+    if (loadedForUidRef.current === null) {
+      loadedForUidRef.current = uid;
+      AsyncStorage.getItem(STORAGE_KEY)
+        .then(saved => {
+          if (!saved) return;
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.ownerUid && parsed.ownerUid === uid) {
+              dispatch({ type: 'LOAD', payload: parsed });
+            }
+            // Else: cache belongs to a different identity (or untagged legacy
+            // blob) — discard. The Firestore merge effects below will populate
+            // from server if this user has any data.
+          } catch {}
+        })
+        .catch(() => {})
+        .finally(() => setIsLoaded(true));
+      return;
+    }
+
+    if (loadedForUidRef.current !== uid) {
+      loadedForUidRef.current = uid;
+      dispatch({ type: 'LOAD', payload: {} });
+    }
+  }, [uid]);
+
+  useEffect(() => {
+    if (!isLoaded || !uid) return;
     AsyncStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ stats: state.stats, seen: state.seen, friendInteractions: state.friendInteractions })
+      JSON.stringify({
+        ownerUid: uid,
+        stats: state.stats,
+        seen: state.seen,
+        friendInteractions: state.friendInteractions,
+      }),
     ).catch(() => {});
-  }, [state, isLoaded]);
+  }, [state, isLoaded, uid]);
 
   useEffect(() => {
     if (!isLoaded || isAnonymous || !uid) return;

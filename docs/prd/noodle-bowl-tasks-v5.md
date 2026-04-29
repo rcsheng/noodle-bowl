@@ -8,7 +8,7 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 
 ## What's Next (snapshot — 2026-04-28)
 
-**Phases shipped:** 1, 2, 4, 6, 7. **All P0 manual smokes verified 2026-04-28** (Device A iPhone Expo Go + Device B Android emulator Pixel_9 against local Firebase emulator). See `docs/smoke-test/smoke-test-plan.md` for the canonical block-1–10 plan; Phase 6/7 ACs were verified ad hoc and are listed there as "Future blocks to add".
+**Phases shipped:** 1, 2, 4, 6, 7, 8. **All P0 manual smokes verified 2026-04-28** (Device A iPhone Expo Go + Device B Android emulator Pixel_9 against local Firebase emulator). See `docs/smoke-test/smoke-test-plan.md` for the canonical block-1–10 plan; Phase 6/7 ACs were verified ad hoc and are listed there as "Future blocks to add".
 **Phases deferred:** 3 + 5 (Maestro / cross-device E2E — replaced by manual smoke per PRD §4.1).
 
 ### ~~Immediate (P0) — manual smoke before declaring Phase 6 done~~ ✅ ALL PASSED 2026-04-28
@@ -316,6 +316,38 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [ ] [P2] Daily push reminder before streak rolls over
 - [ ] [P2] Shield-fill animation when a shield is earned
 - [ ] [P2] Retroactive shield credit when an anonymous user signs up shortly after seeing the ShieldSignUpBanner (currently out of scope per AC7.9)
+
+---
+
+## Phase 8 — Hardening & maintenance ✅ COMPLETE
+
+> Post-prod-deploy cleanup. Identity-boundary safety, auth-race fix, dependency hygiene, and bringing the test suite to fully green.
+
+### RED — write failing tests first
+- [x] [P0] `context/__tests__/GameContext.test.tsx` — add 2 tests asserting cache from a different uid is discarded, and untagged legacy cache is discarded (AC8.1)
+- [x] [P0] `context/__tests__/ContentContext.test.tsx` — new file. Assert `findActive` is NOT called while auth is loading or when no user is signed in; IS called once auth resolves with a user (AC8.2)
+- [x] [P0] Re-confirm 4 pre-existing `authApi` test failures express the desired behavior (resolved `UserCredential.user` should drive `updateProfile` / `sendEmailVerification`); fix impl rather than tests (AC8.3)
+
+### GREEN — implement
+- [x] [P0] `context/GameContext.tsx` — uid-tagged cache (`ownerUid`) + `loadedForUidRef`; mismatched/untagged cache is discarded; mid-session uid change resets state (AC8.1)
+- [x] [P0] `app/(tabs)/profile.tsx` — `__DEV__`-gated "Clear local data" debug button (AsyncStorage.clear + signOut). Metro tree-shakes from release bundles (AC8.4)
+- [x] [P0] `lib/firebase.ts` — `EXPO_PUBLIC_USE_EMULATOR=false` opt-out so dev builds can target prod Firebase
+- [x] [P0] `app/(tabs)/index.tsx` — streak displays `0` instead of `—` when zero (visual consistency)
+- [x] [P0] `context/ContentContext.tsx` — gate Firestore `findActive()` on `useAuth()` resolution; falls through to cached/bundled while auth pending (AC8.2)
+- [x] [P0] `lib/authApi.ts` — `signUp` reads from resolved `linkWithCredential` / `createUserWithEmailAndPassword` `UserCredential.user` instead of `auth.currentUser` (AC8.3)
+- [x] [P0] `functions/package.json` — Node engine 20 → 22 (matches deprecation deadline 2026-04-30); deployed (AC8.5)
+- [x] [P0] `functions/package.json` — `@types/node` 20 → 22, `firebase-functions` 6.5 → 6.6.0 (latest within v6); build clean, all 59 functions tests pass (AC8.6)
+
+### Verify
+- [x] [P0] Full suite: 271/271 passing (4 pre-existing `authApi` failures resolved + 3 new `ContentContext` tests added)
+- [x] [P0] `cd functions && npm run build` clean
+- [x] [P0] `cd functions && npm test` — 59/59 functions tests pass on new dep versions
+- [x] [P0] Manual smoke: prod sign-up creates user with 0/0 streak (no leak from prior emulator session)
+- [x] [P0] Manual smoke: cold start no longer logs `Missing or insufficient permissions` from ContentContext
+
+### Phase 8 follow-ups (open work)
+- [ ] [P1] `firebase-functions` v6 → v7 (major) — own session, breaking changes
+- [ ] [P2] Remove debug "Clear local data" button before first TestFlight cut (or leave; it's already release-stripped via `__DEV__`)
 
 ---
 

@@ -1,6 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Masthead } from '@/components/Masthead';
@@ -13,6 +14,24 @@ export default function ProfileScreen() {
 
   async function handleSignOut() {
     await signOutAndGoAnonymous();
+  }
+
+  function handleClearLocalData() {
+    Alert.alert(
+      'Clear local data?',
+      'Wipes streak, friend activity, and signs you out. Server-side data is untouched. Use only for testing.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.clear();
+            await signOutAndGoAnonymous();
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -86,6 +105,16 @@ export default function ProfileScreen() {
               Stats and streaks are only saved on this device while playing as a guest.
             </Text>
           </View>
+        )}
+
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.debugBtn}
+            onPress={handleClearLocalData}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.debugBtnText}>Clear local data (dev)</Text>
+          </TouchableOpacity>
         )}
 
         <View style={styles.footer}>
@@ -235,6 +264,21 @@ const styles = StyleSheet.create({
     color: C.muted,
     lineHeight: 20,
     textAlign: 'center',
+  },
+  debugBtn: {
+    borderWidth: 1,
+    borderColor: '#c4453a',
+    borderStyle: 'dashed',
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  debugBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: '#c4453a',
   },
   footer: { alignItems: 'center', paddingTop: 24 },
   footerText: {
