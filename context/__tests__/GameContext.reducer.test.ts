@@ -257,6 +257,86 @@ describe('reducer: UPDATE_DAILY_STREAK', () => {
     const next = reducer(state, action('2026-04-26'));
     expect(next.stats.totalDaysPlayed).toBe(11);
   });
+
+  test('streakShieldUsedToday resets to false on a normal next-day continuation', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedDate: '2026-04-25',
+        dailyStreak: 7,
+        streakShieldsAvailable: 1,
+        streakShieldUsedToday: true,
+      },
+    });
+    const next = reducer(state, action('2026-04-26'));
+    expect(next.stats.streakShieldUsedToday).toBe(false);
+    expect(next.stats.dailyStreak).toBe(8);
+  });
+
+  test('streakShieldUsedToday resets to false when streak resets', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedDate: '2026-04-20',
+        dailyStreak: 7,
+        streakShieldsAvailable: 0,
+        streakShieldUsedToday: true,
+      },
+    });
+    const next = reducer(state, action('2026-04-26'));
+    expect(next.stats.streakShieldUsedToday).toBe(false);
+    expect(next.stats.dailyStreak).toBe(1);
+  });
+
+  test('streakSavedBannerSeen flips to false when a shield is consumed', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedDate: '2026-04-20',
+        dailyStreak: 7,
+        streakShieldsAvailable: 2,
+        streakShieldUsedToday: false,
+        streakSavedBannerSeen: true,
+      },
+    });
+    const next = reducer(state, action('2026-04-26'));
+    expect(next.stats.streakShieldUsedToday).toBe(true);
+    expect(next.stats.streakSavedBannerSeen).toBe(false);
+  });
+
+  test('streakSavedBannerSeen stays true on normal continuation', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedDate: '2026-04-25',
+        dailyStreak: 3,
+        streakSavedBannerSeen: true,
+      },
+    });
+    const next = reducer(state, action('2026-04-26'));
+    expect(next.stats.streakSavedBannerSeen).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DISMISS_STREAK_SAVED_BANNER
+// ---------------------------------------------------------------------------
+describe('reducer: DISMISS_STREAK_SAVED_BANNER', () => {
+  test('sets streakSavedBannerSeen to true', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, streakSavedBannerSeen: false },
+    });
+    const next = reducer(state, { type: 'DISMISS_STREAK_SAVED_BANNER' });
+    expect(next.stats.streakSavedBannerSeen).toBe(true);
+  });
+
+  test('is a no-op when already seen', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, streakSavedBannerSeen: true },
+    });
+    const next = reducer(state, { type: 'DISMISS_STREAK_SAVED_BANNER' });
+    expect(next).toBe(state);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -21,6 +21,7 @@ interface GameContextType {
   addFriendInteraction: (interaction: Omit<FriendInteraction, 'id' | 'date'>) => void;
   removeFriendInteraction: (id: string) => void;
   dismissHelpCard: (token: string) => void;
+  dismissStreakSavedBanner: () => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -184,6 +185,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAnonymous, uid, state.friendInteractions]);
 
+  const dismissStreakSavedBanner = useCallback(() => {
+    dispatch({ type: 'DISMISS_STREAK_SAVED_BANNER' });
+  }, []);
+
   // Always-on subscription to outstanding sent_help / sent_challenge tokens so
   // the home card and Friends feed stay in sync regardless of which tab is open.
   const unsubRefs = useRef<Map<string, () => void>>(new Map());
@@ -255,7 +260,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [uid]);
 
   return (
-    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard }}>
+    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard, dismissStreakSavedBanner }}>
       {children}
     </GameContext.Provider>
   );

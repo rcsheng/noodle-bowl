@@ -34,6 +34,7 @@ interface AppState {
     totalDaysPlayed: number;
     streakShieldsAvailable: number;
     streakShieldUsedToday: boolean;
+    streakSavedBannerSeen: boolean;
     lede: GameStats;
     spread: GameStats;
     sof: GameStats;
@@ -57,6 +58,7 @@ export const initialState: AppState = {
     totalDaysPlayed: 0,
     streakShieldsAvailable: 0,
     streakShieldUsedToday: false,
+    streakSavedBannerSeen: true,
     lede: { ...defaultGameStats },
     spread: { ...defaultGameStats },
     sof: { ...defaultGameStats },
@@ -79,6 +81,7 @@ export type Action =
   | { type: 'UPDATE_DAILY_STREAK'; today: string }
   | { type: 'SET_SEEN'; game: GameId; seen: number[] }
   | { type: 'EARN_SHIELD' }
+  | { type: 'DISMISS_STREAK_SAVED_BANNER' }
   | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction }
   | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] }
   | { type: 'REMOVE_FRIEND_INTERACTION'; id: string }
@@ -98,6 +101,7 @@ export function reducer(state: AppState, action: Action): AppState {
         mergedStats.totalDaysPlayed = stats.totalDaysPlayed ?? 0;
         mergedStats.streakShieldsAvailable = stats.streakShieldsAvailable ?? 0;
         mergedStats.streakShieldUsedToday = stats.streakShieldUsedToday ?? false;
+        mergedStats.streakSavedBannerSeen = stats.streakSavedBannerSeen ?? true;
         (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
           const saved = stats[g];
           if (saved) mergedStats[g] = { ...defaultGameStats, ...(saved as GameStats) };
@@ -143,12 +147,14 @@ export function reducer(state: AppState, action: Action): AppState {
       const yesterday = getPreviousDay(today);
       let newDailyStreak = stats.dailyStreak;
       let newShields = stats.streakShieldsAvailable;
-      let newShieldUsedToday = stats.streakShieldUsedToday;
+      let newShieldUsedToday = false;
+      let newBannerSeen = stats.streakSavedBannerSeen;
       if (stats.lastPlayedDate === yesterday) {
         newDailyStreak = stats.dailyStreak + 1;
       } else if (stats.streakShieldsAvailable > 0 && !stats.streakShieldUsedToday) {
         newShields = stats.streakShieldsAvailable - 1;
         newShieldUsedToday = true;
+        newBannerSeen = false;
       } else {
         newDailyStreak = stats.lastPlayedDate === null ? 1 : 1;
       }
@@ -162,6 +168,7 @@ export function reducer(state: AppState, action: Action): AppState {
           totalDaysPlayed: stats.totalDaysPlayed + 1,
           streakShieldsAvailable: newShields,
           streakShieldUsedToday: newShieldUsedToday,
+          streakSavedBannerSeen: newBannerSeen,
         },
       };
     }
@@ -174,6 +181,12 @@ export function reducer(state: AppState, action: Action): AppState {
           ...state.stats,
           streakShieldsAvailable: state.stats.streakShieldsAvailable + 1,
         },
+      };
+    case 'DISMISS_STREAK_SAVED_BANNER':
+      if (state.stats.streakSavedBannerSeen) return state;
+      return {
+        ...state,
+        stats: { ...state.stats, streakSavedBannerSeen: true },
       };
     case 'ADD_FRIEND_INTERACTION':
       return { ...state, friendInteractions: [action.interaction, ...state.friendInteractions] };

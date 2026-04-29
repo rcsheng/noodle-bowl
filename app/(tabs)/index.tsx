@@ -13,6 +13,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { ChallengeReplyCard } from '@/components/ChallengeReplyCard';
 import { HelpResultCard } from '@/components/HelpResultCard';
 import { Masthead } from '@/components/Masthead';
+import { ShieldSavedBanner } from '@/components/ShieldSavedBanner';
 import { C, F, cardShadow } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
@@ -22,9 +23,10 @@ import { db } from '@/lib/firebase';
 import { evaluateHelperAnswer } from '@/lib/helpAnswerEvaluator';
 
 export default function HubScreen() {
-  const { state, dismissHelpCard, removeFriendInteraction } = useGame();
+  const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner } = useGame();
   const { banks } = useContent();
-  const { totalPoints, dailyStreak } = state.stats;
+  const { totalPoints, dailyStreak, streakShieldUsedToday, streakSavedBannerSeen } = state.stats;
+  const showStreakSavedBanner = streakShieldUsedToday && !streakSavedBannerSeen;
   const assists = state.friendInteractions.filter(i => i.type === 'gave_help').length;
   const today = getTodayISODate();
 
@@ -111,6 +113,8 @@ export default function HubScreen() {
             </View>
           </View>
         </View>
+
+        <ShieldSavedBanner visible={showStreakSavedBanner} onDismiss={dismissStreakSavedBanner} />
 
         {hasReplies && (
           <>
