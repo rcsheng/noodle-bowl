@@ -25,7 +25,8 @@ export async function respondToChallenge(input: ChallengeRespondInput): Promise<
 export async function fetchChallenge(token: string): Promise<ChallengeGetResponse | { error: string }> {
   const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? '';
   const host = process.env.EXPO_PUBLIC_EMULATOR_HOST ?? 'localhost';
-  const baseUrl = __DEV__
+  const useEmulator = __DEV__ && process.env.EXPO_PUBLIC_USE_EMULATOR !== 'false';
+  const baseUrl = useEmulator
     ? `http://${host}:5001/${projectId}/us-central1/challengeGet`
     : `https://us-central1-${projectId}.cloudfunctions.net/challengeGet`;
 

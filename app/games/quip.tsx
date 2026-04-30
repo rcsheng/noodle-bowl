@@ -32,6 +32,7 @@ import { useAuthGate } from '@/lib/authGuard';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
+import { logger } from '@/lib/logger';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
 type Phase = 'play' | 'judging' | 'result';
@@ -235,7 +236,8 @@ export default function QuipScreen() {
       setHelpUrl(result.url);
       setHelpToken(result.token);
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'quip', questionIndex: questionIdx, shieldEarned: false, token: result.token });
-    } catch {
+    } catch (err) {
+      logger.error('[quip] createHelp failed', err);
       setHelpUrl('');
     } finally {
       setHelpLoading(false);

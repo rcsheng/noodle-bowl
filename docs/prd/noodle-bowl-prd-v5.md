@@ -137,7 +137,7 @@ Run after any change touching challenge, help, auth, or content flows:
 
 ### 5.2 Acceptance criteria
 - AC5.1 Universal links / app links resolve `https://noodlebowl.app/c/{token}` to the app on iOS and Android. (Wiring already in place; v5 verifies it via E2E.)
-- AC5.2 The `challengeRespond` push notification fires within 2 seconds of the friend's response (already implemented; covered by E2E assertion).
+- AC5.2 ~~Push notification on response~~ **Permanently dropped** — real-time updates delivered via Firestore `onSnapshot` listeners instead.
 - AC5.3 Anonymous responders can respond to challenges (auth required, but `signInAnonymously` is acceptable).
 - AC5.4 Challenge and help link creation is idempotent per `(uid, gameId, questionIndex, day)`. If a link already exists for that tuple, the server returns the existing token and URL instead of an error. The client caches the URL locally and skips the API call on repeat opens within the same play session.
 - AC5.5 Each help link is scoped to a specific question (`questionIndex`). A user may generate distinct links for different questions played in the same game on the same day.
@@ -295,7 +295,6 @@ users/{uid}/friendInteractions/{interactionId}
 
 challenges/{token}                    // existing — unchanged
 helpRequests/{token}                  // existing — unchanged
-pushTokens/{uid}                      // existing — unchanged
 ```
 
 ---

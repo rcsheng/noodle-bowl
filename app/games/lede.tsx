@@ -29,6 +29,7 @@ import { useAuthGate } from '@/lib/authGuard';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
+import { logger } from '@/lib/logger';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
 type Phase = 'play' | 'reveal';
@@ -194,7 +195,8 @@ export default function LedeScreen() {
       // how the user delivers the URL (Share, copy, manual). Without this, the
       // Friends tab never subscribes and the helper's response is never seen.
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false, token: result.token });
-    } catch {
+    } catch (err) {
+      logger.error('[lede] createHelp failed', err);
       setHelpUrl('');
     } finally {
       setHelpLoading(false);
