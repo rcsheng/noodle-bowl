@@ -54,7 +54,6 @@ export default function SpreadScreen() {
     challengeToken,
     challengeQuestionIndex,
     challengeSenderName,
-    challengeSenderPrediction,
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
@@ -62,7 +61,6 @@ export default function SpreadScreen() {
     challengeToken?: string;
     challengeQuestionIndex?: string;
     challengeSenderName?: string;
-    challengeSenderPrediction?: string;
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
@@ -93,11 +91,15 @@ export default function SpreadScreen() {
     started.current = true;
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
-      setQuestion(banks.spread[idx]);
+      const item = banks.spread[idx];
+      if (!item) { router.replace('/'); return; }
+      setQuestion(item);
       setQuestionIdx(idx);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
-      setQuestion(banks.spread[idx]);
+      const item = banks.spread[idx];
+      if (!item) { router.replace('/'); return; }
+      setQuestion(item);
       setQuestionIdx(idx);
     } else {
       const { idx, item, newSeen } = pickFromBank(banks.spread, state.seen.spread);
@@ -352,8 +354,8 @@ export default function SpreadScreen() {
                     <View style={styles.challengeRow}>
                       <Text style={styles.challengeKey}>Their prediction</Text>
                       <Text style={styles.challengeVal}>
-                        {challengeSenderPrediction}{' '}
-                        {challengeSenderPrediction === input ? '✓' : '✗'}
+                        {challengeComparison.senderPrediction}{' '}
+                        {challengeComparison.senderPrediction === input ? '✓' : '✗'}
                       </Text>
                     </View>
                   </View>

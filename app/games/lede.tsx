@@ -49,7 +49,6 @@ export default function LedeScreen() {
     challengeToken,
     challengeQuestionIndex,
     challengeSenderName,
-    challengeSenderPrediction,
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
@@ -57,7 +56,6 @@ export default function LedeScreen() {
     challengeToken?: string;
     challengeQuestionIndex?: string;
     challengeSenderName?: string;
-    challengeSenderPrediction?: string;
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
@@ -90,12 +88,14 @@ export default function LedeScreen() {
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
       const item = banks.lede[idx];
+      if (!item) { router.replace('/'); return; }
       setQuestion(item);
       setQuestionIdx(idx);
       setOrder(shuffleIndices(item.panelists.length));
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.lede[idx];
+      if (!item) { router.replace('/'); return; }
       setQuestion(item);
       setQuestionIdx(idx);
       setOrder(shuffleIndices(item.panelists.length));
@@ -384,8 +384,8 @@ export default function LedeScreen() {
                   <View style={styles.comparisonRow}>
                     <Text style={styles.comparisonKey}>Their prediction</Text>
                     <Text style={styles.comparisonVal}>
-                      {challengeSenderPrediction}{' '}
-                      {challengeSenderPrediction === (selected !== null ? question.panelists[selected].name : '') ? '✓' : '✗'}
+                      {challengeComparison.senderPrediction}{' '}
+                      {challengeComparison.senderPrediction === (selected !== null ? question.panelists[selected].name : '') ? '✓' : '✗'}
                     </Text>
                   </View>
                 </View>

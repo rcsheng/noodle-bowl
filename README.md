@@ -10,7 +10,7 @@ Daily brain-game app with 5 games: Lede, Spread, SoF, Wave, Quip.
 
 Install these once before starting:
 
-- [Node.js](https://nodejs.org) 18+
+- [Node.js](https://nodejs.org) 22+
 - [Firebase CLI](https://firebase.google.com/docs/cli): `npm install -g firebase-tools`
 - [Expo Go](https://expo.dev/go) on your iOS/Android device or simulator
 - Java 11+ (required by the Firebase emulator)
@@ -61,7 +61,8 @@ firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-da
 Run this once after the emulator starts (or after each restart if not using `--import`):
 
 ```bash
-npm run seed:emulator
+npm run seed:emulator   # seed to local emulator
+npm run seed:prod       # seed to production (requires GOOGLE_APPLICATION_CREDENTIALS)
 ```
 
 This writes a `contentVersions` document to Firestore with all five game banks. Verify it appears at http://localhost:4000/firestore under `contentVersions`.
@@ -87,7 +88,8 @@ Scan the QR code with Expo Go (physical device) or press `i`/`a` for iOS Simulat
 | `helpRequests/{token}` | Asking for help in-app |
 | `pushTokens/{uid}` | App launch (notification permission grant) |
 | `users/{uid}/friendInteractions/{id}` | Sending/receiving challenges or help (signed-in users) |
-| `users/{uid}/meta/stats` | Stats sync — Phase 4 |
+| `users/{uid}/meta/stats` | Stats sync (debounced write on every game) |
+| `users/{uid}/meta/seen` | Seen-question indices (synced alongside stats) |
 
 ---
 
@@ -107,9 +109,10 @@ The app starts every user as an anonymous Firebase user — no sign-in required 
 npm test                 # run all tests
 npm run test:watch       # watch mode
 npm run test:coverage    # with coverage report
+npm run test:rules       # Firestore security-rules suite (requires emulator running)
 ```
 
-161 tests across 12 suites. TDD is mandatory for new features — write the failing test first.
+281 tests across 14 suites (app) + 59 function tests + 34 security-rules tests. TDD is mandatory for new features — write the failing test first.
 
 ---
 

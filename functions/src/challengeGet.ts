@@ -5,7 +5,6 @@ export interface ChallengeGetResponse {
   gameId: string;
   questionIndex: number;
   senderName: string;
-  senderPrediction: string;
   expiresAt: string;
 }
 
@@ -35,7 +34,6 @@ export async function getChallengeHandler(
     gameId: data.gameId as string,
     questionIndex: data.questionIndex as number,
     senderName: data.senderName as string,
-    senderPrediction: data.senderPrediction as string,
     expiresAt: expiresAt.toISOString(),
   };
 }

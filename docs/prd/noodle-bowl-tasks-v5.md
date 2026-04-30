@@ -27,7 +27,6 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
   - `seen` sync to `users/{uid}/meta/seen` (P1)
   - ~~`@firebase/rules-unit-testing` security-rules suite (P1)~~ ✅ done 2026-04-28 (`npm run test:rules`)
 - **C. Phase 6 follow-ups** — listed in §Phase 6 below.
-- **D. Help-flow push notifications** — currently only challenge responses push. Hooking help responses into the same pipeline gives parity with challenges and removes the need for the user to open the app to see the home card.
 
 ### Permanently deferred unless re-prioritized
 - Phase 3 (Maestro E2E framework) — see PRD §4.1
@@ -162,7 +161,7 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [x] [P0] Update `app/(tabs)/friends.tsx` to read from subcollection `onSnapshot` for permanent users
 - [x] [P0] Update `firestore.rules` for `users/{uid}/**`
 - [x] [P1] Add security-rules test suite (`@firebase/rules-unit-testing`) verifying cross-user denial — `__tests__/firestore-rules.test.ts` (34 tests, run via `npm run test:rules`)
-- [ ] [P1] Add `seen` sync to `users/{uid}/meta/seen`
+- [x] [P1] Add `seen` sync to `users/{uid}/meta/seen`
 
 ### Phase 4 bug fixes & additions (post-implementation)
 - [x] Fix `senderName` bug: all 5 game screens now pass `user?.displayName ?? 'A Friend'` instead of `friendName` to `createChallenge()` (AC5.8)
@@ -239,7 +238,6 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 - [x] [P0] Manual smoke (AC6.10): wipe `helpRequests` in Emulator UI → reload home → orphan card disappears
 
 ### Phase 6 follow-ups (open work)
-- [ ] [P1] Push notification on help response (parity with challenge response push) — would let the home card appear without manual app reopen
 - [ ] [P1] Garbage-collect orphaned local `received_help` interactions after N days when AC6.10 validation fails
 - [ ] [P2] Animated entry/exit for the Help Result Card
 - [ ] [P2] Persist `homeCardDismissed` to Firestore so dismissals survive across devices for signed-in users
@@ -313,7 +311,6 @@ Phase order: **0 → (1 ∥ 2) → 3 → (4 ∥ 5) → 6**
 
 ### Phase 7 follow-ups (future work)
 - [ ] [P1] "Streak saved!" celebration banner on home when a shield was consumed (requires fixing `streakShieldUsedToday` flag persistence in `UPDATE_DAILY_STREAK` — currently it doesn't reset on normal continuation)
-- [ ] [P2] Daily push reminder before streak rolls over
 - [ ] [P2] Shield-fill animation when a shield is earned
 - [ ] [P2] Retroactive shield credit when an anonymous user signs up shortly after seeing the ShieldSignUpBanner (currently out of scope per AC7.9)
 

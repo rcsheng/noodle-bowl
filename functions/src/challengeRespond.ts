@@ -20,6 +20,7 @@ export interface ChallengeRespondOutput {
 export async function respondToChallengeHandler(
   db: ReturnType<typeof getFirestore>,
   input: ChallengeRespondInput,
+  uid: string,
 ): Promise<ChallengeRespondOutput> {
   const snap = await db.collection('challenges').doc(input.token).get();
 
@@ -28,6 +29,10 @@ export async function respondToChallengeHandler(
   }
 
   const data = snap.data()!;
+
+  if (uid === data.senderId) {
+    throw new HttpsError('permission-denied', 'You cannot respond to your own challenge');
+  }
 
   if (data.expiresAt.toDate().getTime() < Date.now()) {
     throw new HttpsError('deadline-exceeded', 'Challenge has expired');
@@ -66,5 +71,5 @@ export const challengeRespond = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Must be signed in to respond to a challenge');
   }
-  return respondToChallengeHandler(getFirestore(), request.data as ChallengeRespondInput);
+  return respondToChallengeHandler(getFirestore(), request.data as ChallengeRespondInput, request.auth.uid);
 });

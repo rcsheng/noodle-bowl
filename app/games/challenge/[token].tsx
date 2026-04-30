@@ -20,7 +20,6 @@ interface NormalizedPayload {
   gameId: string;
   questionIndex: number;
   senderName: string;
-  senderPrediction: string;
   expiresAt?: string;
 }
 
@@ -56,7 +55,7 @@ export default function ChallengeScreen() {
           setError('This challenge is for a game that is not available.');
           return;
         }
-        setPayload(result);
+        setPayload({ gameId: result.gameId, questionIndex: result.questionIndex, senderName: result.senderName, expiresAt: result.expiresAt });
       }).catch(() => {
         setError('Could not load challenge. Please check your connection and try again.');
       });
@@ -83,7 +82,6 @@ export default function ChallengeScreen() {
       gameId: decoded.gameId,
       questionIndex: decoded.questionIndex,
       senderName: decoded.senderName,
-      senderPrediction: decoded.senderPrediction,
     });
   }, [token]);
 
@@ -166,7 +164,6 @@ export default function ChallengeScreen() {
               challengeToken: token as string,
               challengeQuestionIndex: String(payload.questionIndex),
               challengeSenderName: payload.senderName,
-              challengeSenderPrediction: payload.senderPrediction,
             },
           })}
           activeOpacity={0.85}

@@ -29,8 +29,9 @@ export async function getHelpHandler(
 }
 
 export const helpGet = onRequest(async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Origin', 'https://noodlebowl.app');
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'method_not_allowed' }); return; }
 
   const token = req.query.token as string | undefined;
   const result = await getHelpHandler(getFirestore(), token ?? '');

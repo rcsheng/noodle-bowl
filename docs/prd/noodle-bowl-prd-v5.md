@@ -177,7 +177,6 @@ Run after any change touching challenge, help, auth, or content flows:
 - AC6.13 The single `DISMISS_HELP_CARD` reducer action (kept under that name for compatibility) flags `homeCardDismissed = true` on any matching interaction whose `type` is either `received_help` OR `challenge_accepted` and whose `token` matches. The exposed `useGame()` method `dismissHelpCard(token)` works for both card types.
 
 ### 6.3 Out of scope (v5)
-- Push notification when the friend's answer arrives (existing push pipeline already handles this for challenge responses; reusing it for help is a separate task).
 - Animated entry/exit for the Help Result Card.
 - Persisting `homeCardDismissed` to Firestore for signed-in users (local-only is sufficient — last-write-wins per device matches the existing friendInteraction sync model).
 - Garbage-collecting orphaned `received_help` interactions from local state (AC6.10 hides the card; the underlying interaction is left untouched).
@@ -223,7 +222,6 @@ Run after any change touching challenge, help, auth, or content flows:
 ### 7.4 Out of scope (v5)
 - Migrating an anonymous user's local shields into a different existing account on sign-in. If the user signs in (rather than signs up), `MERGE_FROM_SERVER` may discard the locally-earned shield in favor of server stats. The banner makes this trade-off explicit by preferring "Create Account" first.
 - "Streak saved!" celebration banner on home when a shield was just consumed (separate phase — also requires fixing the `streakShieldUsedToday` flag persistence bug in `UPDATE_DAILY_STREAK`).
-- Daily push reminders to play.
 - Animated counters or shield-fill animation.
 - Earning shields via any path other than answering a help request or a challenge (e.g., perfect-streak bonus, weekly play).
 

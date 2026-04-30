@@ -93,22 +93,29 @@ describe('respondToChallengeHandler', () => {
   test('throws not-found when the token does not exist', async () => {
     const { db } = makeDb(null);
     await expect(
-      respondToChallengeHandler(db as any, { token: 'NOTOKEN', friendAnswer: 'Pip' }),
+      respondToChallengeHandler(db as any, { token: 'NOTOKEN', friendAnswer: 'Pip' }, 'uid-friend'),
     ).rejects.toMatchObject({ code: 'not-found' });
+  });
+
+  test('throws permission-denied when the sender responds to their own challenge', async () => {
+    const { db } = makeDb(makeChallengeDoc({ senderId: 'uid-sender' }));
+    await expect(
+      respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-sender'),
+    ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 
   test('throws deadline-exceeded when the challenge is expired', async () => {
     const past = new Date(Date.now() - 1000);
     const { db } = makeDb(makeChallengeDoc({ expiresAt: { toDate: () => past } }));
     await expect(
-      respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }),
+      respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend'),
     ).rejects.toMatchObject({ code: 'deadline-exceeded' });
   });
 
   test('throws already-exists when the challenge is already resolved', async () => {
     const { db } = makeDb(makeChallengeDoc({ resolvedAt: { toDate: () => new Date() } }));
     await expect(
-      respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }),
+      respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend'),
     ).rejects.toMatchObject({ code: 'already-exists' });
   });
 
@@ -116,7 +123,7 @@ describe('respondToChallengeHandler', () => {
 
   test('writes friendAnswer and resolvedAt to the challenge document', async () => {
     const { db, updateCalls } = makeDb(makeChallengeDoc());
-    await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' });
+    await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend');
 
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0].data).toMatchObject({ friendAnswer: 'Pip' });
@@ -127,7 +134,7 @@ describe('respondToChallengeHandler', () => {
 
   test('returns full comparison data including senderAnswer', async () => {
     const { db } = makeDb(makeChallengeDoc());
-    const result = await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' });
+    const result = await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend');
 
     expect(result).toMatchObject({
       gameId: 'lede',
@@ -143,13 +150,13 @@ describe('respondToChallengeHandler', () => {
 
   test('does NOT send push notification when senderPushToken is null', async () => {
     const { db } = makeDb(makeChallengeDoc({ senderPushToken: null }));
-    await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' });
+    await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend');
     expect(pushUtils.sendExpoPush).not.toHaveBeenCalled();
   });
 
   test('sends push notification when senderPushToken is present', async () => {
     const { db } = makeDb(makeChallengeDoc({ senderPushToken: 'ExponentPushToken[abc]' }));
-    await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' });
+    await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend');
     expect(pushUtils.sendExpoPush).toHaveBeenCalledWith(
       'ExponentPushToken[abc]',
       expect.objectContaining({ type: 'challenge_accepted', token: 'AB3X9K2M' }),
@@ -160,7 +167,7 @@ describe('respondToChallengeHandler', () => {
 
   test('push notification data includes the challenge token', async () => {
     const { db } = makeDb(makeChallengeDoc({ senderPushToken: 'ExponentPushToken[xyz]' }));
-    await respondToChallengeHandler(db as any, { token: 'MYTOKEN1', friendAnswer: 'Pip' });
+    await respondToChallengeHandler(db as any, { token: 'MYTOKEN1', friendAnswer: 'Pip' }, 'uid-friend');
     expect(pushUtils.sendExpoPush).toHaveBeenCalledWith(
       'ExponentPushToken[xyz]',
       expect.objectContaining({ token: 'MYTOKEN1' }),

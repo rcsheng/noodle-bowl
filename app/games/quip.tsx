@@ -84,7 +84,6 @@ export default function QuipScreen() {
     challengeToken,
     challengeQuestionIndex,
     challengeSenderName,
-    challengeSenderPrediction,
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
@@ -92,7 +91,6 @@ export default function QuipScreen() {
     challengeToken?: string;
     challengeQuestionIndex?: string;
     challengeSenderName?: string;
-    challengeSenderPrediction?: string;
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
@@ -125,11 +123,15 @@ export default function QuipScreen() {
     started.current = true;
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
-      setPrompt(banks.quip[idx]);
+      const item = banks.quip[idx];
+      if (!item) { router.replace('/'); return; }
+      setPrompt(item);
       setQuestionIdx(idx);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
-      setPrompt(banks.quip[idx]);
+      const item = banks.quip[idx];
+      if (!item) { router.replace('/'); return; }
+      setPrompt(item);
       setQuestionIdx(idx);
     } else {
       const { idx, item, newSeen } = pickFromBank(banks.quip, state.seen.quip);
@@ -388,8 +390,8 @@ export default function QuipScreen() {
                     <View style={styles.challengeRow}>
                       <Text style={styles.challengeKey}>Their prediction</Text>
                       <Text style={styles.challengeVal}>
-                        {challengeSenderPrediction} likes{' '}
-                        {challengeSenderPrediction === String(judgeResults.filter(r => r.liked).length) ? '✓' : '✗'}
+                        {challengeComparison.senderPrediction} likes{' '}
+                        {challengeComparison.senderPrediction === String(judgeResults.filter(r => r.liked).length) ? '✓' : '✗'}
                       </Text>
                     </View>
                   </View>

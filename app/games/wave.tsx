@@ -68,7 +68,6 @@ export default function WaveScreen() {
     challengeToken,
     challengeQuestionIndex,
     challengeSenderName,
-    challengeSenderPrediction,
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
@@ -76,7 +75,6 @@ export default function WaveScreen() {
     challengeToken?: string;
     challengeQuestionIndex?: string;
     challengeSenderName?: string;
-    challengeSenderPrediction?: string;
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
@@ -111,11 +109,15 @@ export default function WaveScreen() {
     started.current = true;
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
-      setQuestion(banks.wave[idx]);
+      const item = banks.wave[idx];
+      if (!item) { router.replace('/'); return; }
+      setQuestion(item);
       setQuestionIdx(idx);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
-      setQuestion(banks.wave[idx]);
+      const item = banks.wave[idx];
+      if (!item) { router.replace('/'); return; }
+      setQuestion(item);
       setQuestionIdx(idx);
     } else {
       const { idx, item, newSeen } = pickFromBank(banks.wave, state.seen.wave);
@@ -398,8 +400,8 @@ export default function WaveScreen() {
                   <View style={styles.challengeRow}>
                     <Text style={styles.challengeKey}>Their prediction</Text>
                     <Text style={styles.challengeVal}>
-                      {challengeSenderPrediction}{' '}
-                      {challengeSenderPrediction === positionToZone(revealData?.userPosition ?? userPosition) ? '✓' : '✗'}
+                      {challengeComparison.senderPrediction}{' '}
+                      {challengeComparison.senderPrediction === positionToZone(revealData?.userPosition ?? userPosition) ? '✓' : '✗'}
                     </Text>
                   </View>
                 </View>

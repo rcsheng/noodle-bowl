@@ -89,8 +89,13 @@ describe('getChallengeHandler', () => {
       gameId: 'lede',
       questionIndex: 3,
       senderName: 'Alex',
-      senderPrediction: 'Pip',
     });
+  });
+
+  test('does NOT include senderPrediction in the response', async () => {
+    const db = makeDb(makeChallengeDoc());
+    const result = await getChallengeHandler(db as any, 'AB3X9K2M');
+    expect(result).not.toHaveProperty('senderPrediction');
   });
 
   test('does NOT include senderAnswer in the response', async () => {

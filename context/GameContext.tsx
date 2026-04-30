@@ -189,6 +189,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'DISMISS_STREAK_SAVED_BANNER' });
   }, []);
 
+  // Keep a ref to addFriendInteraction so the snapshot callbacks can call the
+  // latest version without being listed as a dependency of the subscription
+  // effect. If addFriendInteraction were in the dep array, any isAnonymous flip
+  // (e.g. linkWithCredential) would rebuild it and re-fire the effect, opening
+  // duplicate listeners before the cleanup runs.
+  const addFriendInteractionRef = useRef(addFriendInteraction);
+  useEffect(() => {
+    addFriendInteractionRef.current = addFriendInteraction;
+  }, [addFriendInteraction]);
+
   // Always-on subscription to outstanding sent_help / sent_challenge tokens so
   // the home card and Friends feed stay in sync regardless of which tab is open.
   const unsubRefs = useRef<Map<string, () => void>>(new Map());
@@ -211,7 +221,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const unsub = onSnapshot(doc(db, 'challenges', token), snap => {
           const data = snap.data();
           if (!data?.resolvedAt) return;
-          addFriendInteraction({
+          addFriendInteractionRef.current({
             type: 'challenge_accepted',
             friendName: sent.friendName,
             gameId: data.gameId as GameId,
@@ -235,7 +245,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const unsub = onSnapshot(doc(db, 'helpRequests', token), snap => {
           const data = snap.data();
           if (!data?.resolvedAt) return;
-          addFriendInteraction({
+          addFriendInteractionRef.current({
             type: 'received_help',
             friendName: 'A Friend',
             gameId: data.gameId as GameId,
@@ -249,7 +259,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         });
         unsubRefs.current.set(token, unsub);
       });
-  }, [state.friendInteractions, isAnonymous, isLoaded, addFriendInteraction]);
+  }, [state.friendInteractions, isAnonymous, isLoaded]);
 
   // Cleanup on unmount or auth change.
   useEffect(() => {

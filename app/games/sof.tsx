@@ -68,7 +68,6 @@ export default function SofScreen() {
     challengeToken,
     challengeQuestionIndex,
     challengeSenderName,
-    challengeSenderPrediction,
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
@@ -76,7 +75,6 @@ export default function SofScreen() {
     challengeToken?: string;
     challengeQuestionIndex?: string;
     challengeSenderName?: string;
-    challengeSenderPrediction?: string;
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
@@ -108,12 +106,16 @@ export default function SofScreen() {
     started.current = true;
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
-      setQuestion(banks.sof[idx]);
+      const item = banks.sof[idx];
+      if (!item) { router.replace('/'); return; }
+      setQuestion(item);
       setQuestionIdx(idx);
       setVotes([null, null, null]);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
-      setQuestion(banks.sof[idx]);
+      const item = banks.sof[idx];
+      if (!item) { router.replace('/'); return; }
+      setQuestion(item);
       setQuestionIdx(idx);
       setVotes([null, null, null]);
     } else {
@@ -423,8 +425,8 @@ export default function SofScreen() {
                   <View style={styles.challengeRow}>
                     <Text style={styles.challengeKey}>Their prediction</Text>
                     <Text style={styles.challengeVal}>
-                      Claim {challengeSenderPrediction}{' '}
-                      {challengeSenderPrediction === String(votes.findIndex(v => v === 'fiction') + 1) ? '✓' : '✗'}
+                      Claim {challengeComparison.senderPrediction}{' '}
+                      {challengeComparison.senderPrediction === String(votes.findIndex(v => v === 'fiction') + 1) ? '✓' : '✗'}
                     </Text>
                   </View>
                 </View>
