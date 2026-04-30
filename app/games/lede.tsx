@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
-import { HelpSentModal } from '@/components/HelpSentModal';
 import { Masthead } from '@/components/Masthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
@@ -79,7 +78,6 @@ export default function LedeScreen() {
   const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
-  const [showHelpSent, setShowHelpSent] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
 
@@ -368,57 +366,46 @@ export default function LedeScreen() {
               </View>
             )}
 
-            {isChallengeMode && challengeComparison ? (
+            {isChallengeMode ? (
               <>
-                <View style={styles.comparisonPanel}>
-                  <View style={styles.cardInnerBorder} />
-                  <Text style={styles.comparisonPanelLabel}>Challenge Results</Text>
-                  <View style={styles.comparisonRow}>
-                    <Text style={styles.comparisonKey}>Your answer</Text>
-                    <Text style={styles.comparisonVal}>
-                      {selected !== null ? question.panelists[selected].name : '—'}
-                    </Text>
+                {challengeComparison && (
+                  <View style={styles.comparisonPanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.comparisonPanelLabel}>Challenge Results</Text>
+                    <View style={styles.comparisonRow}>
+                      <Text style={styles.comparisonKey}>Your answer</Text>
+                      <Text style={styles.comparisonVal}>
+                        {selected !== null ? question.panelists[selected].name : '—'}
+                      </Text>
+                    </View>
+                    <View style={styles.comparisonRow}>
+                      <Text style={styles.comparisonKey}>{challengeSenderName ?? 'Sender'}'s answer</Text>
+                      <Text style={styles.comparisonVal}>{challengeComparison.senderAnswer}</Text>
+                    </View>
+                    <View style={styles.comparisonRow}>
+                      <Text style={styles.comparisonKey}>Their prediction</Text>
+                      <Text style={styles.comparisonVal}>
+                        {challengeComparison.senderPrediction}{' '}
+                        {challengeComparison.senderPrediction === (selected !== null ? question.panelists[selected].name : '') ? '✓' : '✗'}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.comparisonRow}>
-                    <Text style={styles.comparisonKey}>{challengeSenderName ?? 'Sender'}'s answer</Text>
-                    <Text style={styles.comparisonVal}>{challengeComparison.senderAnswer}</Text>
-                  </View>
-                  <View style={styles.comparisonRow}>
-                    <Text style={styles.comparisonKey}>Their prediction</Text>
-                    <Text style={styles.comparisonVal}>
-                      {challengeComparison.senderPrediction}{' '}
-                      {challengeComparison.senderPrediction === (selected !== null ? question.panelists[selected].name : '') ? '✓' : '✗'}
-                    </Text>
-                  </View>
-                </View>
-              {isAnonymous && !signUpBannerDismissed && (
-                <ChallengeSignUpBanner
-                  senderName={challengeSenderName ?? 'your friend'}
-                  onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
-                  onDismiss={() => setSignUpBannerDismissed(true)}
-                />
-              )}
-              {isAnonymous && !shieldSignUpDismissed && (
-                <ShieldSignUpBanner
-                  onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
-                  onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
-                  onDismiss={() => setShieldSignUpDismissed(true)}
-                />
-              )}
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={() => router.replace('/')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryBtnText}>Back to Home</Text>
-                </TouchableOpacity>
+                )}
+                {isAnonymous && !signUpBannerDismissed && (
+                  <ChallengeSignUpBanner
+                    senderName={challengeSenderName ?? 'your friend'}
+                    onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
+                    onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
+                    onDismiss={() => setSignUpBannerDismissed(true)}
+                  />
+                )}
               </>
-            ) : isHelpMode && helpRespondResult ? (
+            ) : isHelpMode ? (
               <>
                 <View style={styles.comparisonPanel}>
                   <View style={styles.cardInnerBorder} />
-                  <Text style={styles.comparisonPanelLabel}>Help Sent</Text>
-                  <Text style={styles.truthExplanation}>
+                  <Text style={styles.helpSentHeading}>Help Sent</Text>
+                  <Text style={[styles.truthExplanation, { textAlign: 'center' }]}>
                     Your answer has been sent to {helpAskerName || 'your friend'}.
                   </Text>
                 </View>
@@ -429,13 +416,6 @@ export default function LedeScreen() {
                     onDismiss={() => setShieldSignUpDismissed(true)}
                   />
                 )}
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={() => router.replace('/')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryBtnText}>Back to Home</Text>
-                </TouchableOpacity>
               </>
             ) : (
               <>
@@ -459,13 +439,14 @@ export default function LedeScreen() {
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
-                  <Text style={styles.backText}>← Back to Home</Text>
-                </TouchableOpacity>
               </>
             )}
           </>
         )}
+
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+          <Text style={styles.backText}>← Back to Home</Text>
+        </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Noodle Bowl · N° 01 · The Lede</Text>
@@ -524,7 +505,7 @@ export default function LedeScreen() {
 
             <TouchableOpacity
               style={[styles.modalBtn, styles.modalBtnSecondary]}
-              onPress={() => { setShowFriend(false); setShowHelpSent(true); }}
+              onPress={() => setShowFriend(false)}
               activeOpacity={0.85}
             >
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
@@ -533,11 +514,6 @@ export default function LedeScreen() {
           <CopiedToast visible={helpCopied} />
         </View>
       </Modal>
-
-      <HelpSentModal
-        visible={showHelpSent}
-        onDismiss={() => { setShowHelpSent(false); router.replace('/'); }}
-      />
 
       <ShieldEarnedToast visible={shieldToastVisible} />
     </SafeAreaView>
@@ -854,6 +830,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
     marginBottom: 14,
+  },
+  helpSentHeading: {
+    fontFamily: F.frauncesBold,
+    fontSize: 22,
+    color: C.ink,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   comparisonRow: {
     flexDirection: 'row',

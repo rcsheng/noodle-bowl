@@ -16,7 +16,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
-import { HelpSentModal } from '@/components/HelpSentModal';
 import { Masthead } from '@/components/Masthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
@@ -98,7 +97,6 @@ export default function SofScreen() {
   const [challengeComparison, setChallengeComparison] = useState<ChallengeRespondOutput | null>(null);
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
-  const [showHelpSent, setShowHelpSent] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
 
@@ -111,6 +109,7 @@ export default function SofScreen() {
       if (!item) { router.replace('/'); return; }
       setQuestion(item);
       setQuestionIdx(idx);
+      setWeirdMode(item.weirdAndTrue);
       setVotes([null, null, null]);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
@@ -118,6 +117,7 @@ export default function SofScreen() {
       if (!item) { router.replace('/'); return; }
       setQuestion(item);
       setQuestionIdx(idx);
+      setWeirdMode(item.weirdAndTrue);
       setVotes([null, null, null]);
     } else {
       const { idx, item, newSeen } = pickFromSof(banks.sof, false, state.seen.sof);
@@ -284,16 +284,20 @@ export default function SofScreen() {
 
         <View style={styles.modeToggle}>
           <TouchableOpacity
+            testID="sof-toggle-standard"
             style={[styles.modeBtn, !weirdMode && styles.modeBtnActive]}
             onPress={() => handleToggleMode(false)}
             activeOpacity={0.8}
+            disabled={isChallengeMode || isHelpMode}
           >
             <Text style={[styles.modeBtnText, !weirdMode && styles.modeBtnTextActive]}>Standard</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            testID="sof-toggle-weird"
             style={[styles.modeBtn, weirdMode && styles.modeBtnActive]}
             onPress={() => handleToggleMode(true)}
             activeOpacity={0.8}
+            disabled={isChallengeMode || isHelpMode}
           >
             <Text style={[styles.modeBtnText, weirdMode && styles.modeBtnTextActive]}>Weird & True</Text>
           </TouchableOpacity>
@@ -411,55 +415,44 @@ export default function SofScreen() {
               )}
             </View>
 
-            {isChallengeMode && challengeComparison ? (
+            {isChallengeMode ? (
               <>
-                <View style={styles.challengePanel}>
-                  <View style={styles.cardInnerBorder} />
-                  <Text style={styles.challengePanelLabel}>Challenge Results</Text>
-                  <View style={styles.challengeRow}>
-                    <Text style={styles.challengeKey}>Your fiction pick</Text>
-                    <Text style={styles.challengeVal}>Claim {votes.findIndex(v => v === 'fiction') + 1}</Text>
+                {challengeComparison && (
+                  <View style={styles.challengePanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.challengePanelLabel}>Challenge Results</Text>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>Your fiction pick</Text>
+                      <Text style={styles.challengeVal}>Claim {votes.findIndex(v => v === 'fiction') + 1}</Text>
+                    </View>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s fiction pick</Text>
+                      <Text style={styles.challengeVal}>Claim {challengeComparison.senderAnswer}</Text>
+                    </View>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>Their prediction</Text>
+                      <Text style={styles.challengeVal}>
+                        Claim {challengeComparison.senderPrediction}{' '}
+                        {challengeComparison.senderPrediction === String(votes.findIndex(v => v === 'fiction') + 1) ? '✓' : '✗'}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.challengeRow}>
-                    <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s fiction pick</Text>
-                    <Text style={styles.challengeVal}>Claim {challengeComparison.senderAnswer}</Text>
-                  </View>
-                  <View style={styles.challengeRow}>
-                    <Text style={styles.challengeKey}>Their prediction</Text>
-                    <Text style={styles.challengeVal}>
-                      Claim {challengeComparison.senderPrediction}{' '}
-                      {challengeComparison.senderPrediction === String(votes.findIndex(v => v === 'fiction') + 1) ? '✓' : '✗'}
-                    </Text>
-                  </View>
-                </View>
-              {isAnonymous && !signUpBannerDismissed && (
-                <ChallengeSignUpBanner
-                  senderName={challengeSenderName ?? 'your friend'}
-                  onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
-                  onDismiss={() => setSignUpBannerDismissed(true)}
-                />
-              )}
-              {isAnonymous && !shieldSignUpDismissed && (
-                <ShieldSignUpBanner
-                  onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
-                  onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
-                  onDismiss={() => setShieldSignUpDismissed(true)}
-                />
-              )}
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={() => router.replace('/')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryBtnText}>Back to Home</Text>
-                </TouchableOpacity>
+                )}
+                {isAnonymous && !signUpBannerDismissed && (
+                  <ChallengeSignUpBanner
+                    senderName={challengeSenderName ?? 'your friend'}
+                    onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
+                    onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
+                    onDismiss={() => setSignUpBannerDismissed(true)}
+                  />
+                )}
               </>
-            ) : isHelpMode && helpRespondResult ? (
+            ) : isHelpMode ? (
               <>
                 <View style={styles.challengePanel}>
                   <View style={styles.cardInnerBorder} />
-                  <Text style={styles.challengePanelLabel}>Help Sent</Text>
-                  <Text style={styles.explanationText}>
+                  <Text style={styles.helpSentHeading}>Help Sent</Text>
+                  <Text style={[styles.explanationText, { textAlign: 'center' }]}>
                     Your answer has been sent to {helpAskerName || 'your friend'}.
                   </Text>
                 </View>
@@ -470,13 +463,6 @@ export default function SofScreen() {
                     onDismiss={() => setShieldSignUpDismissed(true)}
                   />
                 )}
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={() => router.replace('/')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryBtnText}>Back to Home</Text>
-                </TouchableOpacity>
               </>
             ) : (
               <>
@@ -500,13 +486,14 @@ export default function SofScreen() {
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
-                  <Text style={styles.backText}>← Back to Home</Text>
-                </TouchableOpacity>
               </>
             )}
           </>
         )}
+
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+          <Text style={styles.backText}>← Back to Home</Text>
+        </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Noodle Bowl · N° 03 · Science or Fiction</Text>
@@ -565,7 +552,7 @@ export default function SofScreen() {
 
             <TouchableOpacity
               style={[styles.modalBtn, styles.modalBtnSecondary]}
-              onPress={() => { setShowFriend(false); setShowHelpSent(true); }}
+              onPress={() => setShowFriend(false)}
               activeOpacity={0.85}
             >
               <Text style={[styles.modalBtnText, styles.modalBtnTextSecondary]}>Close</Text>
@@ -574,11 +561,6 @@ export default function SofScreen() {
           <CopiedToast visible={helpCopied} />
         </View>
       </Modal>
-
-      <HelpSentModal
-        visible={showHelpSent}
-        onDismiss={() => { setShowHelpSent(false); router.replace('/'); }}
-      />
 
       <ShieldEarnedToast visible={shieldToastVisible} />
     </SafeAreaView>
@@ -878,6 +860,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
     marginBottom: 14,
+  },
+  helpSentHeading: {
+    fontFamily: F.frauncesBold,
+    fontSize: 22,
+    color: C.ink,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   challengeRow: {
     flexDirection: 'row',

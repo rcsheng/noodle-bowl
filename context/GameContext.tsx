@@ -4,6 +4,7 @@ import { collection, deleteDoc, doc, getDocs, onSnapshot, setDoc } from 'firebas
 import { GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { db } from '@/lib/firebase';
+import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
 import { readSeen, writeSeen } from '@/lib/seenRepo';
 import { readStats, writeStats } from '@/lib/statsRepo';
 import { scheduleWrite } from '@/lib/syncQueue';
@@ -151,7 +152,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const earnStreakShield = useCallback(() => {
     dispatch({ type: 'EARN_SHIELD' });
-  }, []);
+    if (!isAnonymous && uid) {
+      const newStats = { ...state.stats, streakShieldsAvailable: state.stats.streakShieldsAvailable + 1 };
+      writeStats(uid, newStats).catch(() => {});
+    }
+  }, [isAnonymous, uid, state.stats]);
 
   const addFriendInteraction = useCallback((interaction: Omit<FriendInteraction, 'id' | 'date'>) => {
     const id = Date.now().toString();
@@ -218,7 +223,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .forEach(sent => {
         const token = sent.token!;
         if (resolvedChallenge.has(token) || unsubRefs.current.has(token)) return;
-        const unsub = onSnapshot(doc(db, 'challenges', token), snap => {
+        const unsub = onSnapshot(doc(db, CHALLENGES, token), snap => {
           const data = snap.data();
           if (!data?.resolvedAt) return;
           addFriendInteractionRef.current({
@@ -242,7 +247,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .forEach(sent => {
         const token = sent.token!;
         if (resolvedHelp.has(token) || unsubRefs.current.has(token)) return;
-        const unsub = onSnapshot(doc(db, 'helpRequests', token), snap => {
+        const unsub = onSnapshot(doc(db, HELP_REQUESTS, token), snap => {
           const data = snap.data();
           if (!data?.resolvedAt) return;
           addFriendInteractionRef.current({

@@ -211,7 +211,14 @@ export function reducer(state: AppState, action: Action): AppState {
       const serverDate = serverStats.lastPlayedDate;
       const localDate = state.stats.lastPlayedDate;
       const serverWins = serverDate !== null && (localDate === null || serverDate >= localDate);
-      const mergedStats = serverWins ? serverStats : state.stats;
+      const baseStats = serverWins ? serverStats : state.stats;
+      const mergedStats = {
+        ...baseStats,
+        streakShieldsAvailable: Math.max(
+          serverStats.streakShieldsAvailable ?? 0,
+          state.stats.streakShieldsAvailable ?? 0,
+        ),
+      };
       const mergedSeen = { ...state.seen };
       (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
         const local = state.seen[g] ?? [];

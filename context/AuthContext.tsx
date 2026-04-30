@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { onIdTokenChanged, signInAnonymously, User } from 'firebase/auth';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { onIdTokenChanged, signInAnonymously, signOut, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { registerPushToken } from '@/lib/pushTokens';
 
@@ -32,12 +32,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     displayName: null,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const hasSeenUserRef = useRef(false);
-
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        hasSeenUserRef.current = true;
+        // When pointing at production Firebase, validate the token is actually
+        // live for this project. A cached token from the local emulator will
+        // look valid here but be rejected by prod Cloud Functions, causing
+        // silent "unauthenticated" errors. Force-refreshing catches this early
+        // and triggers an automatic sign-out → fresh anonymous session.
+        if (process.env.EXPO_PUBLIC_USE_EMULATOR !== 'true') {
+          try {
+            await firebaseUser.getIdToken(/* forceRefresh= */ true);
+          } catch (err) {
+            // Only sign out for genuine token invalidity (stale emulator tokens,
+            // revoked credentials). Transient network errors must NOT sign the user
+            // out — that would create a null auth window that races with
+            // in-flight callables and produces spurious "unauthenticated" errors.
+            const code = (err as { code?: string }).code ?? '';
+            if (code !== 'auth/network-request-failed') {
+              await signOut(auth);
+              return; // listener fires again with null → signInAnonymously branch
+            }
+          }
+        }
         // Preserve a previously known displayName when Firebase passes a
         // stale snapshot with displayName=null right after sign-up. Once we've
         // captured the real name (via reloadUser or a fresh sign-in), don't
@@ -53,12 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         registerPushToken(firebaseUser.uid).catch(() => {});
       } else {
         setAuthState({ user: null, isAnonymous: true, displayName: null });
-        if (!hasSeenUserRef.current) {
-          try {
-            await signInAnonymously(auth);
-          } catch {
-            setIsLoading(false);
-          }
+        try {
+          await signInAnonymously(auth);
+        } catch {
+          setIsLoading(false);
         }
       }
     });

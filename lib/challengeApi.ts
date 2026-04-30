@@ -1,5 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
 import { fns } from './firebase';
+import { collectionPrefix } from './collections';
 import type {
   ChallengeCreateInput,
   ChallengeCreateOutput,
@@ -12,12 +13,12 @@ const createChallengeFn = httpsCallable<ChallengeCreateInput, ChallengeCreateOut
 const respondToChallengeFn = httpsCallable<ChallengeRespondInput, ChallengeRespondOutput>(fns, 'challengeRespond');
 
 export async function createChallenge(input: ChallengeCreateInput): Promise<ChallengeCreateOutput> {
-  const result = await createChallengeFn(input);
+  const result = await createChallengeFn({ ...input, collectionPrefix });
   return result.data;
 }
 
 export async function respondToChallenge(input: ChallengeRespondInput): Promise<ChallengeRespondOutput> {
-  const result = await respondToChallengeFn(input);
+  const result = await respondToChallengeFn({ ...input, collectionPrefix });
   return result.data;
 }
 
@@ -30,6 +31,7 @@ export async function fetchChallenge(token: string): Promise<ChallengeGetRespons
     ? `http://${host}:5001/${projectId}/us-central1/challengeGet`
     : `https://us-central1-${projectId}.cloudfunctions.net/challengeGet`;
 
-  const res = await fetch(`${baseUrl}?token=${encodeURIComponent(token)}`);
+  const envParam = collectionPrefix ? `&env=${encodeURIComponent(collectionPrefix)}` : '';
+  const res = await fetch(`${baseUrl}?token=${encodeURIComponent(token)}${envParam}`);
   return res.json() as Promise<ChallengeGetResponse | { error: string }>;
 }

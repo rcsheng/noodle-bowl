@@ -45,7 +45,6 @@ export default function FriendsScreen() {
   });
   const helpedMe = thisWeek.filter(i => i.type === 'received_help').length;
   const iHelped = thisWeek.filter(i => i.type === 'gave_help').length;
-  const weekShieldsEarned = thisWeek.filter(i => i.shieldEarned).length;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -106,11 +105,6 @@ export default function FriendsScreen() {
                     You helped {iHelped} friend{iHelped !== 1 ? 's' : ''}
                   </Text>
                 </View>
-                {weekShieldsEarned > 0 && (
-                  <Text style={styles.weekShields}>
-                    🛡 {weekShieldsEarned} shield{weekShieldsEarned !== 1 ? 's' : ''} earned this week
-                  </Text>
-                )}
               </View>
             )}
 
@@ -345,12 +339,6 @@ const styles = StyleSheet.create({
     fontFamily: F.fraunces,
     fontSize: 14,
     color: C.muted,
-  },
-  weekShields: {
-    fontFamily: F.fraunces,
-    fontSize: 14,
-    color: C.ink,
-    marginTop: 8,
   },
   feedItem: {
     flexDirection: 'row',

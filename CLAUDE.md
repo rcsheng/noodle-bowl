@@ -120,13 +120,40 @@ React Native Expo app — daily brain-game with 5 games (Lede, Spread, SoF, Wave
 ## Firestore Rules Pattern
 
 - `challenges/{token}` — authenticated read; create only by sender (senderId == uid); no client updates.
+- `qa_challenges/{token}` — identical rules; used when `EXPO_PUBLIC_COLLECTION_PREFIX=qa_`.
 - `helpRequests/{token}` — same pattern with askerId.
-- `pushTokens/{uid}` — read/write only by matching uid.
-- `contentVersions/{versionId}` — authenticated read; no client writes (admin/functions only).
+- `qa_helpRequests/{token}` — identical rules; used in QA mode.
+- `pushTokens/{uid}` — read/write only by matching uid. Never prefixed.
+- `contentVersions/{versionId}` — authenticated read; no client writes (admin/functions only). Never prefixed.
+
+## QA Collection Isolation
+
+`start:qa` sets `EXPO_PUBLIC_COLLECTION_PREFIX=qa_`. This causes:
+- Client code (`lib/collections.ts`) to read from `qa_challenges` / `qa_helpRequests`
+- Every callable function call to include `collectionPrefix: 'qa_'` in the payload
+- `challengeGet` and `helpGet` HTTP functions to receive `&env=qa_` and route to the QA collections
+
+Production builds have no `EXPO_PUBLIC_COLLECTION_PREFIX`, so they always use `challenges` / `helpRequests`.
+
+**QA data does not appear for real users.** After smoke testing, you can delete `qa_challenges` and `qa_helpRequests` documents in the Firebase console without touching prod data.
+
+## Environments
+
+Always ask if unsure which environment the user is targeting. Default assumptions:
+
+| Context | Script | Firebase | Collections |
+|---|---|---|---|
+| Feature dev / writing code | `npm run start:dev` | Emulator | `challenges`, `helpRequests` |
+| Smoke testing / alpha QA | `npm run start:qa` | Production | `qa_challenges`, `qa_helpRequests` |
+| TestFlight / App Store build | EAS production build | Production | `challenges`, `helpRequests` |
+
+**Rule:** if the user says "smoke testing", "alpha", "QA", or "testing on device" → assume `start:qa` (prod Firebase, QA collections). If they say "local dev", "working on a feature", or "emulator" → assume `start:dev`. When ambiguous, ask before suggesting commands or diagnosing issues.
 
 ## Commands
 
 ```bash
+npm run start:dev         # local dev — points at Firebase emulator
+npm run start:qa          # smoke testing — points at production Firebase
 npm test                  # run all tests
 npm run test:coverage     # with coverage report
 npm run seed:emulator     # seed ContentVersion to local Firestore emulator
@@ -195,6 +222,17 @@ Scan the QR code with Expo Go (physical device) or press `i`/`a` for iOS Simulat
 **Phase 4 — Stats (when complete)**
 - [ ] Play a game as guest → stats visible on home screen, Firestore has no entry
 - [ ] Play a game as signed-in user → Firestore `users/{uid}/stats` doc updated
+
+**QA — Challenge / Help isolation (run with `start:qa`)**
+- [ ] Build and deploy functions first: `cd functions && npm run build && firebase deploy --only functions,firestore:rules,firestore:indexes`
+- [ ] Start: `npm run start:qa`
+- [ ] If switching from emulator dev: tap **"Clear local data (dev)"** in the Profile tab to drop stale auth tokens (Android emulator can also use `npm run android:wipe`)
+- [ ] Profile screen → "Clear local data (dev)" button **is visible** (hidden only in production EAS builds)
+- [ ] Send a challenge from Device A → check Firebase Console → doc appears in **`qa_challenges`**, not `challenges`
+- [ ] Open the challenge link on Device B (also running `start:qa`) → challenge loads
+- [ ] Device B submits answer → doc in `qa_challenges` resolves; Device A home screen shows the friend card
+- [ ] Send a help request → doc appears in **`qa_helpRequests``**; helper can open and respond
+- [ ] After testing, delete `qa_challenges` and `qa_helpRequests` in Firebase Console to clean up
 
 **Phase 5 — Cross-device challenge (when complete)**
 - [ ] Send a challenge link from Device A

@@ -1,5 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
 import { fns } from './firebase';
+import { collectionPrefix } from './collections';
 import type {
   HelpCreateInput,
   HelpCreateOutput,
@@ -12,12 +13,12 @@ const createHelpFn = httpsCallable<HelpCreateInput, HelpCreateOutput>(fns, 'help
 const respondToHelpFn = httpsCallable<HelpRespondInput, HelpRespondOutput>(fns, 'helpRespond');
 
 export async function createHelp(input: HelpCreateInput): Promise<HelpCreateOutput> {
-  const result = await createHelpFn(input);
+  const result = await createHelpFn({ ...input, collectionPrefix });
   return result.data;
 }
 
 export async function respondToHelp(input: HelpRespondInput): Promise<HelpRespondOutput> {
-  const result = await respondToHelpFn(input);
+  const result = await respondToHelpFn({ ...input, collectionPrefix });
   return result.data;
 }
 
@@ -29,6 +30,7 @@ export async function fetchHelp(token: string): Promise<HelpGetResponse | { erro
     ? `http://${host}:5001/${projectId}/us-central1/helpGet`
     : `https://us-central1-${projectId}.cloudfunctions.net/helpGet`;
 
-  const res = await fetch(`${baseUrl}?token=${encodeURIComponent(token)}`);
+  const envParam = collectionPrefix ? `&env=${encodeURIComponent(collectionPrefix)}` : '';
+  const res = await fetch(`${baseUrl}?token=${encodeURIComponent(token)}${envParam}`);
   return res.json() as Promise<HelpGetResponse | { error: string }>;
 }

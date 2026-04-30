@@ -2,10 +2,12 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { sendExpoPush } from './utils/push';
 import { GAME_TITLES } from './utils/gameMeta';
+import { validateCollectionPrefix } from './utils/collectionPrefix';
 
 export interface ChallengeRespondInput {
   token: string;
   friendAnswer: string;
+  collectionPrefix?: string;
 }
 
 export interface ChallengeRespondOutput {
@@ -22,7 +24,10 @@ export async function respondToChallengeHandler(
   input: ChallengeRespondInput,
   uid: string,
 ): Promise<ChallengeRespondOutput> {
-  const snap = await db.collection('challenges').doc(input.token).get();
+  const prefix = validateCollectionPrefix(input.collectionPrefix);
+  const col = `${prefix}challenges`;
+
+  const snap = await db.collection(col).doc(input.token).get();
 
   if (!snap.exists) {
     throw new HttpsError('not-found', 'Challenge not found');
@@ -42,7 +47,7 @@ export async function respondToChallengeHandler(
     throw new HttpsError('already-exists', 'Challenge has already been answered');
   }
 
-  await db.collection('challenges').doc(input.token).update({
+  await db.collection(col).doc(input.token).update({
     friendAnswer: input.friendAnswer,
     resolvedAt: Timestamp.fromDate(new Date()),
   });

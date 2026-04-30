@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:dev": "cross-env EXPO_PUBLIC_USE_EMULATOR=true expo start --clear",
+    "start:qa": "cross-env EXPO_PUBLIC_USE_EMULATOR=false EXPO_PUBLIC_COLLECTION_PREFIX=qa_ expo start --clear",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
@@ -17,7 +19,6 @@
     "emulator:kill": "taskkill /F /IM java.exe 2>nul & echo Killed emulator processes",
     "avd": "%LOCALAPPDATA%/Android/Sdk/emulator/emulator -avd Pixel_9",
     "android:wipe": "adb shell pm clear host.exp.exponent",
-    "ios:wipe": "xcrun simctl uninstall booted host.exp.Exponent",
     "seed:emulator": "node scripts/seed-content.js",
     "seed:prod": "SEED_TARGET=prod node scripts/seed-content.js"
   },
@@ -60,6 +61,7 @@
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "firebase-tools": "^15.15.0",

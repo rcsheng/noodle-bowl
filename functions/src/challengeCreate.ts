@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { generateToken } from './utils/token';
+import { validateCollectionPrefix } from './utils/collectionPrefix';
 
 export interface ChallengeCreateInput {
   gameId: string;
@@ -9,6 +10,7 @@ export interface ChallengeCreateInput {
   senderAnswer: string;
   senderName: string;
   senderPushToken: string | null;
+  collectionPrefix?: string;
 }
 
 export interface ChallengeCreateOutput {
@@ -32,10 +34,13 @@ export async function createChallengeHandler(
     throw new HttpsError('invalid-argument', 'questionIndex must be a non-negative integer');
   }
 
+  const prefix = validateCollectionPrefix(data.collectionPrefix);
+  const col = `${prefix}challenges`;
+
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const existing = await (db.collection('challenges') as any)
+  const existing = await (db.collection(col) as any)
     .where('senderId', '==', uid)
     .where('gameId', '==', data.gameId)
     .where('questionIndex', '==', data.questionIndex)
@@ -55,7 +60,7 @@ export async function createChallengeHandler(
   let token: string | undefined;
   for (let i = 0; i < MAX_TOKEN_RETRIES; i++) {
     const candidate = generateToken();
-    const snap = await db.collection('challenges').doc(candidate).get();
+    const snap = await db.collection(col).doc(candidate).get();
     if (!snap.exists) {
       token = candidate;
       break;
@@ -68,7 +73,7 @@ export async function createChallengeHandler(
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-  await db.collection('challenges').doc(token).set({
+  await db.collection(col).doc(token).set({
     token,
     gameId: data.gameId,
     questionIndex: data.questionIndex,

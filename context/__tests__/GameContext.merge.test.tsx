@@ -90,6 +90,22 @@ describe('reducer: MERGE_FROM_SERVER', () => {
     expect(next.stats.totalPoints).toBe(50);
   });
 
+  test('preserves higher local shield count even when server wins on date', () => {
+    // Server has a stale shield count (write didn't flush before app close)
+    const stateWithShields = makeState({ ...localStats, streakShieldsAvailable: 2 });
+    const serverWithNoShields = { ...serverStatsNewer, streakShieldsAvailable: 0 };
+    const next = reducer(stateWithShields, { type: 'MERGE_FROM_SERVER', serverStats: serverWithNoShields });
+    expect(next.stats.streakShieldsAvailable).toBe(2);
+  });
+
+  test('takes server shield count when it is higher than local', () => {
+    // Server has shields from another device that local hasn't seen
+    const stateNoShields = makeState({ ...localStats, streakShieldsAvailable: 0 });
+    const serverWithShields = { ...serverStatsNewer, streakShieldsAvailable: 3 };
+    const next = reducer(stateNoShields, { type: 'MERGE_FROM_SERVER', serverStats: serverWithShields });
+    expect(next.stats.streakShieldsAvailable).toBe(3);
+  });
+
   test('seen arrays merge as deduplicated union per game', () => {
     const state = { ...initialState, seen: { ...initialState.seen, lede: [0, 1, 2] } };
     const next = reducer(state, {

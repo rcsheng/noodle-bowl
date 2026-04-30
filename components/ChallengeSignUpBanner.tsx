@@ -6,10 +6,11 @@ import { C, F, cardShadow } from '@/constants/theme';
 interface Props {
   senderName: string;
   onCreateAccount: () => void;
+  onSignIn: () => void;
   onDismiss: () => void;
 }
 
-export function ChallengeSignUpBanner({ senderName, onCreateAccount, onDismiss }: Props) {
+export function ChallengeSignUpBanner({ senderName, onCreateAccount, onSignIn, onDismiss }: Props) {
   return (
     <View style={styles.banner} testID="challenge-signup-banner">
       <View style={styles.innerBorder} />
@@ -27,11 +28,19 @@ export function ChallengeSignUpBanner({ senderName, onCreateAccount, onDismiss }
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.secondaryBtn}
+        onPress={onSignIn}
+        activeOpacity={0.85}
+        testID="challenge-signup-signin-btn"
+      >
+        <Text style={styles.secondaryBtnText}>Sign In</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.dismissBtn}
         onPress={onDismiss}
         activeOpacity={0.85}
         testID="challenge-signup-dismiss-btn"
       >
-        <Text style={styles.secondaryBtnText}>Maybe Later</Text>
+        <Text style={styles.dismissBtnText}>Maybe Later</Text>
       </TouchableOpacity>
     </View>
   );
@@ -88,6 +97,7 @@ const styles = StyleSheet.create({
     borderColor: C.ink,
     paddingVertical: 16,
     alignItems: 'center',
+    marginBottom: 6,
   },
   secondaryBtnText: {
     fontFamily: F.monoBold,
@@ -95,5 +105,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     textTransform: 'uppercase',
     color: C.ink,
+  },
+  dismissBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  dismissBtnText: {
+    fontFamily: F.mono,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
   },
 });

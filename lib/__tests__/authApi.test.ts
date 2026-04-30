@@ -63,7 +63,7 @@ describe('signUp validation', () => {
 // ---------------------------------------------------------------------------
 describe('signUp — anonymous upgrade', () => {
   it('calls linkWithCredential when current user is anonymous', async () => {
-    const anonUser = { uid: 'anon-uid', isAnonymous: true };
+    const anonUser = stubUser({ uid: 'anon-uid', isAnonymous: true });
     (auth as { currentUser: unknown }).currentUser = anonUser;
     const linkedUser = stubUser({ uid: 'anon-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
@@ -75,8 +75,20 @@ describe('signUp — anonymous upgrade', () => {
     expect(mockCreateUserWithEmailAndPassword).not.toHaveBeenCalled();
   });
 
+  it('calls getIdToken(true) before linkWithCredential to refresh expired token', async () => {
+    const anonUser = stubUser({ uid: 'anon-uid', isAnonymous: true });
+    (auth as { currentUser: unknown }).currentUser = anonUser;
+    const linkedUser = stubUser({ uid: 'anon-uid', isAnonymous: false });
+    mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
+    mockUpdateProfile.mockResolvedValue(undefined);
+
+    await signUp('a@b.com', 'password123', 'Alice');
+
+    expect(mockGetIdToken).toHaveBeenCalledWith(true);
+  });
+
   it('preserves uid after anonymous-to-permanent upgrade', async () => {
-    (auth as { currentUser: unknown }).currentUser = { uid: 'preserved-uid', isAnonymous: true };
+    (auth as { currentUser: unknown }).currentUser = stubUser({ uid: 'preserved-uid', isAnonymous: true });
     const linkedUser = stubUser({ uid: 'preserved-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
     mockUpdateProfile.mockResolvedValue(undefined);
@@ -86,7 +98,7 @@ describe('signUp — anonymous upgrade', () => {
   });
 
   it('sets displayName during upgrade', async () => {
-    (auth as { currentUser: unknown }).currentUser = { uid: 'anon-uid', isAnonymous: true };
+    (auth as { currentUser: unknown }).currentUser = stubUser({ uid: 'anon-uid', isAnonymous: true });
     const linkedUser = stubUser({ uid: 'anon-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
     mockUpdateProfile.mockResolvedValue(undefined);
@@ -96,7 +108,7 @@ describe('signUp — anonymous upgrade', () => {
   });
 
   it('sends a verification email after anonymous upgrade', async () => {
-    (auth as { currentUser: unknown }).currentUser = { uid: 'anon-uid', isAnonymous: true };
+    (auth as { currentUser: unknown }).currentUser = stubUser({ uid: 'anon-uid', isAnonymous: true });
     const linkedUser = stubUser({ uid: 'anon-uid', isAnonymous: false });
     mockLinkWithCredential.mockResolvedValue({ user: linkedUser });
     mockUpdateProfile.mockResolvedValue(undefined);
@@ -256,6 +268,10 @@ describe('mapAuthError', () => {
 
   it('maps provider-already-linked', () => {
     expect(mapAuthError('auth/provider-already-linked')).toMatch(/already has an email/i);
+  });
+
+  it('maps user-token-expired', () => {
+    expect(mapAuthError('auth/user-token-expired')).toMatch(/session expired/i);
   });
 
   it('returns network error when code is empty but message contains "network"', () => {

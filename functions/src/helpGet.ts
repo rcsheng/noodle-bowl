@@ -1,5 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
+import { validateCollectionPrefix } from './utils/collectionPrefix';
 
 export interface HelpGetResponse {
   gameId: string;
@@ -11,10 +12,12 @@ export interface HelpGetResponse {
 export async function getHelpHandler(
   db: ReturnType<typeof getFirestore>,
   token: string,
+  collectionPrefix: string,
 ): Promise<HelpGetResponse | { error: string }> {
   if (!token) return { error: 'missing-token' };
 
-  const snap = await db.collection('helpRequests').doc(token).get();
+  const col = `${collectionPrefix}helpRequests`;
+  const snap = await db.collection(col).doc(token).get();
   if (!snap.exists) return { error: 'not-found' };
 
   const data = snap.data()!;
@@ -34,6 +37,15 @@ export const helpGet = onRequest(async (req, res) => {
   if (req.method !== 'GET') { res.status(405).json({ error: 'method_not_allowed' }); return; }
 
   const token = req.query.token as string | undefined;
-  const result = await getHelpHandler(getFirestore(), token ?? '');
+
+  let prefix: string;
+  try {
+    prefix = validateCollectionPrefix(req.query['env'] as string | undefined);
+  } catch {
+    res.status(400).json({ error: 'invalid_env' });
+    return;
+  }
+
+  const result = await getHelpHandler(getFirestore(), token ?? '', prefix);
   res.json(result);
 });

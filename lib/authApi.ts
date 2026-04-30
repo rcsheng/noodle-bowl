@@ -40,6 +40,7 @@ export function mapAuthError(code: string, rawMessage = ''): string {
     'auth/operation-not-allowed': 'Sign-in with email is not available right now.',
     'auth/credential-already-in-use': 'This email is linked to another account. Try signing in instead.',
     'auth/provider-already-linked': 'This account already has an email address linked.',
+    'auth/user-token-expired': 'Session expired. Please try again.',
   };
   if (map[code]) return map[code];
   if (rawMessage.toLowerCase().includes('network') || rawMessage.toLowerCase().includes('fetch')) {
@@ -54,6 +55,7 @@ export async function signUp(email: string, password: string, displayName: strin
   try {
     let user;
     if (currentUser?.isAnonymous) {
+      await currentUser.getIdToken(true);
       const credential = EmailAuthProvider.credential(email, password);
       const result = await linkWithCredential(currentUser, credential);
       user = result.user;

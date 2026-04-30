@@ -2,10 +2,12 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { sendExpoPush } from './utils/push';
 import { GAME_TITLES } from './utils/gameMeta';
+import { validateCollectionPrefix } from './utils/collectionPrefix';
 
 export interface HelpRespondInput {
   token: string;
   helperAnswer: string;
+  collectionPrefix?: string;
 }
 
 export interface HelpRespondOutput {
@@ -19,7 +21,10 @@ export async function respondToHelpHandler(
   db: ReturnType<typeof getFirestore>,
   input: HelpRespondInput,
 ): Promise<HelpRespondOutput> {
-  const snap = await db.collection('helpRequests').doc(input.token).get();
+  const prefix = validateCollectionPrefix(input.collectionPrefix);
+  const col = `${prefix}helpRequests`;
+
+  const snap = await db.collection(col).doc(input.token).get();
 
   if (!snap.exists) {
     throw new HttpsError('not-found', 'Help request not found');
@@ -35,7 +40,7 @@ export async function respondToHelpHandler(
     throw new HttpsError('already-exists', 'Help request has already been answered');
   }
 
-  await db.collection('helpRequests').doc(input.token).update({
+  await db.collection(col).doc(input.token).update({
     helperAnswer: input.helperAnswer,
     resolvedAt: Timestamp.fromDate(new Date()),
   });

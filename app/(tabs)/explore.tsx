@@ -57,24 +57,15 @@ export default function StatsScreen() {
               <Text style={styles.streakLabel}>Best Streak</Text>
             </View>
           </View>
-        </View>
-
-        <View style={styles.shieldsRow}>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <View
-              key={i}
-              style={[styles.shieldSlot, i < streakShieldsAvailable && styles.shieldSlotFilled]}
-            >
-              <Text style={styles.shieldSlotText}>
-                {i < streakShieldsAvailable ? '🛡' : '·'}
-              </Text>
-            </View>
-          ))}
-          <Text style={styles.shieldsLabel}>
-            {streakShieldsAvailable === 0
-              ? 'No shields'
-              : `${streakShieldsAvailable} shield${streakShieldsAvailable > 1 ? 's' : ''}`}
-          </Text>
+          <View style={styles.shieldCardDivider} />
+          <View style={styles.shieldCardRow}>
+            <Text style={styles.shieldCardValue}>
+              {streakShieldsAvailable === 0 ? '—' : `🛡 ${streakShieldsAvailable}`}
+            </Text>
+            <Text style={styles.shieldCardLabel}>
+              {streakShieldsAvailable === 1 ? 'Shield Available' : 'Shields Available'}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.sectionHeader}>
@@ -213,32 +204,27 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: C.paperDarker,
   },
-  shieldsRow: {
+  shieldCardDivider: {
+    height: 1,
+    backgroundColor: C.paperDarker,
+    marginTop: 16,
+    marginBottom: 14,
+  },
+  shieldCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 4,
+    justifyContent: 'center',
     gap: 8,
   },
-  shieldSlot: {
-    width: 32,
-    height: 32,
-    borderWidth: 1,
-    borderColor: C.paperDarker,
-    alignItems: 'center',
-    justifyContent: 'center',
+  shieldCardValue: {
+    fontFamily: F.frauncesXBold,
+    fontSize: 18,
+    color: C.ink,
+    lineHeight: 22,
   },
-  shieldSlotFilled: {
-    borderColor: C.accent,
-    backgroundColor: 'rgba(184,74,53,0.06)',
-  },
-  shieldSlotText: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  shieldsLabel: {
+  shieldCardLabel: {
     fontFamily: F.mono,
-    fontSize: 10,
+    fontSize: 9,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,

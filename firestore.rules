@@ -13,7 +13,25 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Mirror of challenges for QA smoke testing — same rules, isolated data
+    match /qa_challenges/{token} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.senderId;
+      allow update: if false;
+      allow delete: if false;
+    }
+
     match /helpRequests/{token} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.askerId;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Mirror of helpRequests for QA smoke testing — same rules, isolated data
+    match /qa_helpRequests/{token} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
                     && request.auth.uid == request.resource.data.askerId;

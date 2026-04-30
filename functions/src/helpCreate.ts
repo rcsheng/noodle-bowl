@@ -1,12 +1,14 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { generateToken } from './utils/token';
+import { validateCollectionPrefix } from './utils/collectionPrefix';
 
 export interface HelpCreateInput {
   gameId: string;
   questionIndex: number;
   askerName: string | null;
   askerPushToken: string | null;
+  collectionPrefix?: string;
 }
 
 export interface HelpCreateOutput {
@@ -30,10 +32,13 @@ export async function createHelpHandler(
     throw new HttpsError('invalid-argument', 'questionIndex must be a non-negative integer');
   }
 
+  const prefix = validateCollectionPrefix(data.collectionPrefix);
+  const col = `${prefix}helpRequests`;
+
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const existing = await (db.collection('helpRequests') as any)
+  const existing = await (db.collection(col) as any)
     .where('askerId', '==', uid)
     .where('gameId', '==', data.gameId)
     .where('questionIndex', '==', data.questionIndex)
@@ -53,7 +58,7 @@ export async function createHelpHandler(
   let token: string | undefined;
   for (let i = 0; i < MAX_TOKEN_RETRIES; i++) {
     const candidate = generateToken();
-    const snap = await db.collection('helpRequests').doc(candidate).get();
+    const snap = await db.collection(col).doc(candidate).get();
     if (!snap.exists) {
       token = candidate;
       break;
@@ -66,7 +71,7 @@ export async function createHelpHandler(
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-  await db.collection('helpRequests').doc(token).set({
+  await db.collection(col).doc(token).set({
     token,
     gameId: data.gameId,
     questionIndex: data.questionIndex,

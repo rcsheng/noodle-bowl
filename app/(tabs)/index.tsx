@@ -20,6 +20,7 @@ import { getTodayISODate } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { db } from '@/lib/firebase';
+import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
 import { evaluateHelperAnswer } from '@/lib/helpAnswerEvaluator';
 
 export default function HubScreen() {
@@ -46,10 +47,10 @@ export default function HubScreen() {
     const checks: { interaction: typeof state.friendInteractions[0]; collection: string }[] = [
       ...candidateHelpResults
         .filter(i => !validatedTokens.has(i.token!))
-        .map(i => ({ interaction: i, collection: 'helpRequests' })),
+        .map(i => ({ interaction: i, collection: HELP_REQUESTS })),
       ...candidateChallengeResults
         .filter(i => !validatedTokens.has(i.token!))
-        .map(i => ({ interaction: i, collection: 'challenges' })),
+        .map(i => ({ interaction: i, collection: CHALLENGES })),
     ];
     if (checks.length === 0) return;
 

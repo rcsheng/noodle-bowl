@@ -5,6 +5,7 @@ export interface HelpCreateInput {
   questionIndex: number;
   askerName: string | null;
   askerPushToken: string | null;
+  collectionPrefix?: string;
 }
 
 export interface HelpCreateOutput {
@@ -23,6 +24,7 @@ export interface HelpGetResponse {
 export interface HelpRespondInput {
   token: string;
   helperAnswer: string;
+  collectionPrefix?: string;
 }
 
 export interface HelpRespondOutput {
@@ -39,6 +41,7 @@ export interface ChallengeCreateInput {
   senderAnswer: string;
   senderName: string;
   senderPushToken: string | null;
+  collectionPrefix?: string;
 }
 
 export interface ChallengeCreateOutput {
@@ -58,6 +61,7 @@ export interface ChallengeGetResponse {
 export interface ChallengeRespondInput {
   token: string;
   friendAnswer: string;
+  collectionPrefix?: string;
 }
 
 export interface ChallengeRespondOutput {
