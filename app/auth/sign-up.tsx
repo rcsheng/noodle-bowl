@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
+import * as Analytics from '@/lib/analytics';
 import { mapAuthError, resendVerificationEmail, signUp } from '@/lib/authApi';
 import { useAuth } from '@/context/AuthContext';
 
@@ -38,6 +39,7 @@ export default function SignUpScreen() {
     try {
       const trimmedName = displayName.trim();
       await signUp(email.trim(), password, trimmedName);
+      Analytics.signedUp();
       reloadUser(trimmedName);
       setPhase('verify');
     } catch (err: unknown) {

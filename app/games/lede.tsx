@@ -25,6 +25,7 @@ import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
 import { useAuthGate } from '@/lib/authGuard';
+import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
@@ -115,6 +116,7 @@ export default function LedeScreen() {
     const points = calculatePoints(correct, prevStreak);
     setRevealData({ correct, points, prevStreak });
     updateGameStats('lede', correct, points);
+    Analytics.gameComplete('lede', correct, points);
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -189,6 +191,7 @@ export default function LedeScreen() {
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
+      Analytics.helpSent('lede');
       // Record sent_help now — the request exists on the server regardless of
       // how the user delivers the URL (Share, copy, manual). Without this, the
       // Friends tab never subscribes and the helper's response is never seen.
@@ -471,6 +474,7 @@ export default function LedeScreen() {
             senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
+          Analytics.challengeSent('lede');
           return { url: result.url, token: result.token };
         }}
         onSent={(prediction, friendName, token) => addFriendInteraction({

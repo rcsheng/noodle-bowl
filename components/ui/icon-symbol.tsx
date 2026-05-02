@@ -21,6 +21,7 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'person.2.fill': 'group',
   'person.fill': 'person',
+  'fork.knife': 'restaurant',
 } as IconMapping;
 
 /**

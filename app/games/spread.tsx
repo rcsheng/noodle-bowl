@@ -28,6 +28,7 @@ import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
 import { useAuthGate } from '@/lib/authGuard';
+import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
@@ -116,6 +117,7 @@ export default function SpreadScreen() {
     const prevStreak = state.stats.spread.streak;
     setRevealData({ correct, points, deviation, prevStreak });
     updateGameStats('spread', correct, points);
+    Analytics.gameComplete('spread', correct, points);
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -185,6 +187,7 @@ export default function SpreadScreen() {
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
+      Analytics.helpSent('spread');
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'spread', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[spread] createHelp failed', err);
@@ -438,6 +441,7 @@ export default function SpreadScreen() {
             senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
+          Analytics.challengeSent('spread');
           return { url: result.url, token: result.token };
         }}
         onSent={(prediction, friendName, token) => addFriendInteraction({

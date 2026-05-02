@@ -11,7 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.noodlebowl.noodlebowl",
-      "associatedDomains": ["applinks:noodlebowl.app"]
+      "associatedDomains": [
+        "applinks:noodlebowl.app",
+        "applinks:noodlebowl.app"
+      ]
     },
     "android": {
       "package": "app.noodlebowl.noodlebowl",
@@ -50,6 +53,12 @@
         "projectId": "aa495a95-789c-40b5-ad12-3a107223d6ec"
       }
     },
-    "owner": "rcsheng"
+    "owner": "rcsheng",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/aa495a95-789c-40b5-ad12-3a107223d6ec"
+    }
   }
 }

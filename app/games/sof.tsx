@@ -26,6 +26,7 @@ import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
 import { useAuthGate } from '@/lib/authGuard';
+import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
@@ -156,6 +157,7 @@ export default function SofScreen() {
     const prevStreak = state.stats.sof.streak;
     setRevealData({ correct, points: totalPoints, prevStreak, numCorrect });
     updateGameStats('sof', correct, totalPoints);
+    Analytics.gameComplete('sof', correct, totalPoints);
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -241,6 +243,7 @@ export default function SofScreen() {
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
+      Analytics.helpSent('sof');
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'sof', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[sof] createHelp failed', err);
@@ -518,6 +521,7 @@ export default function SofScreen() {
             senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
+          Analytics.challengeSent('sof');
           return { url: result.url, token: result.token };
         }}
         onSent={(prediction, friendName, token) => addFriendInteraction({

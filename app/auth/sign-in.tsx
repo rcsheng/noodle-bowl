@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
+import * as Analytics from '@/lib/analytics';
 import { mapAuthError, signIn } from '@/lib/authApi';
 import { useAuth } from '@/context/AuthContext';
 
@@ -46,6 +47,7 @@ export default function SignInScreen() {
         return;
       }
       await signIn(email.trim(), password);
+      Analytics.loggedIn();
       navigateOnSuccess();
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'errors' in err) {

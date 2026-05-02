@@ -14,6 +14,7 @@ const firebaseConfig = {
 // Capture before initializeApp so we know whether this is the first load
 const isFirstLoad = getApps().length === 0;
 const app = isFirstLoad ? initializeApp(firebaseConfig) : getApps()[0];
+export { app };
 
 // initializeAuth (with persistence) must only be called once per app instance.
 // On hot-reloads the app already exists, so fall back to getAuth.

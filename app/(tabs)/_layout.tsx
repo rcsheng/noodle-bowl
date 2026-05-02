@@ -4,6 +4,7 @@ import React from 'react';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { C } from '@/constants/theme';
+import { FEATURES } from '@/constants/featureFlags';
 
 export default function TabLayout() {
   return (
@@ -32,6 +33,14 @@ export default function TabLayout() {
         options={{
           title: 'Stats',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="slurp"
+        options={{
+          title: 'Slurp',
+          href: FEATURES.slurp ? undefined : null,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="fork.knife" color={color} />,
         }}
       />
       <Tabs.Screen

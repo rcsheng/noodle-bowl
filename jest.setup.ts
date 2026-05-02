@@ -28,6 +28,10 @@ jest.mock('expo-router', () => ({
   Link: 'Link',
 }));
 
+jest.mock('posthog-react-native', () =>
+  jest.fn().mockImplementation(() => ({ capture: jest.fn() }))
+);
+
 jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'denied' }),

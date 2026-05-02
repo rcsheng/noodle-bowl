@@ -28,6 +28,7 @@ import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { AuthGateModal } from '@/components/AuthGateModal';
 import { useAuthGate } from '@/lib/authGuard';
+import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
@@ -159,6 +160,7 @@ export default function QuipScreen() {
           const earned = likes === 3 ? 30 : likes === 2 ? 20 : likes === 1 ? 10 : 0;
           setPoints(earned);
           updateGameStats('quip', likes >= 2, earned);
+          Analytics.gameComplete('quip', likes >= 2, earned);
           setTimeout(async () => {
             setPhase('result');
             if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -233,6 +235,7 @@ export default function QuipScreen() {
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
+      Analytics.helpSent('quip');
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'quip', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[quip] createHelp failed', err);
@@ -480,6 +483,7 @@ export default function QuipScreen() {
             senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
+          Analytics.challengeSent('quip');
           return { url: result.url, token: result.token };
         }}
         onSent={(prediction, friendName, token) => addFriendInteraction({

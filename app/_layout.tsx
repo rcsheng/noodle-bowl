@@ -24,6 +24,10 @@ import 'react-native-reanimated';
 import { AuthProvider } from '@/context/AuthContext';
 import { ContentProvider } from '@/context/ContentContext';
 import { GameProvider } from '@/context/GameContext';
+import { SlurpProvider } from '@/context/SlurpContext';
+import { initAnalytics } from '@/lib/analytics';
+
+initAnalytics();
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -74,13 +78,16 @@ export default function RootLayout() {
     <AuthProvider>
       <ContentProvider>
         <GameProvider>
-          <NotificationHandler />
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="games" options={{ headerShown: false }} />
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style="dark" />
+          <SlurpProvider>
+            <NotificationHandler />
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="games" options={{ headerShown: false }} />
+              <Stack.Screen name="auth" options={{ headerShown: false }} />
+              <Stack.Screen name="slurp" options={{ headerShown: false }} />
+            </Stack>
+            <StatusBar style="dark" />
+          </SlurpProvider>
         </GameProvider>
       </ContentProvider>
     </AuthProvider>
