@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
-import { Masthead } from '@/components/Masthead';
+import { CompactMasthead } from '@/components/masthead/CompactMasthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { LedeItem, LedePanelist } from '@/constants/data';
@@ -31,6 +31,9 @@ import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
 import { logger } from '@/lib/logger';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
+
+const LETTERS = ['A', 'B', 'C'] as const;
+type Letter = typeof LETTERS[number];
 
 type Phase = 'play' | 'reveal';
 
@@ -192,9 +195,6 @@ export default function LedeScreen() {
       setHelpUrl(result.url);
       setHelpToken(result.token);
       Analytics.helpSent('lede');
-      // Record sent_help now — the request exists on the server regardless of
-      // how the user delivers the URL (Share, copy, manual). Without this, the
-      // Friends tab never subscribes and the helper's response is never seen.
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[lede] createHelp failed', err);
@@ -219,39 +219,33 @@ export default function LedeScreen() {
   if (!question) return null;
 
   const orderedPanelists: { panelist: LedePanelist; originalIdx: number }[] = order.map(
-    (i) => ({ panelist: question.panelists[i], originalIdx: i })
+    (i) => ({ panelist: question.panelists[i], originalIdx: i }),
   );
 
-  const getPanelistStyle = (originalIdx: number) => {
-    if (phase === 'play') {
-      return selected === originalIdx ? styles.panelistCardSelected : styles.panelistCard;
-    }
-    const p = question.panelists[originalIdx];
-    if (p.isCorrect) return styles.panelistCardCorrect;
-    if (selected === originalIdx && !p.isCorrect) return styles.panelistCardWrong;
-    return styles.panelistCard;
-  };
+  // Determine which display letter (A/B/C) corresponds to the selected panelist (used for button label)
+  const selectedLetterIdx = selected !== null
+    ? orderedPanelists.findIndex(p => p.originalIdx === selected)
+    : -1;
+  const selectedLetter: Letter | null = selectedLetterIdx >= 0 ? LETTERS[selectedLetterIdx] : null;
 
-  const getHeaderStyle = (originalIdx: number) => {
-    if (phase === 'play') {
-      return selected === originalIdx ? styles.panelistHeaderSelected : styles.panelistHeader;
-    }
-    const p = question.panelists[originalIdx];
-    if (p.isCorrect) return styles.panelistHeaderCorrect;
-    if (selected === originalIdx && !p.isCorrect) return styles.panelistHeaderWrong;
-    return styles.panelistHeader;
-  };
+  const correctPanelist = question.panelists.find(p => p.isCorrect);
 
-  const isUnselectedHeader = (originalIdx: number): boolean => {
-    if (phase === 'play') return selected !== originalIdx;
+  // Split headline on the blank marker
+  const blankIdx = question.partialHeadline.indexOf('___');
+  const headlineBefore = blankIdx >= 0 ? question.partialHeadline.slice(0, blankIdx) : question.partialHeadline;
+  const headlineAfter = blankIdx >= 0 ? question.partialHeadline.slice(blankIdx + 3) : '';
+
+  const getChoiceRevealState = (originalIdx: number): 'correct' | 'wrong' | 'neutral' => {
     const p = question.panelists[originalIdx];
-    return !p.isCorrect && selected !== originalIdx;
+    if (p.isCorrect) return 'correct';
+    if (originalIdx === selected) return 'wrong';
+    return 'neutral';
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Masthead />
+        <CompactMasthead />
 
         {phase === 'play' && (
           <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
@@ -259,70 +253,80 @@ export default function LedeScreen() {
           </TouchableOpacity>
         )}
 
-        <View style={styles.labelRow}>
-          <Text style={styles.label}>The Lede</Text>
-          <View style={styles.labelLine} />
-        </View>
+        {/* Headline block */}
+        <Text style={styles.kicker}>Finish the Headline</Text>
 
-        <View style={styles.card}>
-          <View style={styles.cardInnerBorder} />
-          <Text style={styles.sectionSmall}>Complete the headline</Text>
-          <Text style={styles.partialHeadline}>
-            <Text style={styles.partialHeadlineItalic}>{question.partialHeadline}</Text>
-            <Text style={styles.partialHeadlinePlaceholder}> ___</Text>
+        <Text style={styles.headlineText}>
+          {headlineBefore}
+          <Text
+            testID="lede-headline-pill"
+            style={styles.blankPill}
+          >
+            {' ... '}
           </Text>
-          <View style={styles.sourceHintRow}>
-            <Text style={styles.sourceHint}>Source hint: {question.sourceHint}</Text>
-          </View>
-        </View>
+          {headlineAfter}
+        </Text>
 
+        {/* Choice list */}
         {phase === 'play' && (
-          <Text style={styles.instructionText}>Select the reporter whose ending is real.</Text>
+          <Text style={styles.choiceHeading}>Tap to choose</Text>
         )}
 
+        <View style={styles.choiceList}>
+          {orderedPanelists.map(({ panelist, originalIdx }, displayIdx) => {
+            const letter = LETTERS[displayIdx];
+            const isSelected = selected === originalIdx;
+
+            if (phase === 'reveal') {
+              const revealState = getChoiceRevealState(originalIdx);
+              return (
+                <View key={originalIdx} style={styles.choiceRow}>
+                  <View style={[
+                    styles.choiceBar,
+                    revealState === 'correct' && styles.choiceBarCorrect,
+                    revealState === 'wrong' && styles.choiceBarWrong,
+                  ]} />
+                  <View style={styles.choiceBody}>
+                    <Text style={styles.choiceText}>{panelist.completion}</Text>
+                  </View>
+                  <Text style={styles.choiceLetter}>{letter}</Text>
+                </View>
+              );
+            }
+
+            return (
+              <TouchableOpacity
+                key={originalIdx}
+                style={[styles.choiceRow, isSelected && styles.choiceRowSelected]}
+                onPress={() => setSelected(originalIdx)}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.choiceBar, isSelected && styles.choiceBarSelected]} />
+                <View style={styles.choiceBody}>
+                  <Text style={[styles.choiceText, isSelected && styles.choiceTextSelected]}>
+                    {panelist.completion}
+                  </Text>
+                </View>
+                <Text style={[styles.choiceLetter, isSelected && styles.choiceLetterSelected]}>
+                  {letter}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Reveal: combined headline + explanation */}
         {phase === 'reveal' && (
-          <View style={styles.revealHeadlineBox}>
+          <View testID="lede-reveal-box" style={styles.revealBox}>
             <Text style={styles.revealHeadlineLabel}>The Real Headline</Text>
             <Text style={styles.revealHeadline}>
-              {question.partialHeadline}{' '}
-              {question.panelists.find((p) => p.isCorrect)?.completion}
+              {question.partialHeadline.replace('___', correctPanelist?.completion ?? '')}
             </Text>
+            <Text style={styles.truthExplanation}>{question.explanation}</Text>
           </View>
         )}
 
-        {orderedPanelists.map(({ panelist, originalIdx }) => (
-          <TouchableOpacity
-            key={originalIdx}
-            style={getPanelistStyle(originalIdx)}
-            onPress={() => phase === 'play' && setSelected(originalIdx)}
-            activeOpacity={phase === 'play' ? 0.85 : 1}
-            disabled={phase === 'reveal'}
-          >
-            <View style={getHeaderStyle(originalIdx)}>
-              <Text style={[
-                styles.panelistName,
-                isUnselectedHeader(originalIdx) && styles.panelistNameDark,
-              ]}>
-                {panelist.name}
-              </Text>
-              <Text style={[
-                styles.panelistRole,
-                isUnselectedHeader(originalIdx) && styles.panelistRoleDark,
-              ]}>
-                {panelist.role}
-              </Text>
-            </View>
-            <View style={styles.panelistBody}>
-              <Text style={styles.panelistCompletion}>
-                {panelist.completion}
-              </Text>
-              <View style={styles.pitchBox}>
-                <Text style={styles.pitchText}>"{panelist.pitch}"</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-
+        {/* Play phase CTAs */}
         {phase === 'play' && (
           <>
             <TouchableOpacity
@@ -331,36 +335,30 @@ export default function LedeScreen() {
               disabled={selected === null}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryBtnText}>Lock In</Text>
+              <Text style={styles.primaryBtnText}>
+                {selectedLetter ? `Lock In ${selectedLetter}` : 'Lock In'}
+              </Text>
             </TouchableOpacity>
 
             {!isChallengeMode && !isHelpMode && (
               <TouchableOpacity
-                style={styles.secondaryBtn}
+                style={styles.helpLink}
                 onPress={() => requireAuth(handleOpenHelp)}
-                activeOpacity={0.85}
+                activeOpacity={0.7}
               >
-                <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
+                <Text style={styles.helpLinkText}>Stuck? Ask a friend</Text>
               </TouchableOpacity>
             )}
           </>
         )}
 
+        {/* Reveal phase: result + post-game actions */}
         {phase === 'reveal' && (
           <>
-            <View style={styles.truthBox}>
-              <Text style={styles.truthExplanation}>{question.explanation}</Text>
-            </View>
-
             {revealData && (
               <View style={styles.resultCard}>
                 <View style={styles.cardInnerBorder} />
-                <Text
-                  style={[
-                    styles.resultVerdict,
-                    revealData.correct ? styles.resultCorrect : styles.resultWrong,
-                  ]}
-                >
+                <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
                   {revealData.correct ? 'Correct' : 'Wrong'}
                 </Text>
                 <Text style={styles.resultPoints}>
@@ -405,19 +403,21 @@ export default function LedeScreen() {
               </>
             ) : isHelpMode ? (
               <>
-                <View style={styles.comparisonPanel}>
-                  <View style={styles.cardInnerBorder} />
-                  <Text style={styles.helpSentHeading}>Help Sent</Text>
-                  <Text style={[styles.truthExplanation, { textAlign: 'center' }]}>
-                    Your answer has been sent to {helpAskerName || 'your friend'}.
-                  </Text>
-                </View>
-                {isAnonymous && !shieldSignUpDismissed && (
+                {isAnonymous && !shieldSignUpDismissed ? (
                   <ShieldSignUpBanner
+                    helpSentFor={helpAskerName || 'your friend'}
                     onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
                     onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
                     onDismiss={() => setShieldSignUpDismissed(true)}
                   />
+                ) : (
+                  <View style={styles.comparisonPanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.helpSentHeading}>Help Sent</Text>
+                    <Text style={[styles.truthExplanation, { textAlign: 'center' }]}>
+                      Your answer has been sent to {helpAskerName || 'your friend'}.
+                    </Text>
+                  </View>
                 )}
               </>
             ) : (
@@ -431,7 +431,6 @@ export default function LedeScreen() {
                     <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
                   </TouchableOpacity>
                 )}
-
                 {!isHelpMode && (
                   <TouchableOpacity
                     style={styles.secondaryBtn}
@@ -441,7 +440,6 @@ export default function LedeScreen() {
                     <Text style={styles.secondaryBtnText}>Play Again</Text>
                   </TouchableOpacity>
                 )}
-
               </>
             )}
           </>
@@ -543,84 +541,95 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  label: {
+  kicker: {
     fontFamily: F.mono,
     fontSize: 10,
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: C.muted,
-    marginRight: 12,
+    marginBottom: 12,
   },
-  labelLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: C.paperDarker,
-  },
-  card: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    padding: 24,
+  headlineText: {
+    fontFamily: F.frauncesBoldItalic,
+    fontSize: 22,
+    color: C.ink,
+    lineHeight: 30,
     marginBottom: 20,
-    ...cardShadow,
   },
-  cardInnerBorder: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(42,36,29,0.15)',
-    pointerEvents: 'none',
-  },
-  sectionSmall: {
+  blankPill: {
+    color: C.ink,
     fontFamily: F.mono,
-    fontSize: 9,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  choiceHeading: {
+    fontFamily: F.mono,
+    fontSize: 10,
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: C.muted,
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  partialHeadline: {
-    fontFamily: F.frauncesBold,
-    fontSize: 20,
+  choiceList: {
+    gap: 10,
+    marginBottom: 24,
+  },
+  choiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: C.paper,
+    shadowColor: C.paperDarker,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  choiceRowSelected: {
+    backgroundColor: C.ink,
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  choiceBar: {
+    width: 4,
+    alignSelf: 'stretch',
+    backgroundColor: C.paperDarker,
+  },
+  choiceBarSelected: {
+    backgroundColor: C.accent,
+  },
+  choiceBarCorrect: {
+    backgroundColor: C.green,
+  },
+  choiceBarWrong: {
+    backgroundColor: C.accent,
+  },
+  choiceBody: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  choiceText: {
+    fontFamily: F.frauncesItalic,
+    fontSize: 16,
     color: C.ink,
-    lineHeight: 28,
+    lineHeight: 22,
   },
-  partialHeadlineItalic: {
-    fontFamily: F.frauncesBoldItalic,
+  choiceTextSelected: {
+    color: C.onDark,
   },
-  partialHeadlinePlaceholder: {
-    fontFamily: F.frauncesBoldItalic,
-    color: C.muted,
-  },
-  sourceHintRow: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.paperDarker,
-    paddingTop: 10,
-  },
-  sourceHint: {
+  choiceLetter: {
     fontFamily: F.mono,
     fontSize: 10,
     letterSpacing: 1,
     color: C.muted,
-    fontStyle: 'italic',
+    paddingRight: 14,
   },
-  instructionText: {
-    fontFamily: F.fraunces,
-    fontSize: 14,
-    color: C.muted,
-    marginBottom: 12,
-    fontStyle: 'italic',
+  choiceLetterSelected: {
+    color: C.onDarkDim,
   },
-  revealHeadlineBox: {
+  revealBox: {
     backgroundColor: C.ink,
     padding: 20,
     marginBottom: 16,
@@ -638,110 +647,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: C.onDark,
     lineHeight: 26,
+    marginBottom: 12,
   },
-  panelistCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    marginBottom: 14,
-    ...cardShadow,
-    overflow: 'hidden',
-  },
-  panelistCardSelected: {
-    borderWidth: 2,
-    borderColor: C.ink,
-    backgroundColor: C.paper,
-    marginBottom: 14,
-    ...cardShadow,
-    overflow: 'hidden',
-  },
-  panelistCardCorrect: {
-    borderWidth: 2,
-    borderColor: C.green,
-    backgroundColor: C.paper,
-    marginBottom: 14,
-    ...cardShadow,
-    overflow: 'hidden',
-  },
-  panelistCardWrong: {
-    borderWidth: 2,
-    borderColor: C.accent,
-    backgroundColor: C.paper,
-    marginBottom: 14,
-    ...cardShadow,
-    overflow: 'hidden',
-  },
-  panelistHeader: {
-    backgroundColor: C.paperDark,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  panelistHeaderSelected: {
-    backgroundColor: C.ink,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  panelistHeaderCorrect: {
-    backgroundColor: C.green,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  panelistHeaderWrong: {
-    backgroundColor: C.accent,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  panelistName: {
-    fontFamily: F.frauncesBold,
-    fontSize: 14,
-    color: C.onDark,
-  },
-  panelistNameDark: {
-    color: C.ink,
-  },
-  panelistRole: {
-    fontFamily: F.mono,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: C.onDarkDim,
-  },
-  panelistRoleDark: {
-    color: C.muted,
-  },
-  panelistBody: {
-    padding: 16,
-  },
-  panelistCompletion: {
-    fontFamily: F.frauncesItalic,
-    fontSize: 16,
-    color: C.ink,
-    lineHeight: 22,
-    marginBottom: 10,
-  },
-  pitchBox: {
-    borderLeftWidth: 2,
-    borderLeftColor: C.paperDarker,
-    paddingLeft: 12,
-  },
-  pitchText: {
+  truthExplanation: {
     fontFamily: F.fraunces,
-    fontSize: 13,
-    color: C.muted,
-    lineHeight: 19,
-    fontStyle: 'italic',
+    fontSize: 15,
+    color: C.onDark,
+    lineHeight: 22,
   },
   primaryBtn: {
     backgroundColor: C.ink,
@@ -776,16 +688,18 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.ink,
   },
-  truthBox: {
-    backgroundColor: C.ink,
-    padding: 20,
-    marginBottom: 16,
+  helpLink: {
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 4,
   },
-  truthExplanation: {
-    fontFamily: F.fraunces,
-    fontSize: 15,
-    color: C.onDark,
-    lineHeight: 22,
+  helpLinkText: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
+    textDecorationLine: 'underline',
   },
   resultCard: {
     borderWidth: 1,
@@ -795,6 +709,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'center',
     ...cardShadow,
+  },
+  cardInnerBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(42,36,29,0.15)',
+    pointerEvents: 'none',
   },
   resultVerdict: {
     fontFamily: F.frauncesXBoldItalic,
@@ -811,13 +735,6 @@ const styles = StyleSheet.create({
     fontFamily: F.frauncesXBoldItalic,
     fontSize: 24,
     color: C.ink,
-  },
-  resultStreak: {
-    fontFamily: F.mono,
-    fontSize: 12,
-    letterSpacing: 1.5,
-    color: C.muted,
-    marginTop: 6,
   },
   comparisonPanel: {
     borderWidth: 1,

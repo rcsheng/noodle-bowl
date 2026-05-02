@@ -7,12 +7,20 @@ interface Props {
   onCreateAccount: () => void;
   onSignIn: () => void;
   onDismiss: () => void;
+  helpSentFor?: string;
 }
 
-export function ShieldSignUpBanner({ onCreateAccount, onSignIn, onDismiss }: Props) {
+export function ShieldSignUpBanner({ onCreateAccount, onSignIn, onDismiss, helpSentFor }: Props) {
   return (
     <View style={styles.banner} testID="shield-signup-banner">
       <View style={styles.innerBorder} />
+      {helpSentFor && (
+        <>
+          <Text style={styles.helpSentHeading}>Help Sent</Text>
+          <Text style={styles.helpSentBody}>Your answer has been sent to {helpSentFor}.</Text>
+          <View style={styles.divider} />
+        </>
+      )}
       <Text style={styles.heading}>🛡 Sign up to keep your shield</Text>
       <Text style={styles.body}>
         Help a friend or answer a challenge to earn a streak shield. Each shield protects your
@@ -70,6 +78,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: C.ink,
     marginBottom: 8,
+  },
+  helpSentHeading: {
+    fontFamily: F.frauncesBold,
+    fontSize: 18,
+    color: C.ink,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  helpSentBody: {
+    fontFamily: F.fraunces,
+    fontSize: 14,
+    color: C.muted,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: C.rule,
+    marginBottom: 16,
   },
   body: {
     fontFamily: F.fraunces,

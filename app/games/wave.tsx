@@ -421,19 +421,21 @@ export default function WaveScreen() {
               </>
             ) : isHelpMode ? (
               <>
-                <View style={styles.challengePanel}>
-                  <View style={styles.cardInnerBorder} />
-                  <Text style={styles.helpSentHeading}>Help Sent</Text>
-                  <Text style={[styles.infoText, { textAlign: 'center' }]}>
-                    Your answer has been sent to {helpAskerName || 'your friend'}.
-                  </Text>
-                </View>
-                {isAnonymous && !shieldSignUpDismissed && (
+                {isAnonymous && !shieldSignUpDismissed ? (
                   <ShieldSignUpBanner
+                    helpSentFor={helpAskerName || 'your friend'}
                     onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
                     onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
                     onDismiss={() => setShieldSignUpDismissed(true)}
                   />
+                ) : (
+                  <View style={styles.challengePanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.helpSentHeading}>Help Sent</Text>
+                    <Text style={[styles.infoText, { textAlign: 'center' }]}>
+                      Your answer has been sent to {helpAskerName || 'your friend'}.
+                    </Text>
+                  </View>
                 )}
               </>
             ) : (

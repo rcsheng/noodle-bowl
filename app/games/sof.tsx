@@ -1,22 +1,22 @@
-import { copyToClipboard } from '@/constants/utils';
+import { copyToClipboard, shuffleIndices } from '@/constants/utils';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Linking,
-    Modal,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Linking,
+  Modal,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
+import { CompactMasthead } from '@/components/masthead/CompactMasthead';
 import { CopiedToast } from '@/components/CopiedToast';
-import { Masthead } from '@/components/Masthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { SofItem } from '@/constants/data';
@@ -34,13 +34,12 @@ import { logger } from '@/lib/logger';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
 type Phase = 'play' | 'reveal';
-type ClaimVote = 'science' | 'fiction' | null;
 
 interface RevealData {
   correct: boolean;
   points: number;
+  fakeClaim: number;
   prevStreak: number;
-  numCorrect: number;
 }
 
 function pickFromSof(
@@ -83,9 +82,10 @@ export default function SofScreen() {
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
 
-  const [question, setQuestion] = useState<SofItem | null>(null);
-  const [questionIdx, setQuestionIdx] = useState(0);
-  const [votes, setVotes] = useState<ClaimVote[]>([null, null, null]);
+  type Slot = { item: SofItem; idx: number; claimOrder: number[] };
+  const [standardSlot, setStandardSlot] = useState<Slot | null>(null);
+  const [weirdSlot, setWeirdSlot] = useState<Slot | null>(null);
+  const [selectedClaim, setSelectedClaim] = useState<number | null>(null);
   const [phase, setPhase] = useState<Phase>('play');
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [weirdMode, setWeirdMode] = useState(false);
@@ -108,62 +108,39 @@ export default function SofScreen() {
       const idx = parseInt(challengeQuestionIndex, 10);
       const item = banks.sof[idx];
       if (!item) { router.replace('/'); return; }
-      setQuestion(item);
-      setQuestionIdx(idx);
+      const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
+      if (item.weirdAndTrue) setWeirdSlot(slot); else setStandardSlot(slot);
       setWeirdMode(item.weirdAndTrue);
-      setVotes([null, null, null]);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.sof[idx];
       if (!item) { router.replace('/'); return; }
-      setQuestion(item);
-      setQuestionIdx(idx);
+      const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
+      if (item.weirdAndTrue) setWeirdSlot(slot); else setStandardSlot(slot);
       setWeirdMode(item.weirdAndTrue);
-      setVotes([null, null, null]);
     } else {
-      const { idx, item, newSeen } = pickFromSof(banks.sof, false, state.seen.sof);
-      setSeen('sof', newSeen);
-      setQuestion(item);
-      setQuestionIdx(idx);
-      setVotes([null, null, null]);
+      const { idx: stdIdx, item: stdItem, newSeen: seenAfterStd } = pickFromSof(banks.sof, false, state.seen.sof);
+      const { idx: wrdIdx, item: wrdItem, newSeen: seenAfterBoth } = pickFromSof(banks.sof, true, seenAfterStd);
+      setSeen('sof', seenAfterBoth);
+      setStandardSlot({ item: stdItem, idx: stdIdx, claimOrder: shuffleIndices(stdItem.claims.length) });
+      setWeirdSlot({ item: wrdItem, idx: wrdIdx, claimOrder: shuffleIndices(wrdItem.claims.length) });
     }
   }, [isLoaded]);
 
-  const setVote = (idx: number, v: ClaimVote) => {
-    setVotes((prev) => {
-      const next = [...prev];
-      if (v === 'fiction') {
-        next.forEach((_, i) => { if (i !== idx && next[i] === 'fiction') next[i] = null; });
-      }
-      next[idx] = v;
-      return next;
-    });
-  };
-
   const handleLockIn = async () => {
-    if (!question) return;
-    let numCorrect = 0;
-    votes.forEach((v, i) => {
-      const claim = question.claims[i];
-      if ((v === 'science' && claim.isScience) || (v === 'fiction' && !claim.isScience)) {
-        numCorrect++;
-      }
-    });
-    const allCorrect = numCorrect === 3;
-    const basePoints = numCorrect * 10;
-    const bonus = allCorrect ? 20 : 0;
-    const totalPoints = basePoints + bonus;
-    const correct = numCorrect >= 2;
+    if (!question || selectedClaim === null) return;
+    const fakeClaim = question.claims.findIndex(c => !c.isScience);
+    const correct = selectedClaim === fakeClaim;
+    const points = correct ? 10 : 0;
     const prevStreak = state.stats.sof.streak;
-    setRevealData({ correct, points: totalPoints, prevStreak, numCorrect });
-    updateGameStats('sof', correct, totalPoints);
-    Analytics.gameComplete('sof', correct, totalPoints);
+    setRevealData({ correct, points, fakeClaim, prevStreak });
+    updateGameStats('sof', correct, points);
+    Analytics.gameComplete('sof', correct, Math.max(0, points));
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
       try {
-        const friendAnswer = String(votes.findIndex(v => v === 'fiction') + 1);
-        const comparison = await respondToChallenge({ token: challengeToken, friendAnswer });
+        const comparison = await respondToChallenge({ token: challengeToken, friendAnswer: String(selectedClaim + 1) });
         setChallengeComparison(comparison);
         addFriendInteraction({
           type: 'received_challenge',
@@ -182,8 +159,7 @@ export default function SofScreen() {
 
     if (isHelpMode && helpTokenParam && !helpRespondResult) {
       try {
-        const helperAnswer = String(votes.findIndex(v => v === 'fiction') + 1);
-        const result = await respondToHelp({ token: helpTokenParam, helperAnswer });
+        const result = await respondToHelp({ token: helpTokenParam, helperAnswer: String(selectedClaim + 1) });
         setHelpRespondResult(result);
         addFriendInteraction({
           type: 'gave_help',
@@ -204,9 +180,9 @@ export default function SofScreen() {
   const handlePlayAgain = () => {
     const { idx, item, newSeen } = pickFromSof(banks.sof, weirdMode, state.seen.sof);
     setSeen('sof', newSeen);
-    setQuestion(item);
-    setQuestionIdx(idx);
-    setVotes([null, null, null]);
+    const newSlot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
+    if (weirdMode) setWeirdSlot(newSlot); else setStandardSlot(newSlot);
+    setSelectedClaim(null);
     setPhase('play');
     setRevealData(null);
     setHelpUrl('');
@@ -216,15 +192,11 @@ export default function SofScreen() {
   const handleToggleMode = (nextMode: boolean) => {
     if (nextMode === weirdMode) return;
     setWeirdMode(nextMode);
-    if (phase === 'play') {
-      const { idx, item, newSeen } = pickFromSof(banks.sof, nextMode, state.seen.sof);
-      setSeen('sof', newSeen);
-      setQuestion(item);
-      setQuestionIdx(idx);
-      setVotes([null, null, null]);
-      setHelpUrl('');
-      setHelpToken(null);
-    }
+    setSelectedClaim(null);
+    setPhase('play');
+    setRevealData(null);
+    setHelpUrl('');
+    setHelpToken(null);
   };
 
   const handleOpenHelp = async () => {
@@ -265,14 +237,17 @@ export default function SofScreen() {
     }
   };
 
-  const allVoted = votes.every((v) => v !== null) && votes.filter(v => v === 'fiction').length === 1;
+  const currentSlot = weirdMode ? weirdSlot : standardSlot;
+  const question = currentSlot?.item ?? null;
+  const questionIdx = currentSlot?.idx ?? 0;
+  const claimOrder = currentSlot?.claimOrder ?? [0, 1, 2];
 
   if (!question) return null;
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Masthead />
+        <CompactMasthead />
 
         {phase === 'play' && (
           <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
@@ -280,142 +255,141 @@ export default function SofScreen() {
           </TouchableOpacity>
         )}
 
-        <View style={styles.labelRow}>
-          <Text style={styles.label}>Science or Fiction</Text>
-          <View style={styles.labelLine} />
-        </View>
-
-        <View style={styles.modeToggle}>
-          <TouchableOpacity
-            testID="sof-toggle-standard"
-            style={[styles.modeBtn, !weirdMode && styles.modeBtnActive]}
-            onPress={() => handleToggleMode(false)}
-            activeOpacity={0.8}
-            disabled={isChallengeMode || isHelpMode}
-          >
-            <Text style={[styles.modeBtnText, !weirdMode && styles.modeBtnTextActive]}>Standard</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            testID="sof-toggle-weird"
-            style={[styles.modeBtn, weirdMode && styles.modeBtnActive]}
-            onPress={() => handleToggleMode(true)}
-            activeOpacity={0.8}
-            disabled={isChallengeMode || isHelpMode}
-          >
-            <Text style={[styles.modeBtnText, weirdMode && styles.modeBtnTextActive]}>Weird & True</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.topicCard}>
-          <View style={styles.cardInnerBorder} />
-          <Text style={styles.topicLabel}>Topic</Text>
-          <Text style={styles.topicTitle}>{question.topic}</Text>
-          <Text style={styles.topicIntro}>{question.intro}</Text>
-        </View>
-
-        {phase === 'play' && (
-          <Text style={styles.instructionText}>
-            Mark each claim as Science (real) or Fiction (fabricated).
-          </Text>
+        {/* Mode toggle — segmented control */}
+        {!isChallengeMode && !isHelpMode && phase === 'play' && (
+          <>
+          <Text style={styles.modeLabel}>Select mode</Text>
+          <View style={styles.modeToggle}>
+            <TouchableOpacity
+              testID="sof-mode-standard"
+              style={[styles.modeBtn, !weirdMode && styles.modeBtnActive]}
+              onPress={() => handleToggleMode(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.modeBtnText, !weirdMode && styles.modeBtnTextActive]}>Standard</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="sof-mode-weird"
+              style={[styles.modeBtn, weirdMode && styles.modeBtnActive]}
+              onPress={() => handleToggleMode(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.modeBtnText, weirdMode && styles.modeBtnTextActive]}>Weird & True</Text>
+            </TouchableOpacity>
+          </View>
+          </>
         )}
 
-        {question.claims.map((claim, i) => (
-          <View key={i} style={[styles.claimCard, phase === 'reveal' && getRevealBorder(votes[i], claim.isScience)]}>
-            <View style={styles.cardInnerBorder} />
-            <View style={styles.claimNumRow}>
-              <Text style={styles.claimNum}>Claim {i + 1}</Text>
-            </View>
-            <Text style={styles.claimText}>{claim.text}</Text>
+        {/* Topic header */}
+        <Text style={styles.categoryHeadline}>{question.topic}</Text>
 
-            {phase === 'play' ? (
-              <View style={styles.voteRow}>
-                <TouchableOpacity
-                  style={[styles.voteBtn, votes[i] === 'science' && styles.voteBtnSelected]}
-                  onPress={() => setVote(i, 'science')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.voteBtnText, votes[i] === 'science' && styles.voteBtnTextSelected]}>
-                    Science
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.voteBtn, votes[i] === 'fiction' && styles.voteBtnSelected]}
-                  onPress={() => setVote(i, 'fiction')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.voteBtnText, votes[i] === 'fiction' && styles.voteBtnTextSelected]}>
-                    Fiction
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.revealSection}>
-                <View style={[styles.verdictTag, claim.isScience ? styles.verdictScience : styles.verdictFiction]}>
-                  <Text style={styles.verdictTagText}>{claim.isScience ? 'Science' : 'Fiction'}</Text>
-                </View>
-                <Text style={styles.explanationText}>{claim.explanation}</Text>
-                {claim.source && (
-                  <TouchableOpacity
-                    onPress={() => claim.source && Linking.openURL(claim.source.url)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.sourceLink}>Source: {claim.source.name} ↗</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
+        {/* Instructions */}
+        {phase === 'play' && (
+          <View style={styles.instructions}>
+            <Text style={styles.instructionSub}>Tap the Fake</Text>
+            <Text style={styles.instructionMain}>Two are real · one is a lie</Text>
           </View>
-        ))}
+        )}
 
+        {/* Claim cards */}
+        <View style={styles.claimList}>
+          {claimOrder.map((originalIdx, displayIdx) => {
+            const claim = question.claims[originalIdx];
+            const selected = selectedClaim === originalIdx;
+
+            if (phase === 'reveal' && revealData) {
+              const isFake = originalIdx === revealData.fakeClaim;
+              const isWrongPick = originalIdx === selectedClaim && !isFake;
+              return (
+                <View
+                  key={originalIdx}
+                  style={[
+                    styles.claimCard,
+                    isFake && styles.claimCardFake,
+                    isWrongPick && styles.claimCardWrongPick,
+                  ]}
+                >
+                  <View style={styles.claimHeader}>
+                    <Text style={styles.claimNum}>CLAIM {displayIdx + 1}</Text>
+                    {isFake && <Text style={styles.fakeLabel}>← THE FAKE</Text>}
+                  </View>
+                  <Text style={styles.claimText}>{claim.text}</Text>
+                  <View style={styles.revealSection}>
+                    <View style={[styles.verdictTag, claim.isScience ? styles.verdictScience : styles.verdictFiction]}>
+                      <Text style={styles.verdictTagText}>{claim.isScience ? 'Science' : 'Fiction'}</Text>
+                    </View>
+                    <Text style={styles.explanationText}>{claim.explanation}</Text>
+                    {claim.source && (
+                      <TouchableOpacity
+                        onPress={() => claim.source && Linking.openURL(claim.source.url)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.sourceLink}>Source: {claim.source.name} ↗</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              );
+            }
+
+            return (
+              <TouchableOpacity
+                key={originalIdx}
+                style={[styles.claimCard, selected && styles.claimCardSelected]}
+                onPress={() => setSelectedClaim(originalIdx)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.claimHeader}>
+                  <Text style={[styles.claimNum, selected && styles.claimNumSelected]}>
+                    CLAIM {displayIdx + 1}
+                  </Text>
+                  {selected && <Text style={styles.myPickLabel}>← MY PICK</Text>}
+                </View>
+                <Text style={[styles.claimText, selected && styles.claimTextSelected]}>
+                  {claim.text}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Play phase CTA */}
         {phase === 'play' && (
           <>
             <TouchableOpacity
-              style={[styles.primaryBtn, !allVoted && styles.primaryBtnDisabled]}
+              style={[styles.primaryBtn, selectedClaim === null && styles.primaryBtnDisabled]}
               onPress={handleLockIn}
-              disabled={!allVoted}
+              disabled={selectedClaim === null}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryBtnText}>Lock In</Text>
+              <Text style={styles.primaryBtnText}>
+                {selectedClaim !== null ? `LOCK IN CLAIM ${claimOrder.indexOf(selectedClaim) + 1}` : 'LOCK IN'}
+              </Text>
             </TouchableOpacity>
 
             {!isChallengeMode && !isHelpMode && (
               <TouchableOpacity
-                style={styles.secondaryBtn}
+                style={styles.helpLink}
                 onPress={() => requireAuth(handleOpenHelp)}
-                activeOpacity={0.85}
+                activeOpacity={0.7}
               >
-                <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
+                <Text style={styles.helpLinkText}>Stuck? Ask a friend</Text>
               </TouchableOpacity>
             )}
           </>
         )}
 
+        {/* Reveal */}
         {phase === 'reveal' && revealData && (
           <>
             <View style={styles.resultCard}>
               <View style={styles.cardInnerBorder} />
-              <Text
-                style={[
-                  styles.resultVerdict,
-                  revealData.numCorrect === 3
-                    ? styles.resultPerfect
-                    : revealData.numCorrect >= 2
-                    ? styles.resultCorrect
-                    : styles.resultWrong,
-                ]}
-              >
-                {revealData.numCorrect === 3
-                  ? 'Perfect!'
-                  : revealData.numCorrect === 2
-                  ? 'Almost!'
-                  : revealData.numCorrect === 1
-                  ? 'One Right'
-                  : 'Missed All'}
+              <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
+                {revealData.correct ? 'You spotted the fake!' : 'That was the real one.'}
               </Text>
-              <Text style={styles.resultPoints}>+{revealData.points} pts</Text>
-              {revealData.numCorrect === 3 && (
-                <Text style={styles.resultBonus}>Includes +20 bonus for all 3</Text>
-              )}
+              <Text style={styles.resultPoints}>
+                {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
+              </Text>
             </View>
 
             {isChallengeMode ? (
@@ -426,7 +400,9 @@ export default function SofScreen() {
                     <Text style={styles.challengePanelLabel}>Challenge Results</Text>
                     <View style={styles.challengeRow}>
                       <Text style={styles.challengeKey}>Your fiction pick</Text>
-                      <Text style={styles.challengeVal}>Claim {votes.findIndex(v => v === 'fiction') + 1}</Text>
+                      <Text style={styles.challengeVal}>
+                        {selectedClaim !== null ? `Claim ${selectedClaim + 1}` : '—'}
+                      </Text>
                     </View>
                     <View style={styles.challengeRow}>
                       <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s fiction pick</Text>
@@ -436,7 +412,7 @@ export default function SofScreen() {
                       <Text style={styles.challengeKey}>Their prediction</Text>
                       <Text style={styles.challengeVal}>
                         Claim {challengeComparison.senderPrediction}{' '}
-                        {challengeComparison.senderPrediction === String(votes.findIndex(v => v === 'fiction') + 1) ? '✓' : '✗'}
+                        {challengeComparison.senderPrediction === String(selectedClaim !== null ? selectedClaim + 1 : 0) ? '✓' : '✗'}
                       </Text>
                     </View>
                   </View>
@@ -452,43 +428,39 @@ export default function SofScreen() {
               </>
             ) : isHelpMode ? (
               <>
-                <View style={styles.challengePanel}>
-                  <View style={styles.cardInnerBorder} />
-                  <Text style={styles.helpSentHeading}>Help Sent</Text>
-                  <Text style={[styles.explanationText, { textAlign: 'center' }]}>
-                    Your answer has been sent to {helpAskerName || 'your friend'}.
-                  </Text>
-                </View>
-                {isAnonymous && !shieldSignUpDismissed && (
+                {isAnonymous && !shieldSignUpDismissed ? (
                   <ShieldSignUpBanner
+                    helpSentFor={helpAskerName || 'your friend'}
                     onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
                     onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
                     onDismiss={() => setShieldSignUpDismissed(true)}
                   />
+                ) : (
+                  <View style={styles.challengePanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.helpSentHeading}>Help Sent</Text>
+                    <Text style={[styles.explanationText, { textAlign: 'center' }]}>
+                      Your answer has been sent to {helpAskerName || 'your friend'}.
+                    </Text>
+                  </View>
                 )}
               </>
             ) : (
               <>
-                {!isChallengeMode && !isHelpMode && (
-                  <TouchableOpacity
-                    style={styles.primaryBtn}
-                    onPress={() => requireAuth(() => setShowChallenge(true))}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
-                  </TouchableOpacity>
-                )}
-
-                {!isHelpMode && (
-                  <TouchableOpacity
-                    style={styles.secondaryBtn}
-                    onPress={handlePlayAgain}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.secondaryBtnText}>Play Again</Text>
-                  </TouchableOpacity>
-                )}
-
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => requireAuth(() => setShowChallenge(true))}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={handlePlayAgain}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.secondaryBtnText}>Play Again</Text>
+                </TouchableOpacity>
               </>
             )}
           </>
@@ -508,16 +480,16 @@ export default function SofScreen() {
         onClose={() => setShowChallenge(false)}
         correct={revealData?.correct ?? false}
         predictLabel="Which claim do you think they'll call Fiction?"
-        predictOptions={question ? question.claims.map((claim, i) => ({
+        predictOptions={question.claims.map((claim, i) => ({
           label: `${i + 1}. ${claim.text.split(' ').slice(0, 6).join(' ')}…`,
           value: String(i + 1),
-        })) : []}
+        }))}
         buildChallengeUrl={async (friendName, prediction) => {
           const result = await createChallenge({
             gameId: 'sof',
             questionIndex: questionIdx,
             senderPrediction: prediction,
-            senderAnswer: String(votes.findIndex(v => v === 'fiction') + 1),
+            senderAnswer: String(selectedClaim !== null ? selectedClaim + 1 : 0),
             senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
@@ -571,12 +543,6 @@ export default function SofScreen() {
   );
 }
 
-function getRevealBorder(vote: ClaimVote, isScience: boolean) {
-  const correct = (vote === 'science' && isScience) || (vote === 'fiction' && !isScience);
-  if (correct) return styles.claimCardCorrect;
-  return styles.claimCardWrong;
-}
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -596,34 +562,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  label: {
-    fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: C.muted,
-    marginRight: 12,
-  },
-  labelLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: C.paperDarker,
-  },
   modeToggle: {
     flexDirection: 'row',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: C.ink,
+    gap: 8,
+    marginBottom: 12,
   },
   modeBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: C.ink,
     backgroundColor: C.paper,
   },
   modeBtnActive: {
@@ -631,7 +580,7 @@ const styles = StyleSheet.create({
   },
   modeBtnText: {
     fontFamily: F.monoBold,
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.ink,
@@ -639,70 +588,64 @@ const styles = StyleSheet.create({
   modeBtnTextActive: {
     color: C.onDark,
   },
-  topicCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    padding: 24,
-    marginBottom: 16,
-    ...cardShadow,
-  },
-  cardInnerBorder: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(42,36,29,0.15)',
-    pointerEvents: 'none',
-  },
-  topicLabel: {
+  modeLabel: {
     fontFamily: F.mono,
-    fontSize: 9,
+    fontSize: 10,
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: C.muted,
     marginBottom: 6,
   },
-  topicTitle: {
+  categoryHeadline: {
     fontFamily: F.frauncesBoldItalic,
     fontSize: 22,
     color: C.ink,
-    marginBottom: 8,
+    lineHeight: 30,
+    marginBottom: 20,
   },
-  topicIntro: {
-    fontFamily: F.fraunces,
-    fontSize: 14,
-    color: C.muted,
-    lineHeight: 20,
-    fontStyle: 'italic',
-  },
-  instructionText: {
-    fontFamily: F.fraunces,
-    fontSize: 14,
-    color: C.muted,
+  instructions: {
     marginBottom: 16,
-    fontStyle: 'italic',
+  },
+  instructionSub: {
+    fontFamily: F.frauncesBoldItalic,
+    fontSize: 19,
+    color: C.ink,
+    lineHeight: 26,
+    marginBottom: 4,
+  },
+  instructionMain: {
+    fontFamily: F.frauncesItalic,
+    fontSize: 13,
+    color: C.muted,
+    lineHeight: 18,
+  },
+  claimList: {
+    gap: 12,
+    marginBottom: 20,
   },
   claimCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
+    borderWidth: 1.5,
+    borderColor: C.ink,
     backgroundColor: C.paper,
-    padding: 20,
-    marginBottom: 14,
-    ...cardShadow,
+    padding: 14,
   },
-  claimCardCorrect: {
-    borderWidth: 2,
-    borderColor: C.green,
-  },
-  claimCardWrong: {
-    borderWidth: 2,
+  claimCardSelected: {
+    backgroundColor: C.accent,
     borderColor: C.accent,
   },
-  claimNumRow: {
-    marginBottom: 10,
+  claimCardFake: {
+    borderColor: C.green,
+    borderWidth: 2,
+  },
+  claimCardWrongPick: {
+    borderColor: C.accent,
+    borderWidth: 2,
+  },
+  claimHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   claimNum: {
     fontFamily: F.mono,
@@ -711,42 +654,33 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
   },
+  claimNumSelected: {
+    color: C.onDarkDim,
+  },
+  myPickLabel: {
+    fontFamily: F.frauncesItalic,
+    fontSize: 12,
+    color: C.onDarkDim,
+  },
+  fakeLabel: {
+    fontFamily: F.frauncesItalic,
+    fontSize: 12,
+    color: C.green,
+  },
   claimText: {
     fontFamily: F.fraunces,
     fontSize: 15,
     color: C.ink,
     lineHeight: 22,
-    marginBottom: 14,
   },
-  voteRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  voteBtn: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: C.ink,
-    backgroundColor: C.paper,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  voteBtnSelected: {
-    backgroundColor: C.ink,
-  },
-  voteBtnText: {
-    fontFamily: F.monoBold,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: C.ink,
-  },
-  voteBtnTextSelected: {
+  claimTextSelected: {
     color: C.onDark,
   },
   revealSection: {
     borderTopWidth: 1,
     borderTopColor: C.paperDarker,
     paddingTop: 12,
+    marginTop: 10,
   },
   verdictTag: {
     alignSelf: 'flex-start',
@@ -814,6 +748,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.ink,
   },
+  helpLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  helpLinkText: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
+    textDecorationLine: 'underline',
+  },
   resultCard: {
     borderWidth: 1,
     borderColor: C.rule,
@@ -823,16 +770,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...cardShadow,
   },
+  cardInnerBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(42,36,29,0.15)',
+    pointerEvents: 'none',
+  },
   resultVerdict: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 36,
+    fontSize: 30,
     marginBottom: 4,
-  },
-  resultPerfect: {
-    color: C.green,
+    textAlign: 'center',
   },
   resultCorrect: {
-    color: C.accentWarm,
+    color: C.green,
   },
   resultWrong: {
     color: C.accent,
@@ -841,13 +796,6 @@ const styles = StyleSheet.create({
     fontFamily: F.frauncesXBoldItalic,
     fontSize: 24,
     color: C.ink,
-  },
-  resultBonus: {
-    fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: C.muted,
-    marginTop: 6,
   },
   challengePanel: {
     borderWidth: 1,

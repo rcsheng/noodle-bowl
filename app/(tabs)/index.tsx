@@ -3,7 +3,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  TouchableHighlight,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +23,13 @@ import { db } from '@/lib/firebase';
 import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
 import { evaluateHelperAnswer } from '@/lib/helpAnswerEvaluator';
 
+function getSectionDate(): string {
+  const d = new Date();
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  return `${weekday} ${month} ${d.getDate()}`;
+}
+
 export default function HubScreen() {
   const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner } = useGame();
   const { banks } = useContent();
@@ -38,9 +45,6 @@ export default function HubScreen() {
     i => i.type === 'challenge_accepted' && i.token && !i.homeCardDismissed,
   );
 
-  // Verify each candidate against Firestore — only render cards that have a
-  // live, resolved doc. Orphans are GC'd from local state. Help cards check
-  // helpRequests/{token}; challenge cards check challenges/{token}.
   const [validatedTokens, setValidatedTokens] = useState<Set<string>>(new Set());
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +65,6 @@ export default function HubScreen() {
           if (snap.exists() && snap.data()?.resolvedAt) return { interaction, live: true };
           return { interaction, live: false };
         } catch {
-          // Network error: don't GC, just skip this round.
           return { interaction, live: null };
         }
       }),
@@ -172,65 +175,50 @@ export default function HubScreen() {
         )}
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Today's Games</Text>
+          <Text style={styles.sectionLabel}>Today's Bowl · {getSectionDate()}</Text>
           <View style={styles.sectionLine} />
         </View>
 
-        {VISIBLE_GAMES.map((id: GameId, index: number) => {
-          const meta = GAME_META[id];
-          const isAnchor = index === 0;
-          const gameStats = state.stats[id];
-          const playedToday = gameStats.lastPlayed === today;
-          return (
-            <TouchableOpacity
-              key={id}
-              style={[styles.gameCard, isAnchor && styles.gameCardAnchor, playedToday && styles.gameCardPlayed]}
-              onPress={() => router.push(`/games/${id}`)}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.gameCardHeader, isAnchor && styles.gameCardHeaderAnchor]}>
-                <View style={styles.gameCardHeaderLeft}>
-                  <Text style={[styles.gameNum, isAnchor && styles.gameNumAnchor]}>{meta.num}</Text>
-                  <Text style={styles.gameSection}>{meta.section}</Text>
-                </View>
-                {playedToday ? (
-                  <View style={styles.playedBadge}>
-                    <Text style={styles.playedBadgeText}>Played ✓</Text>
+        <View style={styles.gameList}>
+          {VISIBLE_GAMES.map((id: GameId) => {
+            const meta = GAME_META[id];
+            const gameStats = state.stats[id];
+            const playedToday = gameStats.lastPlayed === today;
+            const pts = gameStats.lastPoints;
+            return (
+              <TouchableHighlight
+                key={id}
+                style={styles.gameRow}
+                underlayColor={C.paperDark}
+                activeOpacity={1}
+                onPress={() => router.push(`/games/${id}`)}
+              >
+                <View style={styles.gameRowInner}>
+                  <Text style={styles.rowNum}>{meta.num}</Text>
+                  <View style={styles.rowCenter}>
+                    <Text style={styles.rowTitle}>{meta.title}</Text>
+                    <Text style={styles.rowTagline}>{meta.tagline}</Text>
+                    <Text style={styles.rowMeta}>{meta.meta.join(' · ')}</Text>
                   </View>
-                ) : (
-                  <View style={styles.playBadge}>
-                    <Text style={styles.playBadgeText}>Play →</Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={[styles.gameCardBody, isAnchor && styles.gameCardBodyAnchor]}>
-                <View style={styles.cardInnerBorder} />
-                <Text style={styles.gameTitle}>{meta.title}</Text>
-                <Text style={styles.gameTagline}>{meta.tagline}</Text>
-
-                <View style={styles.metaRow}>
-                  {meta.meta.map((dot, i) => (
-                    <React.Fragment key={i}>
-                      {i > 0 && <Text style={styles.metaDot}> · </Text>}
-                      <Text style={styles.metaText}>{dot}</Text>
-                    </React.Fragment>
-                  ))}
-                  {playedToday && gameStats.lastPoints !== undefined && (
-                    <>
-                      <Text style={styles.metaDot}> · </Text>
-                      <View style={styles.scorePill}>
-                        <Text style={styles.scorePillText}>+{gameStats.lastPoints} pts</Text>
+                  <View style={styles.rowTrailingWrapper}>
+                    {playedToday ? (
+                      <>
+                        <Text style={styles.rowTrailingPlayed}>
+                          {pts !== undefined ? `✓ +${pts}` : '✓'}
+                        </Text>
+                        <Text style={styles.rowPlayAgain}>PLAY AGAIN</Text>
+                      </>
+                    ) : (
+                      <View style={styles.playBtn}>
+                        <Text style={styles.playBtnText}>PLAY</Text>
                       </View>
-                      <Text style={styles.metaDot}> · </Text>
-                      <Text style={styles.metaText}>Play Again</Text>
-                    </>
-                  )}
+                    )}
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+              </TouchableHighlight>
+            );
+          })}
+        </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Noodle Bowl</Text>
@@ -313,128 +301,83 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: C.paperDarker,
   },
-  gameCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    marginBottom: 20,
-    ...cardShadow,
-    overflow: 'hidden',
+  gameList: {
+    borderTopWidth: 1,
+    borderTopColor: C.rule,
+    marginBottom: 24,
   },
-  gameCardAnchor: {
-    borderColor: C.gold,
+  gameRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: C.rule,
   },
-  gameCardHeader: {
-    backgroundColor: C.ink,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  gameRowInner: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 18,
   },
-  gameCardHeaderAnchor: {
-    backgroundColor: C.ink,
-  },
-  gameCardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexShrink: 1,
-  },
-  gameNum: {
+  rowNum: {
+    width: 52,
     fontFamily: F.mono,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 1.5,
-    color: C.onDarkDim,
-    textTransform: 'uppercase',
+    color: C.muted,
+    paddingTop: 2,
   },
-  gameNumAnchor: {
-    color: C.gold,
+  rowCenter: {
+    flex: 1,
   },
-  gameSection: {
-    fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: C.onDark,
-    textTransform: 'uppercase',
-  },
-  playBadge: {
-    borderWidth: 1,
-    borderColor: C.onDarkDim,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  playBadgeText: {
-    fontFamily: F.monoBold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: C.onDark,
-    textTransform: 'uppercase',
-  },
-  gameCardBody: {
-    padding: 24,
-  },
-  gameCardBodyAnchor: {
-    paddingVertical: 28,
-  },
-  gameTitle: {
-    fontFamily: F.frauncesXBoldItalic,
-    fontSize: 28,
+  rowTitle: {
+    fontFamily: F.frauncesBoldItalic,
+    fontSize: 22,
+    lineHeight: 26,
     color: C.ink,
-    lineHeight: 32,
-    marginBottom: 8,
   },
-  gameTagline: {
+  rowTagline: {
     fontFamily: F.fraunces,
-    fontSize: 15,
+    fontSize: 13,
+    lineHeight: 18,
     color: C.muted,
-    lineHeight: 22,
-    marginBottom: 14,
+    marginTop: 4,
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  metaText: {
+  rowMeta: {
     fontFamily: F.mono,
     fontSize: 10,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
+    marginTop: 6,
   },
-  metaDot: {
+  rowTrailingWrapper: {
+    paddingLeft: 12,
+    paddingTop: 2,
+    alignItems: 'flex-end',
+  },
+  rowTrailingPlayed: {
     fontFamily: F.mono,
-    fontSize: 10,
-    color: C.muted,
+    fontSize: 12,
+    letterSpacing: 1,
+    color: C.gold,
+    marginBottom: 4,
   },
-  gameCardPlayed: {
-    opacity: 0.85,
-  },
-  playedBadge: {
-    borderWidth: 1,
-    borderColor: C.green,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  playedBadgeText: {
-    fontFamily: F.monoBold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: C.green,
-    textTransform: 'uppercase',
-  },
-  scorePill: {
-    backgroundColor: C.green,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  scorePillText: {
-    fontFamily: F.monoBold,
+  rowPlayAgain: {
+    fontFamily: F.mono,
     fontSize: 9,
     letterSpacing: 1.2,
-    color: C.onDark,
     textTransform: 'uppercase',
+    color: C.muted,
+    textDecorationLine: 'underline',
+  },
+  playBtn: {
+    backgroundColor: C.ink,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  playBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.onDark,
   },
   footer: {
     alignItems: 'center',

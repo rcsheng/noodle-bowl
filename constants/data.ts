@@ -701,7 +701,7 @@ export const GAME_META: Record<GameId, { num: string; section: string; title: st
     num: 'N° 01',
     section: 'Finish The Headline',
     title: 'The Lede',
-    tagline: 'Three reporters offer competing endings for today\'s headline. Only one is real.',
+    tagline: "Three endings for today's headline. Only one is real.",
     meta: ['Bluff round', '~2 min'],
   },
   spread: {

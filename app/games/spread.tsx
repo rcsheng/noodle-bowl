@@ -1,28 +1,25 @@
+import { copyToClipboard, pickFromBank } from '@/constants/utils';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
+import { CompactMasthead } from '@/components/masthead/CompactMasthead';
 import { CopiedToast } from '@/components/CopiedToast';
-import { Masthead } from '@/components/Masthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { SpreadItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { copyToClipboard, pickFromBank, scoreSpread } from '@/constants/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
@@ -33,14 +30,15 @@ import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
 import { getCachedPushToken } from '@/lib/pushTokens';
 import { logger } from '@/lib/logger';
+import { buildChoicesForItem } from '@/lib/spreadChoices';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
-type Phase = 'guess' | 'reveal';
+type Phase = 'play' | 'reveal';
 
 interface RevealData {
   correct: boolean;
   points: number;
-  deviation: number;
+  selected: number;
   prevStreak: number;
 }
 
@@ -71,8 +69,9 @@ export default function SpreadScreen() {
 
   const [question, setQuestion] = useState<SpreadItem | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
-  const [phase, setPhase] = useState<Phase>('guess');
-  const [input, setInput] = useState('');
+  const [phase, setPhase] = useState<Phase>('play');
+  const [choices, setChoices] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
@@ -86,6 +85,13 @@ export default function SpreadScreen() {
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
 
+  const loadQuestion = (item: SpreadItem) => {
+    setChoices(buildChoicesForItem(item));
+    setSelected(null);
+    setPhase('play');
+    setRevealData(null);
+  };
+
   useEffect(() => {
     if (!isLoaded || started.current) return;
     started.current = true;
@@ -95,67 +101,67 @@ export default function SpreadScreen() {
       if (!item) { router.replace('/'); return; }
       setQuestion(item);
       setQuestionIdx(idx);
+      loadQuestion(item);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.spread[idx];
       if (!item) { router.replace('/'); return; }
       setQuestion(item);
       setQuestionIdx(idx);
+      loadQuestion(item);
     } else {
       const { idx, item, newSeen } = pickFromBank(banks.spread, state.seen.spread);
       setSeen('spread', newSeen);
       setQuestion(item);
       setQuestionIdx(idx);
+      loadQuestion(item);
     }
   }, [isLoaded]);
 
-  const handleSubmit = async () => {
-    if (!question) return;
-    const guess = parseFloat(input.replace(/,/g, ''));
-    if (isNaN(guess)) return;
-    const { correct, points, deviation } = scoreSpread(guess, question.answer);
+  const handleLockIn = () => {
+    if (!question || selected === null) return;
+    const correct = selected === question.answer;
+    const points = correct ? 10 : 0;
     const prevStreak = state.stats.spread.streak;
-    setRevealData({ correct, points, deviation, prevStreak });
+    setRevealData({ correct, points, selected, prevStreak });
     updateGameStats('spread', correct, points);
     Analytics.gameComplete('spread', correct, points);
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
-      try {
-        const comparison = await respondToChallenge({ token: challengeToken, friendAnswer: String(guess) });
-        setChallengeComparison(comparison);
-        addFriendInteraction({
-          type: 'received_challenge',
-          friendName: challengeSenderName ?? 'A Friend',
-          gameId: 'spread',
-          questionIndex: questionIdx,
-          shieldEarned: true,
-        });
-        earnStreakShield();
-        setShieldToastVisible(true);
-        setTimeout(() => setShieldToastVisible(false), 2200);
-      } catch {
-        // ignore — user still sees their result
-      }
+      respondToChallenge({ token: challengeToken, friendAnswer: String(selected) })
+        .then(comparison => {
+          setChallengeComparison(comparison);
+          addFriendInteraction({
+            type: 'received_challenge',
+            friendName: challengeSenderName ?? 'A Friend',
+            gameId: 'spread',
+            questionIndex: questionIdx,
+            shieldEarned: true,
+          });
+          earnStreakShield();
+          setShieldToastVisible(true);
+          setTimeout(() => setShieldToastVisible(false), 2200);
+        })
+        .catch(() => {});
     }
 
     if (isHelpMode && helpTokenParam && !helpRespondResult) {
-      try {
-        const result = await respondToHelp({ token: helpTokenParam, helperAnswer: String(guess) });
-        setHelpRespondResult(result);
-        addFriendInteraction({
-          type: 'gave_help',
-          friendName: helpAskerName || 'A Friend',
-          gameId: 'spread',
-          questionIndex: questionIdx,
-          shieldEarned: true,
-        });
-        earnStreakShield();
-        setShieldToastVisible(true);
-        setTimeout(() => setShieldToastVisible(false), 2200);
-      } catch {
-        // ignore
-      }
+      respondToHelp({ token: helpTokenParam, helperAnswer: String(selected) })
+        .then(result => {
+          setHelpRespondResult(result);
+          addFriendInteraction({
+            type: 'gave_help',
+            friendName: helpAskerName || 'A Friend',
+            gameId: 'spread',
+            questionIndex: questionIdx,
+            shieldEarned: true,
+          });
+          earnStreakShield();
+          setShieldToastVisible(true);
+          setTimeout(() => setShieldToastVisible(false), 2200);
+        })
+        .catch(() => {});
     }
   };
 
@@ -164,11 +170,10 @@ export default function SpreadScreen() {
     setSeen('spread', newSeen);
     setQuestion(item);
     setQuestionIdx(idx);
-    setPhase('guess');
-    setInput('');
-    setRevealData(null);
+    loadQuestion(item);
     setHelpUrl('');
     setHelpToken(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
 
   const handleOpenHelp = async () => {
@@ -211,170 +216,187 @@ export default function SpreadScreen() {
 
   if (!question) return null;
 
-  const guessNum = phase === 'reveal' ? parseFloat(input.replace(/,/g, '')) : 0;
+  const CHOICE_LETTERS = ['A', 'B', 'C', 'D'];
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Masthead />
+        <CompactMasthead />
 
-          {phase === 'guess' && (
-            <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
-              <Text style={styles.backText}>← Back to Home</Text>
+        {phase !== 'reveal' && (
+          <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+            <Text style={styles.backText}>← Back to Home</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>The Spread</Text>
+          <View style={styles.labelLine} />
+        </View>
+
+        {/* Question — always visible */}
+        <View style={styles.questionCard}>
+          <View style={styles.cardInnerBorder} />
+          <Text style={styles.questionText}>{question.question}</Text>
+        </View>
+
+        {/* Play phase — multiple choice */}
+        {phase === 'play' && (
+          <>
+            <Text style={styles.choiceKicker}>TAP TO CHOOSE</Text>
+            <View style={styles.choiceList}>
+              {choices.map((choice, i) => {
+                const isSelected = selected === choice;
+                return (
+                  <TouchableOpacity
+                    key={choice}
+                    testID={`spread-choice-${i}`}
+                    style={[styles.choiceRow, isSelected && styles.choiceRowSelected]}
+                    onPress={() => setSelected(choice)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.choiceBar, isSelected && styles.choiceBarSelected]} />
+                    <Text style={[styles.choiceText, isSelected && styles.choiceTextSelected]}>
+                      {choice.toLocaleString()} {question.unit}
+                    </Text>
+                    <Text style={[styles.choiceLetter, isSelected && styles.choiceLetterSelected]}>
+                      {CHOICE_LETTERS[i]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, selected === null && styles.primaryBtnDisabled]}
+              onPress={handleLockIn}
+              disabled={selected === null}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>
+                {selected === null
+                  ? 'LOCK IN'
+                  : `LOCK IN ${CHOICE_LETTERS[choices.indexOf(selected)]}`}
+              </Text>
             </TouchableOpacity>
-          )}
 
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>The Spread</Text>
-            <View style={styles.labelLine} />
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardInnerBorder} />
-            <Text style={styles.questionText}>{question.question}</Text>
-          </View>
-
-          {phase === 'guess' ? (
-            <>
-              <View style={styles.inputCard}>
-                <View style={styles.cardInnerBorder} />
-                <Text style={styles.inputLabel}>Your Answer</Text>
-                <TextInput
-                  style={styles.input}
-                  value={input}
-                  onChangeText={setInput}
-                  keyboardType="numeric"
-                  placeholder="Enter a number"
-                  placeholderTextColor={C.muted}
-                  returnKeyType="done"
-                  onSubmitEditing={handleSubmit}
-                  onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
-                />
-                <Text style={styles.unitLabel}>{question.unit}</Text>
-              </View>
-
+            {!isChallengeMode && !isHelpMode && (
               <TouchableOpacity
-                style={[styles.primaryBtn, !input.trim() && styles.primaryBtnDisabled]}
-                onPress={handleSubmit}
-                disabled={!input.trim()}
-                activeOpacity={0.85}
+                style={styles.helpLink}
+                onPress={() => requireAuth(handleOpenHelp)}
+                activeOpacity={0.7}
               >
-                <Text style={styles.primaryBtnText}>Submit Guess</Text>
+                <Text style={styles.helpLinkText}>Stuck? Ask a friend</Text>
               </TouchableOpacity>
+            )}
+          </>
+        )}
 
-              {!isChallengeMode && !isHelpMode && (
-                <TouchableOpacity
-                  style={styles.secondaryBtn}
-                  onPress={() => requireAuth(handleOpenHelp)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.secondaryBtnText}>Stuck? Ask a Friend</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          ) : (
-            <>
-              <View style={styles.comparisonCard}>
-                <View style={styles.cardInnerBorder} />
-                <View style={styles.comparisonRow}>
-                  <View style={styles.comparisonBlock}>
-                    <Text style={styles.comparisonLabel}>Your Guess</Text>
-                    <Text style={styles.comparisonValue}>
-                      {guessNum.toLocaleString()}
+        {/* Reveal */}
+        {phase === 'reveal' && revealData && (
+          <>
+            {/* Answer choices — locked state */}
+            <View style={styles.choiceList}>
+              {choices.map((choice, i) => {
+                const isCorrect = choice === question.answer;
+                const wasPicked = choice === revealData.selected;
+                const style = isCorrect
+                  ? styles.choiceRowCorrect
+                  : wasPicked
+                  ? styles.choiceRowWrong
+                  : null;
+                return (
+                  <View
+                    key={choice}
+                    style={[styles.choiceRow, style]}
+                  >
+                    <View style={[
+                      styles.choiceBar,
+                      isCorrect && styles.choiceBarCorrect,
+                      wasPicked && !isCorrect && styles.choiceBarWrong,
+                    ]} />
+                    <Text style={[
+                      styles.choiceText,
+                      (isCorrect || wasPicked) && styles.choiceTextSelected,
+                    ]}>
+                      {choice.toLocaleString()} {question.unit}
                     </Text>
-                    <Text style={styles.comparisonUnit}>{question.unit}</Text>
-                  </View>
-                  <View style={styles.comparisonDivider} />
-                  <View style={styles.comparisonBlock}>
-                    <Text style={styles.comparisonLabel}>The Answer</Text>
-                    <Text style={[styles.comparisonValue, styles.comparisonTruth]}>
-                      {question.answer.toLocaleString()}
+                    <Text style={[
+                      styles.choiceLetter,
+                      (isCorrect || wasPicked) && styles.choiceLetterSelected,
+                    ]}>
+                      {CHOICE_LETTERS[i]}
                     </Text>
-                    <Text style={styles.comparisonUnit}>{question.unit}</Text>
                   </View>
-                </View>
+                );
+              })}
+            </View>
 
-                {revealData && (
-                  <View style={styles.deviationRow}>
-                    <Text style={styles.deviationText}>
-                      {revealData.deviation < 0.5
-                        ? 'Exact!'
-                        : `${revealData.deviation.toFixed(1)}% off`}
-                    </Text>
+            {/* Result card */}
+            <View style={styles.resultCard}>
+              <View style={styles.cardInnerBorder} />
+              <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
+                {revealData.correct ? 'Nailed It' : 'Not Quite'}
+              </Text>
+              <Text style={styles.resultAnswer}>
+                The answer: {question.answer.toLocaleString()} {question.unit}
+              </Text>
+              <Text style={styles.resultPoints}>
+                {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
+              </Text>
+            </View>
+
+            {/* Explanation */}
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>{question.explanation}</Text>
+            </View>
+
+            {isChallengeMode ? (
+              <>
+                {challengeComparison && (
+                  <View style={styles.challengePanel}>
+                    <View style={styles.cardInnerBorder} />
+                    <Text style={styles.challengePanelLabel}>Challenge Results</Text>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>Your pick</Text>
+                      <Text style={styles.challengeVal}>{revealData.selected.toLocaleString()}</Text>
+                    </View>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s pick</Text>
+                      <Text style={styles.challengeVal}>{challengeComparison.senderAnswer}</Text>
+                    </View>
+                    <View style={styles.challengeRow}>
+                      <Text style={styles.challengeKey}>Their prediction</Text>
+                      <Text style={styles.challengeVal}>
+                        {challengeComparison.senderPrediction}{' '}
+                        {challengeComparison.senderPrediction === String(revealData.selected) ? '✓' : '✗'}
+                      </Text>
+                    </View>
                   </View>
                 )}
-              </View>
-
-              <View style={styles.infoBox}>
-                <Text style={styles.infoText}>{question.explanation}</Text>
-              </View>
-
-              {revealData && (
-                <View style={styles.resultCard}>
-                  <View style={styles.cardInnerBorder} />
-                  <Text
-                    style={[
-                      styles.resultVerdict,
-                      revealData.correct ? styles.resultCorrect : styles.resultWrong,
-                    ]}
-                  >
-                    {revealData.deviation <= 5
-                      ? 'Nailed It'
-                      : revealData.deviation <= 15
-                      ? 'Close!'
-                      : revealData.deviation <= 30
-                      ? 'In Range'
-                      : 'Way Off'}
-                  </Text>
-                  <Text style={styles.resultPoints}>
-                    {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
-                  </Text>
-                </View>
-              )}
-
-              {isChallengeMode ? (
-                <>
-                  {challengeComparison && (
-                    <View style={styles.challengePanel}>
-                      <View style={styles.cardInnerBorder} />
-                      <Text style={styles.challengePanelLabel}>Challenge Results</Text>
-                      <View style={styles.challengeRow}>
-                        <Text style={styles.challengeKey}>Your answer</Text>
-                        <Text style={styles.challengeVal}>{input}</Text>
-                      </View>
-                      <View style={styles.challengeRow}>
-                        <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s answer</Text>
-                        <Text style={styles.challengeVal}>{challengeComparison.senderAnswer}</Text>
-                      </View>
-                      <View style={styles.challengeRow}>
-                        <Text style={styles.challengeKey}>Their prediction</Text>
-                        <Text style={styles.challengeVal}>
-                          {challengeComparison.senderPrediction}{' '}
-                          {challengeComparison.senderPrediction === input ? '✓' : '✗'}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-                  {isAnonymous && !signUpBannerDismissed && (
-                    <ChallengeSignUpBanner
-                      senderName={challengeSenderName ?? 'your friend'}
-                      onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
-                      onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
-                      onDismiss={() => setSignUpBannerDismissed(true)}
-                    />
-                  )}
-                </>
-              ) : isHelpMode ? (
-                <>
+                {isAnonymous && !signUpBannerDismissed && (
+                  <ChallengeSignUpBanner
+                    senderName={challengeSenderName ?? 'your friend'}
+                    onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
+                    onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
+                    onDismiss={() => setSignUpBannerDismissed(true)}
+                  />
+                )}
+              </>
+            ) : isHelpMode ? (
+              <>
+                {isAnonymous && !shieldSignUpDismissed ? (
+                  <ShieldSignUpBanner
+                    helpSentFor={helpAskerName || 'your friend'}
+                    onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
+                    onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
+                    onDismiss={() => setShieldSignUpDismissed(true)}
+                  />
+                ) : (
                   <View style={styles.challengePanel}>
                     <View style={styles.cardInnerBorder} />
                     <Text style={styles.helpSentHeading}>Help Sent</Text>
@@ -382,62 +404,49 @@ export default function SpreadScreen() {
                       Your answer has been sent to {helpAskerName || 'your friend'}.
                     </Text>
                   </View>
-                  {isAnonymous && !shieldSignUpDismissed && (
-                    <ShieldSignUpBanner
-                      onCreateAccount={() => router.push({ pathname: '/auth/sign-up', params: { from: 'reveal' } })}
-                      onSignIn={() => router.push({ pathname: '/auth/sign-in', params: { from: 'reveal' } })}
-                      onDismiss={() => setShieldSignUpDismissed(true)}
-                    />
-                  )}
-                </>
-              ) : (
-                <>
-                  {!isChallengeMode && !isHelpMode && (
-                    <TouchableOpacity
-                      style={styles.primaryBtn}
-                      onPress={() => requireAuth(() => setShowChallenge(true))}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
-                    </TouchableOpacity>
-                  )}
+                )}
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => requireAuth(() => setShowChallenge(true))}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>Challenge a Friend to This One</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={handlePlayAgain}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.secondaryBtnText}>Play Again</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </>
+        )}
 
-                  {!isHelpMode && (
-                    <TouchableOpacity
-                      style={styles.secondaryBtn}
-                      onPress={handlePlayAgain}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.secondaryBtnText}>Play Again</Text>
-                    </TouchableOpacity>
-                  )}
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+          <Text style={styles.backText}>← Back to Home</Text>
+        </TouchableOpacity>
 
-                </>
-              )}
-            </>
-          )}
-
-          <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back to Home</Text>
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Noodle Bowl · N° 02 · The Spread</Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Noodle Bowl · N° 02 · The Spread</Text>
+        </View>
+      </ScrollView>
 
       <ChallengeModal
         visible={showChallenge}
         onClose={() => setShowChallenge(false)}
         correct={revealData?.correct ?? false}
-        predictLabel="What do you think they'll guess?"
+        predictLabel="What do you think they'll pick?"
         buildChallengeUrl={async (friendName, prediction) => {
           const result = await createChallenge({
             gameId: 'spread',
             questionIndex: questionIdx,
             senderPrediction: prediction,
-            senderAnswer: input,
+            senderAnswer: String(revealData?.selected ?? ''),
             senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
@@ -496,9 +505,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: C.paper,
   },
-  flex: {
-    flex: 1,
-  },
   content: {
     padding: 16,
     paddingBottom: 80,
@@ -516,7 +522,7 @@ const styles = StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   label: {
     fontFamily: F.mono,
@@ -531,7 +537,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: C.paperDarker,
   },
-  card: {
+  questionCard: {
     borderWidth: 1,
     borderColor: C.rule,
     backgroundColor: C.paper,
@@ -555,15 +561,7 @@ const styles = StyleSheet.create({
     color: C.ink,
     lineHeight: 28,
   },
-  inputCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    padding: 24,
-    marginBottom: 16,
-    ...cardShadow,
-  },
-  inputLabel: {
+  choiceKicker: {
     fontFamily: F.mono,
     fontSize: 10,
     letterSpacing: 2,
@@ -571,21 +569,123 @@ const styles = StyleSheet.create({
     color: C.muted,
     marginBottom: 12,
   },
-  input: {
-    fontFamily: F.frauncesXBold,
-    fontSize: 32,
-    color: C.ink,
-    borderBottomWidth: 2,
-    borderBottomColor: C.rule,
-    paddingVertical: 8,
-    marginBottom: 8,
+  choiceList: {
+    gap: 10,
+    marginBottom: 20,
   },
-  unitLabel: {
+  choiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: C.paper,
+    borderWidth: 1,
+    borderColor: C.paperDarker,
+    overflow: 'hidden',
+  },
+  choiceRowSelected: {
+    backgroundColor: C.ink,
+    borderColor: C.ink,
+  },
+  choiceRowCorrect: {
+    backgroundColor: C.green,
+    borderColor: C.green,
+  },
+  choiceRowWrong: {
+    backgroundColor: C.accent,
+    borderColor: C.accent,
+  },
+  choiceBar: {
+    width: 4,
+    alignSelf: 'stretch',
+    backgroundColor: C.paperDarker,
+  },
+  choiceBarSelected: {
+    backgroundColor: C.accent,
+  },
+  choiceBarCorrect: {
+    backgroundColor: C.onDark,
+  },
+  choiceBarWrong: {
+    backgroundColor: C.onDark,
+  },
+  choiceText: {
+    flex: 1,
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.ink,
+    lineHeight: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  choiceTextSelected: {
+    color: C.onDark,
+  },
+  choiceLetter: {
     fontFamily: F.mono,
-    fontSize: 11,
+    fontSize: 10,
+    color: C.muted,
+    paddingRight: 14,
+  },
+  choiceLetterSelected: {
+    color: C.onDarkDim,
+  },
+  helpLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  helpLinkText: {
+    fontFamily: F.mono,
+    fontSize: 10,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
+    textDecorationLine: 'underline',
+  },
+  resultCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    padding: 24,
+    marginBottom: 16,
+    alignItems: 'center',
+    ...cardShadow,
+  },
+  resultVerdict: {
+    fontFamily: F.frauncesXBoldItalic,
+    fontSize: 34,
+    marginBottom: 6,
+  },
+  resultCorrect: {
+    color: C.green,
+  },
+  resultWrong: {
+    color: C.accent,
+  },
+  resultAnswer: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginBottom: 8,
+  },
+  resultPoints: {
+    fontFamily: F.frauncesXBoldItalic,
+    fontSize: 24,
+    color: C.ink,
+  },
+  infoBox: {
+    borderLeftWidth: 3,
+    borderLeftColor: C.accent,
+    backgroundColor: C.paperDark,
+    padding: 14,
+    marginBottom: 16,
+  },
+  infoText: {
+    fontFamily: F.frauncesItalic,
+    fontSize: 14,
+    color: C.ink,
+    lineHeight: 20,
   },
   primaryBtn: {
     backgroundColor: C.ink,
@@ -618,104 +718,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
-    color: C.ink,
-  },
-  comparisonCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    padding: 24,
-    marginBottom: 16,
-    ...cardShadow,
-  },
-  comparisonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  comparisonBlock: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  comparisonDivider: {
-    width: 1,
-    height: 60,
-    backgroundColor: C.paperDarker,
-    marginHorizontal: 8,
-  },
-  comparisonLabel: {
-    fontFamily: F.mono,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: C.muted,
-    marginBottom: 4,
-  },
-  comparisonValue: {
-    fontFamily: F.frauncesXBold,
-    fontSize: 26,
-    color: C.ink,
-  },
-  comparisonTruth: {
-    color: C.green,
-  },
-  comparisonUnit: {
-    fontFamily: F.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: C.muted,
-    marginTop: 2,
-  },
-  deviationRow: {
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: C.paperDarker,
-    paddingTop: 12,
-    alignItems: 'center',
-  },
-  deviationText: {
-    fontFamily: F.monoBold,
-    fontSize: 13,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: C.accentWarm,
-  },
-  infoBox: {
-    borderLeftWidth: 3,
-    borderLeftColor: C.accent,
-    backgroundColor: C.paperDark,
-    padding: 14,
-    marginBottom: 16,
-  },
-  infoText: {
-    fontFamily: F.frauncesItalic,
-    fontSize: 14,
-    color: C.ink,
-    lineHeight: 20,
-  },
-  resultCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paper,
-    padding: 24,
-    marginBottom: 20,
-    alignItems: 'center',
-    ...cardShadow,
-  },
-  resultVerdict: {
-    fontFamily: F.frauncesXBoldItalic,
-    fontSize: 36,
-    marginBottom: 4,
-  },
-  resultCorrect: {
-    color: C.green,
-  },
-  resultWrong: {
-    color: C.accent,
-  },
-  resultPoints: {
-    fontFamily: F.frauncesXBoldItalic,
-    fontSize: 24,
     color: C.ink,
   },
   challengePanel: {
