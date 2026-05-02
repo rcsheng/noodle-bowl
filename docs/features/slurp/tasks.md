@@ -53,42 +53,63 @@
 
 ---
 
-## Phase 3 — Market Economy 🔲 Next
+## Phase 3 — Market Economy ✅ Done (known gaps below)
 
-| Task | Notes |
+| Task | Notes | Status |
+|---|---|---|
+| ownerUid fix | Pass real uid from auth into `START_RUN` | ✅ |
+| BUY reducer action | `BUY_ITEM` action; deduct coins, add to toppings/consumables/pantry | ✅ |
+| Market item generation | RNG-based generation in `OPEN_MARKET`; stored in `state.marketItems` | ✅ |
+| Flavor Pack "choose 1 of N" flow | Modal picker via `pendingFlavorPack` state + `CHOOSE_FLAVOR` action | ✅ |
+| Topping effects in scoring | All 22 in-slurp toppings wired via `applyToppingEffectsOnSlurp` | ✅ |
+| Pantry effects | Mise en Place (+bowl), Double Broth (+slurp), Fermented, Aged Stock, Larder, Recipe Book tracked | ✅ |
+| Skip Market (+5 coins) | `SKIP_MARKET` action: +5 coins + advance | ✅ |
+| Reroll escalating cost | `REROLL` action; costs 5→7→10→15→25 per visit | ✅ |
+| Sell topping | Sell buttons on equipped toppings; sell-to-make-room modal on buy at cap | ✅ |
+| Debounced AsyncStorage write | 1500ms debounce in SlurpContext | ✅ |
+| Togarashi tasting start | `BEGIN_TASTING` picks random bowl letter | ✅ |
+| Pork Belly coin | `OPEN_MARKET` grants coins per 200 broth above quota | ✅ |
+| Kombu new course | `ADVANCE` boosts all pot/bowl/discard tiles +1 chip on course change | ✅ |
+| Ingredient Shortage | `BEGIN_TASTING` removes 6 random tiles; `OPEN_MARKET` restores them | ✅ |
+
+### Phase 3 Known Gaps (carry into Phase 4)
+
+| Gap | Notes |
 |---|---|
-| ownerUid fix | Pass real uid from auth into `dispatch({ type: 'START_RUN', ownerUid: uid })` |
-| Bundle word list | Load ~170k word list into dictionary `Set`; call `loadWords()` on Slurp tab open |
-| Word validation UI | Reject invalid words with a shake + haptic; don't consume a slurp |
-| BUY reducer action | Add `BUY_ITEM` action to slurpReducer; deduct coins, add to toppings/consumables/pantry |
-| Market item generation | Random selection from available catalog based on run state; respect topping cap |
-| Flavor Pack "choose 1 of N" flow | Modal picker shown on Flavor Pack purchase |
-| Topping effects in scoring | Wire toppings into `scoreSlurp`; fire each trigger in tray order |
-| Spice card use | Enable "spice" button; apply consumable effect + remove from tray |
-| Pantry effects on run state | Apply Mise en Place, Double Broth, etc. on purchase |
-| Skip Market (+5 coins) | Replace or complement "NEXT →" with skip option |
-| Reroll escalating cost | Cost track: 5 → 7 → 10 → 15 → 25 per reroll within one Market visit |
-| Sell topping | Sell button per topping (half price); required when buying at cap |
-| Abandon run dialog | Confirm dialog on landing screen when run is in progress |
-| Debounced AsyncStorage write | 1500ms debounce matching GameContext pattern |
+| Word validation | All 2+ letter combos still accepted; dictionary not bundled |
+| Spice card use | "spice" button still disabled; `USE_CONSUMABLE` not implemented |
+| Abandon run dialog | Landing shows resume but no confirm dialog for abandon |
+| Score readout doesn't show topping bonuses | UI shows base score only; topping breakdowns are Phase 4 |
+| Broth Pack picks 1 letter (not 2) | Simplified from PRD's "choose 2 of 4"; Phase 4 to fix |
 
 ---
 
-## Phase 4 — Polish & Completeness 🔲 Backlog
+## Phase 4 — Polish & Completeness ✅ Done (deferred items below)
 
-| Task | Notes |
+| Task | Notes | Status |
+|---|---|---|
+| Haptics | Light on tile tap, medium on slurp, success/error on tasting end | ✅ |
+| Spice card system (`USE_CONSUMABLE`) | All 12 consumables wired; letter/value/tile picker modals | ✅ |
+| Broth Pack choose-2 fix | `picksRemaining` added; two-pick flow in `CHOOSE_FLAVOR` | ✅ |
+| Abandon run dialog | Landing screen shows confirm alert before abandoning | ✅ |
+| Topping expanded view | Tap topping chip → detail modal with trigger/effect/sell | ✅ |
+| Score readout topping breakdown | Receipt rows for topping chips, topping seasoning, five spice ×5 | ✅ |
+| "Recipe Book" peek UI | Next 4 pot letters shown at tasting reveal if pantry owned | ✅ |
+| Endless mode | `ENDLESS_CONTINUE` scales quota ×2.5; run-summary re-navigates to tasting | ✅ |
+| Word validation hook | No-op when dictionary not bundled; safe to ship | ✅ |
+| Yuzu two-phase skip | `yuzuActive` → ADVANCE sets `yuzuSkipTasting` → RevealScreen skip UI → `YUZU_SKIP` | ✅ |
+| Active spice flags display | fiveSpiceActive / bonitoFlakesActive / wildcard count shown in tasting | ✅ |
+
+### Phase 4 Deferred
+
+| Gap | Notes |
 |---|---|
-| Haptics | Light on tile tap, medium on slurp, error on invalid word, success on tasting win |
-| Tile animations | 120ms lift on tap, slide-in to word tray, flash on slurp commit |
-| Score readout animation | Chip values count up tile-by-tile; tap to fast-forward |
-| Broth meter animation | Fill with slight overshoot settle on score commit |
-| Topping tray drag to reorder | Toppings fire in tray order; player should be able to reorder |
-| Ingredient Shortage modifier | Remove 6 random letters from Pot for the Tasting; return after |
-| Endless mode | Post-win continuation; quota scales ×2.5; local high score |
-| Screen tests | Unit/integration tests for SlurpContext and screen components |
-| Topping card expanded view | Tap topping chip to see full description |
-| Market item persistence across reroll | Track what was seen; prevent immediate re-offer |
-| "Recipe Book" peek UI | Show next 4 pot letters at tasting reveal if pantry owned |
+| Tile animations | Reanimated lift/slide/flash; deferred |
+| Score readout count-up animation | Chip values count up tile-by-tile; deferred |
+| Broth meter animation | Fill with slight overshoot settle; deferred |
+| Topping tray drag to reorder | Deferred |
+| Market item persistence across reroll | Track seen items; prevent immediate re-offer; deferred |
+| Word validation dictionary bundle | `loadWords()` not yet called; all words accepted silently |
 
 ---
 

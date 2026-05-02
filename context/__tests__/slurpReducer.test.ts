@@ -5,7 +5,8 @@ import {
 } from '@/constants/slurp/brothBases';
 import { LETTER_CHIPS } from '@/constants/slurp/letterChips';
 import { DEFAULT_BOWL_SIZE, DEFAULT_SLURPS, DEFAULT_SPITOUTS, BROTH_QUOTAS } from '@/constants/slurp/quotas';
-import type { SlurpRunState, LetterTile, WordPattern } from '@/packages/shared/slurp';
+import { REROLL_COSTS } from '@/constants/slurp/flavorPacks';
+import type { SlurpRunState, LetterTile, MarketOffer, WordPattern } from '@/packages/shared/slurp';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,12 +48,22 @@ function makePlayState(overrides: Partial<SlurpRunState> = {}): SlurpRunState {
     rngSeed: 42,
     rngState: 42,
     finalScore: null,
+    marketItems: [],
+    marketRerollCount: 0,
+    pendingFlavorPack: null,
     slurpCountThisTasting: 0,
     consecutiveNoSpitoutSlurps: 0,
     lastWordLetters: [],
     pendingChipBonus: 0,
     togarashiLetter: null,
     coursesCompleted: 0,
+    ingredientShortageTiles: [],
+    pendingConsumableInput: null,
+    wildcardTileIds: [],
+    fiveSpiceActive: false,
+    bonitoFlakesActive: false,
+    yuzuActive: false,
+    yuzuSkipTasting: false,
     ...overrides,
   };
 }
@@ -600,5 +611,720 @@ describe('LOAD_STATE', () => {
     const saved = makePlayState({ brothScored: 250, coins: 7, course: 2, tasting: 3 });
     const state = slurpReducer(null, { type: 'LOAD_STATE', state: saved });
     expect(state).toEqual(saved);
+  });
+});
+
+// ── USE_CONSUMABLE ────────────────────────────────────────────────────────────
+
+describe('USE_CONSUMABLE', () => {
+  it('msg: adds 30 coins immediately', () => {
+    const initial = makePlayState({ consumables: ['msg'], coins: 5 });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'msg' });
+    expect(state!.coins).toBe(35);
+    expect(state!.consumables).not.toContain('msg');
+  });
+
+  it('fiveSpice: sets fiveSpiceActive', () => {
+    const initial = makePlayState({ consumables: ['fiveSpice'] });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'fiveSpice' });
+    expect(state!.fiveSpiceActive).toBe(true);
+    expect(state!.consumables).not.toContain('fiveSpice');
+  });
+
+  it('bonitoFlakes: sets bonitoFlakesActive', () => {
+    const initial = makePlayState({ consumables: ['bonitoFlakes'] });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'bonitoFlakes' });
+    expect(state!.bonitoFlakesActive).toBe(true);
+  });
+
+  it('yuzu: sets yuzuActive', () => {
+    const initial = makePlayState({ consumables: ['yuzu'] });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'yuzu' });
+    expect(state!.yuzuActive).toBe(true);
+  });
+
+  it('sichuanPepper: sets pendingConsumableInput', () => {
+    const initial = makePlayState({ consumables: ['sichuanPepper'] });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'sichuanPepper' });
+    expect(state!.pendingConsumableInput).toMatchObject({ consumableId: 'sichuanPepper', step: 'letter' });
+  });
+
+  it('rejects if consumable not in tray', () => {
+    const initial = makePlayState({ consumables: [] });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'msg' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects if not in play phase', () => {
+    const initial = makePlayState({ consumables: ['msg'], phase: 'market' });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'msg' });
+    expect(state).toBe(initial);
+  });
+
+  it('truffleShavings: doubles all pot chip values', () => {
+    const initial = makePlayState({
+      consumables: ['truffleShavings'],
+      pot: [tile('A', 'A0'), tile('Z', 'Z0')],
+    });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'truffleShavings' });
+    const chipValues = state!.pot.map(t => t.chipValue);
+    expect(chipValues).toEqual([2, 20]); // A=1→2, Z=10→20
+  });
+
+  it('saffron: sells all toppings at 2× sell value', () => {
+    const initial = makePlayState({
+      consumables: ['saffron'],
+      toppings: ['chiliOil', 'corn'],
+      coins: 0,
+    });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'saffron' });
+    expect(state!.toppings).toHaveLength(0);
+    expect(state!.coins).toBe(8); // 2 toppings × sellValue 2 × 2 = 8
+  });
+});
+
+// ── CHOOSE_CONSUMABLE_TARGET ──────────────────────────────────────────────────
+
+describe('CHOOSE_CONSUMABLE_TARGET', () => {
+  it('sichuanPepper: adds 3 copies of chosen letter to pot', () => {
+    const initial = makePlayState({
+      pendingConsumableInput: { consumableId: 'sichuanPepper', step: 'letter', context: '' },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_CONSUMABLE_TARGET', target: 'X' });
+    const xTiles = state!.pot.filter(t => t.letter === 'X');
+    expect(xTiles.length).toBeGreaterThanOrEqual(3);
+    expect(state!.pendingConsumableInput).toBeNull();
+  });
+
+  it('ginger: removes all copies of chosen letter from pot', () => {
+    const initial = makePlayState({
+      pendingConsumableInput: { consumableId: 'ginger', step: 'letter', context: '' },
+      pot: [tile('A', 'A0'), tile('A', 'A1'), tile('B', 'B0')],
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_CONSUMABLE_TARGET', target: 'A' });
+    expect(state!.pot.filter(t => t.letter === 'A')).toHaveLength(0);
+    expect(state!.pot.filter(t => t.letter === 'B')).toHaveLength(1);
+  });
+
+  it('garlicConfit: all copies of chosen letter gain +2 chip', () => {
+    const initial = makePlayState({
+      pendingConsumableInput: { consumableId: 'garlicConfit', step: 'letter', context: '' },
+      pot: [tile('A', 'A0'), tile('A', 'A1'), tile('B', 'B0')],
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_CONSUMABLE_TARGET', target: 'A' });
+    expect(state!.pot.find(t => t.id === 'A0')!.chipValue).toBe(3); // A=1+2=3
+    expect(state!.pot.find(t => t.id === 'B0')!.chipValue).toBe(3); // B unchanged = 3
+  });
+
+  it('sesameOil: two-step tile selection sets wildcardTileIds', () => {
+    const step1 = makePlayState({
+      pendingConsumableInput: { consumableId: 'sesameOil', step: 'tile', context: '' },
+    });
+    const afterStep1 = slurpReducer(step1, { type: 'CHOOSE_CONSUMABLE_TARGET', target: 'C0' });
+    expect(afterStep1!.pendingConsumableInput?.context).toBe('C0');
+    expect(afterStep1!.wildcardTileIds).toHaveLength(0);
+
+    const afterStep2 = slurpReducer(afterStep1!, { type: 'CHOOSE_CONSUMABLE_TARGET', target: 'A0' });
+    expect(afterStep2!.wildcardTileIds).toEqual(['C0', 'A0']);
+    expect(afterStep2!.pendingConsumableInput).toBeNull();
+  });
+});
+
+// ── ENDLESS_CONTINUE ─────────────────────────────────────────────────────────
+
+describe('ENDLESS_CONTINUE', () => {
+  it('scales quota by ×2.5 and returns to reveal phase', () => {
+    const initial = makePlayState({
+      phase: 'over',
+      finalScore: 50000,
+      brothQuota: 22000,
+      course: 3,
+      tasting: 3,
+    });
+    const state = slurpReducer(initial, { type: 'ENDLESS_CONTINUE' });
+    expect(state!.phase).toBe('reveal');
+    expect(state!.brothQuota).toBe(55000);
+    expect(state!.finalScore).toBeNull();
+  });
+
+  it('rejects if not in over phase or no finalScore', () => {
+    const initial = makePlayState({ phase: 'play', finalScore: null });
+    const state = slurpReducer(initial, { type: 'ENDLESS_CONTINUE' });
+    expect(state).toBe(initial);
+  });
+});
+
+// ── FIVESPICE + BONITOFLAKES ──────────────────────────────────────────────────
+
+describe('fiveSpice + bonitoFlakes in SLURP', () => {
+  it('fiveSpice multiplies score ×5 and clears flag', () => {
+    const initial = makePlayState({
+      fiveSpiceActive: true,
+      bowl: [tile('C', 'C0'), tile('A', 'A0'), tile('T', 'T0'), tile('D', 'D0'), tile('O', 'O0'), tile('G', 'G0'), tile('S', 'S0')],
+    });
+    const base = slurpReducer(makePlayState({
+      fiveSpiceActive: false,
+      bowl: initial.bowl,
+    }), { type: 'SLURP', tileIds: ['C0', 'A0', 'T0'] });
+    const withFive = slurpReducer(initial, { type: 'SLURP', tileIds: ['C0', 'A0', 'T0'] });
+    expect(withFive!.brothScored).toBeCloseTo(base!.brothScored * 5, 0);
+    expect(withFive!.fiveSpiceActive).toBe(false);
+  });
+
+  it('bonitoFlakes clears after slurp', () => {
+    const initial = makePlayState({
+      bonitoFlakesActive: true,
+      bowl: [tile('C', 'C0'), tile('A', 'A0'), tile('T', 'T0'), tile('D', 'D0'), tile('O', 'O0'), tile('G', 'G0'), tile('S', 'S0')],
+    });
+    const state = slurpReducer(initial, { type: 'SLURP', tileIds: ['C0', 'A0', 'T0'] });
+    expect(state!.bonitoFlakesActive).toBe(false);
+  });
+});
+
+// ── Market helper ─────────────────────────────────────────────────────────────
+
+function makeMarketState(overrides: Partial<SlurpRunState> = {}): SlurpRunState {
+  const items: MarketOffer[] = [
+    { id: 'topping_0', kind: 'topping', itemId: 'chiliOil', price: 4, sold: false },
+    { id: 'topping_1', kind: 'topping', itemId: 'nori', price: 4, sold: false },
+    { id: 'pantry_0', kind: 'pantry', itemId: 'miseEnPlace', price: 10, sold: false },
+    { id: 'spice_0', kind: 'spice', itemId: 'msg', price: 3, sold: false },
+    { id: 'flavor_0', kind: 'flavorPack', itemId: 'brothPack', price: 4, sold: false },
+    { id: 'flavor_1', kind: 'flavorPack', itemId: 'noodlePack', price: 4, sold: false },
+  ];
+  return makePlayState({ phase: 'market', coins: 20, marketItems: items, ...overrides });
+}
+
+// ── BUY_ITEM ──────────────────────────────────────────────────────────────────
+
+describe('BUY_ITEM', () => {
+  it('adds topping to tray and deducts coins', () => {
+    const state = slurpReducer(makeMarketState(), { type: 'BUY_ITEM', offerId: 'topping_0' });
+    expect(state!.toppings).toContain('chiliOil');
+    expect(state!.coins).toBe(16);
+    expect(state!.marketItems.find(o => o.id === 'topping_0')!.sold).toBe(true);
+  });
+
+  it('adds pantry upgrade and adjusts bowlSize for miseEnPlace', () => {
+    const initial = makeMarketState({ bowlSize: 7 });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'pantry_0' });
+    expect(state!.pantryOwned).toContain('miseEnPlace');
+    expect(state!.bowlSize).toBe(8);
+    expect(state!.coins).toBe(10);
+  });
+
+  it('does not increase bowlSize for non-miseEnPlace pantry', () => {
+    const items: MarketOffer[] = [
+      { id: 'pantry_0', kind: 'pantry', itemId: 'larder', price: 8, sold: false },
+    ];
+    const initial = makeMarketState({ marketItems: items, bowlSize: 7 });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'pantry_0' });
+    expect(state!.pantryOwned).toContain('larder');
+    expect(state!.bowlSize).toBe(7);
+  });
+
+  it('adds spice card to consumables', () => {
+    const state = slurpReducer(makeMarketState(), { type: 'BUY_ITEM', offerId: 'spice_0' });
+    expect(state!.consumables).toContain('msg');
+    expect(state!.coins).toBe(17);
+  });
+
+  it('buying flavorPack opens pendingFlavorPack with choices', () => {
+    const state = slurpReducer(makeMarketState(), { type: 'BUY_ITEM', offerId: 'flavor_0' });
+    expect(state!.pendingFlavorPack).not.toBeNull();
+    expect(state!.pendingFlavorPack!.packId).toBe('brothPack');
+    expect(state!.pendingFlavorPack!.choices).toHaveLength(4);
+    expect(state!.pendingFlavorPack!.picksRemaining).toBe(2);
+  });
+
+  it('rejects buy when not enough coins', () => {
+    const initial = makeMarketState({ coins: 3 });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'topping_0' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects buy when not in market phase', () => {
+    const initial = makeMarketState({ phase: 'play' });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'topping_0' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects buying an already-sold item', () => {
+    const items: MarketOffer[] = [
+      { id: 'topping_0', kind: 'topping', itemId: 'chiliOil', price: 4, sold: true },
+    ];
+    const initial = makeMarketState({ marketItems: items });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'topping_0' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects buying a topping when tray is full', () => {
+    const initial = makeMarketState({
+      toppings: ['chiliOil', 'nori', 'scallions', 'mirin', 'narutomaki'],
+    });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'topping_1' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects pantry item already owned', () => {
+    const initial = makeMarketState({ pantryOwned: ['miseEnPlace'] });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'pantry_0' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects spice card when tray is full (2-slot default)', () => {
+    const initial = makeMarketState({ consumables: ['msg', 'fiveSpice'] });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'spice_0' });
+    expect(state).toBe(initial);
+  });
+
+  it('allows spice card when larder expands tray to 4', () => {
+    const initial = makeMarketState({
+      consumables: ['msg', 'fiveSpice'],
+      pantryOwned: ['larder'],
+    });
+    const state = slurpReducer(initial, { type: 'BUY_ITEM', offerId: 'spice_0' });
+    expect(state!.consumables).toHaveLength(3);
+  });
+});
+
+// ── CHOOSE_FLAVOR ─────────────────────────────────────────────────────────────
+
+describe('CHOOSE_FLAVOR', () => {
+  it('noodlePack: levels up chosen word pattern', () => {
+    const initial = makeMarketState({
+      pendingFlavorPack: {
+        offerId: 'flavor_1',
+        packId: 'noodlePack',
+        choices: ['broth', 'ramen', 'miso'],
+        picksRemaining: 1,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'flavor_1', choice: 'broth' });
+    expect(state!.noodleLevels.broth).toBe(1);
+    expect(state!.pendingFlavorPack).toBeNull();
+  });
+
+  it('noodlePack: caps level at NOODLE_UPGRADE_CAP (10)', () => {
+    const initial = makeMarketState({
+      noodleLevels: { broth: 10, noodle: 0, ramen: 0, udon: 0, pho: 0, tonkotsu: 0, dashi: 0, miso: 0 },
+      pendingFlavorPack: {
+        offerId: 'flavor_1',
+        packId: 'noodlePack',
+        choices: ['broth', 'ramen', 'miso'],
+        picksRemaining: 1,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'flavor_1', choice: 'broth' });
+    expect(state!.noodleLevels.broth).toBe(10);
+  });
+
+  it('spicePack: adds chosen spice to consumables', () => {
+    const initial = makeMarketState({
+      pendingFlavorPack: {
+        offerId: 'flavor_0',
+        packId: 'spicePack',
+        choices: ['msg', 'fiveSpice', 'ginger'],
+        picksRemaining: 1,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'flavor_0', choice: 'fiveSpice' });
+    expect(state!.consumables).toContain('fiveSpice');
+    expect(state!.pendingFlavorPack).toBeNull();
+  });
+
+  it('umamiPack: adds chosen topping', () => {
+    const initial = makeMarketState({
+      pendingFlavorPack: {
+        offerId: 'flavor_0',
+        packId: 'umamiPack',
+        choices: ['corn', 'mirin'],
+        picksRemaining: 1,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'flavor_0', choice: 'corn' });
+    expect(state!.toppings).toContain('corn');
+    expect(state!.pendingFlavorPack).toBeNull();
+  });
+
+  it('brothPack: first pick keeps pack open with 1 remaining', () => {
+    const initial = makeMarketState({
+      pendingFlavorPack: {
+        offerId: 'flavor_0',
+        packId: 'brothPack',
+        choices: ['A', 'B', 'C', 'D'],
+        picksRemaining: 2,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'flavor_0', choice: 'A' });
+    expect(state!.pendingFlavorPack).not.toBeNull();
+    expect(state!.pendingFlavorPack!.picksRemaining).toBe(1);
+    expect(state!.pendingFlavorPack!.choices).not.toContain('A');
+    expect(state!.pot.some(t => t.letter === 'A')).toBe(true);
+  });
+
+  it('brothPack: second pick closes pack', () => {
+    const initial = makeMarketState({
+      pendingFlavorPack: {
+        offerId: 'flavor_0',
+        packId: 'brothPack',
+        choices: ['B', 'C', 'D'],
+        picksRemaining: 1,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'flavor_0', choice: 'B' });
+    expect(state!.pendingFlavorPack).toBeNull();
+    expect(state!.pot.some(t => t.letter === 'B')).toBe(true);
+  });
+
+  it('rejects invalid offerId', () => {
+    const initial = makeMarketState({
+      pendingFlavorPack: {
+        offerId: 'flavor_0',
+        packId: 'noodlePack',
+        choices: ['broth'],
+        picksRemaining: 1,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'wrong', choice: 'broth' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects choice not in choices list', () => {
+    const initial = makeMarketState({
+      pendingFlavorPack: {
+        offerId: 'flavor_0',
+        packId: 'noodlePack',
+        choices: ['broth', 'ramen'],
+        picksRemaining: 1,
+      },
+    });
+    const state = slurpReducer(initial, { type: 'CHOOSE_FLAVOR', offerId: 'flavor_0', choice: 'udon' });
+    expect(state).toBe(initial);
+  });
+});
+
+// ── SELL_TOPPING ──────────────────────────────────────────────────────────────
+
+describe('SELL_TOPPING', () => {
+  it('removes topping and adds sell value to coins', () => {
+    const initial = makeMarketState({ toppings: ['chiliOil', 'nori'], coins: 5 });
+    const state = slurpReducer(initial, { type: 'SELL_TOPPING', toppingId: 'chiliOil' });
+    expect(state!.toppings).not.toContain('chiliOil');
+    expect(state!.toppings).toContain('nori');
+    expect(state!.coins).toBe(7); // 5 + 2 sell value
+  });
+
+  it('rejects if not in market phase', () => {
+    const initial = makeMarketState({ phase: 'play', toppings: ['chiliOil'] });
+    const state = slurpReducer(initial, { type: 'SELL_TOPPING', toppingId: 'chiliOil' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects if topping not equipped', () => {
+    const initial = makeMarketState({ toppings: [] });
+    const state = slurpReducer(initial, { type: 'SELL_TOPPING', toppingId: 'chiliOil' });
+    expect(state).toBe(initial);
+  });
+});
+
+// ── REROLL ────────────────────────────────────────────────────────────────────
+
+describe('REROLL', () => {
+  it('deducts cost and generates new market items', () => {
+    const initial = makeMarketState({ coins: 10, marketRerollCount: 0 });
+    const state = slurpReducer(initial, { type: 'REROLL' });
+    expect(state!.coins).toBe(10 - REROLL_COSTS[0]);
+    expect(state!.marketRerollCount).toBe(1);
+    expect(state!.marketItems.length).toBeGreaterThan(0);
+  });
+
+  it('escalates cost with each reroll', () => {
+    const initial = makeMarketState({ coins: 30, marketRerollCount: 1 });
+    const state = slurpReducer(initial, { type: 'REROLL' });
+    expect(state!.coins).toBe(30 - REROLL_COSTS[1]);
+  });
+
+  it('rejects if not enough coins', () => {
+    const initial = makeMarketState({ coins: 0 });
+    const state = slurpReducer(initial, { type: 'REROLL' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects if not in market phase', () => {
+    const initial = makeMarketState({ phase: 'play', coins: 20 });
+    const state = slurpReducer(initial, { type: 'REROLL' });
+    expect(state).toBe(initial);
+  });
+});
+
+// ── SKIP_MARKET ───────────────────────────────────────────────────────────────
+
+describe('SKIP_MARKET', () => {
+  it('adds 5 coins and advances to next tasting', () => {
+    const initial = makeMarketState({ coins: 3, course: 1, tasting: 1 });
+    const state = slurpReducer(initial, { type: 'SKIP_MARKET' });
+    expect(state!.coins).toBe(8);
+    expect(state!.tasting).toBe(2);
+    expect(state!.phase).toBe('reveal');
+  });
+
+  it('rejects if not in market phase', () => {
+    const initial = makeMarketState({ phase: 'play' });
+    const state = slurpReducer(initial, { type: 'SKIP_MARKET' });
+    expect(state).toBe(initial);
+  });
+});
+
+// ── BEGIN_TASTING extras ──────────────────────────────────────────────────────
+
+describe('BEGIN_TASTING extras', () => {
+  it('theIngredientShortage removes up to 6 tiles from pot', () => {
+    const largePot = Array.from({ length: 20 }, (_, i) => tile('A', `A${i}`));
+    const initial = makePlayState({
+      phase: 'reveal',
+      modifier: 'theIngredientShortage',
+      pot: largePot,
+      bowl: [],
+      bowlSize: 3,
+    });
+    const state = slurpReducer(initial, { type: 'BEGIN_TASTING' });
+    expect(state!.ingredientShortageTiles).toHaveLength(6);
+    const totalTiles = state!.pot.length + state!.bowl.length + state!.discard.length + state!.ingredientShortageTiles.length;
+    expect(totalTiles).toBe(20);
+  });
+
+  it('togarashi designates a letter from the drawn bowl', () => {
+    const initial = makePlayState({
+      phase: 'reveal',
+      toppings: ['togarashi'],
+      pot: Array.from({ length: 10 }, (_, i) => tile('A', `A${i}`)),
+      bowl: [],
+      bowlSize: 5,
+    });
+    const state = slurpReducer(initial, { type: 'BEGIN_TASTING' });
+    expect(state!.togarashiLetter).toBe('A');
+    expect(state!.phase).toBe('play');
+  });
+});
+
+// ── SPIT_OUT extras ───────────────────────────────────────────────────────────
+
+describe('SPIT_OUT extras', () => {
+  it('shiitake: spitting a tile with chip ≥ 5 queues +15 bonus', () => {
+    const highValueTile = { id: 'K0', letter: 'K', chipValue: 5 };
+    const initial = makePlayState({
+      toppings: ['shiitake'],
+      bowl: [highValueTile, tile('A', 'A0'), tile('B', 'B0'), tile('C', 'C0'), tile('D', 'D0'), tile('E', 'E0'), tile('S', 'S0')],
+      pendingChipBonus: 0,
+    });
+    const state = slurpReducer(initial, { type: 'SPIT_OUT', tileIds: ['K0'] });
+    expect(state!.pendingChipBonus).toBe(15);
+  });
+
+  it('shiitake: spitting a low-value tile does not queue bonus', () => {
+    const initial = makePlayState({
+      toppings: ['shiitake'],
+      bowl: [tile('A', 'A0'), tile('B', 'B0'), tile('C', 'C0'), tile('D', 'D0'), tile('E', 'E0'), tile('S', 'S0'), tile('T', 'T0')],
+      pendingChipBonus: 0,
+    });
+    const state = slurpReducer(initial, { type: 'SPIT_OUT', tileIds: ['A0'] });
+    expect(state!.pendingChipBonus).toBe(0);
+  });
+
+  it('fermented: spit tiles gain +2 chip value in discard', () => {
+    const initial = makePlayState({
+      pantryOwned: ['fermented'],
+      bowl: [tile('A', 'A0'), tile('B', 'B0'), tile('C', 'C0'), tile('D', 'D0'), tile('E', 'E0'), tile('S', 'S0'), tile('T', 'T0')],
+      discard: [],
+    });
+    const state = slurpReducer(initial, { type: 'SPIT_OUT', tileIds: ['A0'] });
+    const spitTileInDiscard = state!.discard.find(t => t.id === 'A0');
+    expect(spitTileInDiscard!.chipValue).toBe(LETTER_CHIPS['A'] + 2);
+  });
+});
+
+// ── SLURP extras ──────────────────────────────────────────────────────────────
+
+describe('SLURP extras', () => {
+  it('nori: most-used letter in pot gains +1 chip permanently', () => {
+    const aValue = LETTER_CHIPS['A'];
+    // Large pot so tiles remain after drawing to refill bowl
+    const bigPot = [
+      tile('A', 'PA0'), tile('A', 'PA1'), tile('B', 'PB0'),
+      tile('S', 'PS0'), tile('S', 'PS1'), tile('S', 'PS2'), tile('S', 'PS3'), tile('S', 'PS4'),
+    ];
+    const s2 = makePlayState({
+      toppings: ['nori'],
+      pot: bigPot,
+      bowl: [
+        tile('A', 'A0'), tile('A', 'A1'), tile('T', 'T0'),
+        tile('D', 'D0'), tile('O', 'O0'), tile('G', 'G0'), tile('N', 'N0'),
+      ],
+    });
+    // Play "AAT" — A appears twice, most-used = A
+    const state = slurpReducer(s2, { type: 'SLURP', tileIds: ['A0', 'A1', 'T0'] });
+    // Find A tiles remaining in pot (not drawn into bowl)
+    const allTiles = [...state!.pot, ...state!.bowl, ...state!.discard];
+    const potA = allTiles.find(t => t.id === 'PA0');
+    const potB = allTiles.find(t => t.id === 'PB0');
+    // A tiles should gain +1
+    expect(potA!.chipValue).toBe(aValue + 1);
+    // B tiles unchanged
+    expect(potB!.chipValue).toBe(LETTER_CHIPS['B']);
+  });
+
+  it('aburaAge: leftmost bowl tile after draw gains +1 chip', () => {
+    const initial = makePlayState({
+      toppings: ['aburaAge'],
+      pot: [tile('X', 'X0'), tile('Y', 'Y0'), tile('Z', 'Z0')],
+      bowl: [tile('C', 'C0'), tile('A', 'A0'), tile('T', 'T0'), tile('D', 'D0'), tile('O', 'O0'), tile('G', 'G0'), tile('S', 'S0')],
+    });
+    const state = slurpReducer(initial, { type: 'SLURP', tileIds: ['C0', 'A0', 'T0'] });
+    expect(state!.bowl[0].chipValue).toBe(state!.bowl[0].chipValue);
+    // The leftmost tile should have 1 extra chip compared to a run without aburaAge
+    const baseState = slurpReducer(
+      makePlayState({
+        pot: [tile('X', 'X0'), tile('Y', 'Y0'), tile('Z', 'Z0')],
+        bowl: [tile('C', 'C0'), tile('A', 'A0'), tile('T', 'T0'), tile('D', 'D0'), tile('O', 'O0'), tile('G', 'G0'), tile('S', 'S0')],
+      }),
+      { type: 'SLURP', tileIds: ['C0', 'A0', 'T0'] },
+    );
+    expect(state!.bowl[0].chipValue).toBe(baseState!.bowl[0].chipValue + 1);
+  });
+});
+
+// ── ADVANCE extras ────────────────────────────────────────────────────────────
+
+describe('ADVANCE extras', () => {
+  it('assigns a modifier when advancing to Chef\'s Challenge (tasting 3)', () => {
+    const initial = makeMarketState({ course: 1, tasting: 2 });
+    const state = slurpReducer(initial, { type: 'ADVANCE' });
+    expect(state!.tasting).toBe(3);
+    expect(state!.modifier).not.toBeNull();
+  });
+
+  it('theRushHour modifier gives only 2 slurps', () => {
+    // Force the modifier by seeding with a known value
+    const initial = makeMarketState({
+      course: 1,
+      tasting: 2,
+      rngState: 42,
+      modifiersUsed: ['thePickyEater', 'theHealthInspector', 'theIngredientShortage', 'theFoodCritic', 'theClosingHour'],
+    });
+    const state = slurpReducer(initial, { type: 'ADVANCE' });
+    // Only 1 modifier left: theRushHour
+    expect(state!.modifier).toBe('theRushHour');
+    expect(state!.slurpsRemaining).toBe(2);
+  });
+
+  it('kombu: all tiles everywhere gain +1 chip on course change', () => {
+    const potTile = tile('A', 'PA0');
+    const initial = makeMarketState({
+      course: 1,
+      tasting: 3,
+      toppings: ['kombu'],
+      pot: [potTile],
+      bowl: [tile('B', 'B0')],
+      discard: [tile('C', 'C0')],
+    });
+    const state = slurpReducer(initial, { type: 'ADVANCE' });
+    expect(state!.course).toBe(2);
+    const potA = state!.pot.find(t => t.id === 'PA0');
+    expect(potA!.chipValue).toBe(LETTER_CHIPS['A'] + 1);
+  });
+
+  it('yuzu active: ADVANCE sets yuzuSkipTasting and clears yuzuActive', () => {
+    const initial = makeMarketState({ course: 1, tasting: 1, yuzuActive: true });
+    const state = slurpReducer(initial, { type: 'ADVANCE' });
+    expect(state!.yuzuSkipTasting).toBe(true);
+    expect(state!.yuzuActive).toBe(false);
+  });
+});
+
+// ── USE_CONSUMABLE extras ─────────────────────────────────────────────────────
+
+describe('USE_CONSUMABLE extras', () => {
+  it('starAnise: discards entire bowl and draws fresh from pot', () => {
+    const initial = makePlayState({
+      consumables: ['starAnise'],
+      bowl: [tile('A', 'A0'), tile('B', 'B0'), tile('C', 'C0'), tile('D', 'D0'), tile('E', 'E0'), tile('F', 'F0'), tile('G', 'G0')],
+      pot: [tile('X', 'X0'), tile('Y', 'Y0'), tile('Z', 'Z0'), tile('Q', 'Q0'), tile('J', 'J0'), tile('K', 'K0'), tile('L', 'L0')],
+      discard: [],
+    });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'starAnise' });
+    expect(state!.consumables).not.toContain('starAnise');
+    // All original bowl tiles should be in discard
+    expect(state!.discard.map(t => t.id)).toEqual(expect.arrayContaining(['A0', 'B0', 'C0']));
+    // Bowl should be refilled from pot
+    expect(state!.bowl).toHaveLength(initial.bowlSize);
+  });
+
+  it('sesameOil: sets pendingConsumableInput with tile step', () => {
+    const initial = makePlayState({ consumables: ['sesameOil'] });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'sesameOil' });
+    expect(state!.pendingConsumableInput).toMatchObject({ consumableId: 'sesameOil', step: 'tile' });
+    expect(state!.consumables).not.toContain('sesameOil');
+  });
+
+  it('blackGarlic: sets pendingConsumableInput with value step', () => {
+    const initial = makePlayState({ consumables: ['blackGarlic'] });
+    const state = slurpReducer(initial, { type: 'USE_CONSUMABLE', consumableId: 'blackGarlic' });
+    expect(state!.pendingConsumableInput).toMatchObject({ consumableId: 'blackGarlic', step: 'value' });
+    expect(state!.consumables).not.toContain('blackGarlic');
+  });
+});
+
+// ── CHOOSE_CONSUMABLE_TARGET extras ──────────────────────────────────────────
+
+describe('CHOOSE_CONSUMABLE_TARGET extras', () => {
+  it('blackGarlic: two-step flow updates matching pot tiles', () => {
+    // Step 1: pick the value to transform (e.g. '1' for A tiles)
+    const step1 = makePlayState({
+      pendingConsumableInput: { consumableId: 'blackGarlic', step: 'value', context: '' },
+      pot: [tile('A', 'A0'), tile('A', 'A1'), tile('Z', 'Z0')],
+    });
+    const afterStep1 = slurpReducer(step1, { type: 'CHOOSE_CONSUMABLE_TARGET', target: '1' });
+    expect(afterStep1!.pendingConsumableInput).toMatchObject({ consumableId: 'blackGarlic', step: 'letter', context: '1' });
+
+    // Step 2: pick the new letter (e.g. 'X')
+    const afterStep2 = slurpReducer(afterStep1!, { type: 'CHOOSE_CONSUMABLE_TARGET', target: 'X' });
+    expect(afterStep2!.pendingConsumableInput).toBeNull();
+    // A tiles (chipValue=1) should now be X tiles
+    const convertedTiles = afterStep2!.pot.filter(t => t.id === 'A0' || t.id === 'A1');
+    expect(convertedTiles.every(t => t.letter === 'X')).toBe(true);
+    // Z tile unchanged
+    expect(afterStep2!.pot.find(t => t.id === 'Z0')!.letter).toBe('Z');
+  });
+});
+
+// ── YUZU_SKIP ─────────────────────────────────────────────────────────────────
+
+describe('YUZU_SKIP', () => {
+  it('skips to market phase when in reveal with yuzuSkipTasting', () => {
+    const initial = makePlayState({
+      phase: 'reveal',
+      yuzuSkipTasting: true,
+      course: 1,
+      tasting: 2,
+      brothScored: 400,
+    });
+    const state = slurpReducer(initial, { type: 'YUZU_SKIP' });
+    expect(state!.phase).toBe('market');
+    expect(state!.yuzuSkipTasting).toBe(false);
+    expect(state!.marketItems.length).toBeGreaterThan(0);
+    expect(state!.brothScored).toBe(0);
+  });
+
+  it('rejects if not in reveal phase', () => {
+    const initial = makePlayState({ phase: 'play', yuzuSkipTasting: true });
+    const state = slurpReducer(initial, { type: 'YUZU_SKIP' });
+    expect(state).toBe(initial);
+  });
+
+  it('rejects if yuzuSkipTasting is false', () => {
+    const initial = makePlayState({ phase: 'reveal', yuzuSkipTasting: false });
+    const state = slurpReducer(initial, { type: 'YUZU_SKIP' });
+    expect(state).toBe(initial);
   });
 });

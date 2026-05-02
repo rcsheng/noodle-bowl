@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
+import type { SlurpRunState, SlurpAction } from '@/packages/shared/slurp';
+
+const DEBOUNCE_MS = 1500;
 import { useAuth } from '@/context/AuthContext';
 import { slurpReducer } from '@/context/slurpReducer';
-import type { SlurpRunState, SlurpAction } from '@/packages/shared/slurp';
 
 const RUN_KEY = 'slurp_run_v1';
 const META_KEY = 'slurp_meta_v1';
@@ -68,14 +70,22 @@ export function SlurpProvider({ children }: { children: React.ReactNode }) {
     }
   }, [uid]);
 
-  // Persist run state on every change
+  // Persist run state on every change, debounced 1500ms
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!isLoaded || !uid) return;
     if (!runState || runState.phase === 'over') {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
       AsyncStorage.removeItem(RUN_KEY).catch(() => {});
       return;
     }
-    AsyncStorage.setItem(RUN_KEY, JSON.stringify(runState)).catch(() => {});
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      AsyncStorage.setItem(RUN_KEY, JSON.stringify(runState)).catch(() => {});
+    }, DEBOUNCE_MS);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
   }, [runState, isLoaded, uid]);
 
   const recordRunEnd = useCallback((finalScore: number | null, won: boolean) => {

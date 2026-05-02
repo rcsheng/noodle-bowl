@@ -2,6 +2,8 @@ export type WordPattern = 'broth' | 'noodle' | 'ramen' | 'udon' | 'pho' | 'tonko
 
 export type BrothBaseId = 'classicChicken' | 'tonkotsu' | 'clearDashi' | 'miso';
 
+export type FlavorPackId = 'brothPack' | 'spicePack' | 'umamiPack' | 'noodlePack';
+
 export type PantryId =
   | 'miseEnPlace'
   | 'doubleBroth'
@@ -64,6 +66,27 @@ export interface LetterTile {
   chipValue: number;
 }
 
+export interface MarketOffer {
+  id: string;
+  kind: 'topping' | 'flavorPack' | 'pantry' | 'spice';
+  itemId: string;
+  price: number;
+  sold: boolean;
+}
+
+export interface PendingFlavorPack {
+  offerId: string;
+  packId: FlavorPackId;
+  choices: string[];
+  picksRemaining: number;
+}
+
+export interface PendingConsumableInput {
+  consumableId: ConsumableId;
+  step: string; // 'letter' | 'tile' | 'value'
+  context: string; // intermediate state (first tile ID, chip value, etc.)
+}
+
 export interface SlurpRunState {
   ownerUid: string | null;
   brothBase: BrothBaseId;
@@ -90,6 +113,10 @@ export interface SlurpRunState {
   rngSeed: number;
   rngState: number;
   finalScore: number | null;
+  // Market state
+  marketItems: MarketOffer[];
+  marketRerollCount: number;
+  pendingFlavorPack: PendingFlavorPack | null;
   // Topping / run-tracking state
   slurpCountThisTasting: number;
   consecutiveNoSpitoutSlurps: number;
@@ -97,6 +124,14 @@ export interface SlurpRunState {
   pendingChipBonus: number;
   togarashiLetter: string | null;
   coursesCompleted: number;
+  ingredientShortageTiles: LetterTile[];
+  // Spice card / consumable state
+  pendingConsumableInput: PendingConsumableInput | null;
+  wildcardTileIds: string[];
+  fiveSpiceActive: boolean;
+  bonitoFlakesActive: boolean;
+  yuzuActive: boolean;
+  yuzuSkipTasting: boolean;
 }
 
 export type SlurpAction =
@@ -105,6 +140,15 @@ export type SlurpAction =
   | { type: 'SLURP'; tileIds: string[] }
   | { type: 'SPIT_OUT'; tileIds: string[] }
   | { type: 'OPEN_MARKET' }
+  | { type: 'BUY_ITEM'; offerId: string }
+  | { type: 'SELL_TOPPING'; toppingId: ToppingId }
+  | { type: 'CHOOSE_FLAVOR'; offerId: string; choice: string }
+  | { type: 'REROLL' }
+  | { type: 'SKIP_MARKET' }
   | { type: 'ADVANCE' }
   | { type: 'ABANDON_RUN' }
-  | { type: 'LOAD_STATE'; state: SlurpRunState };
+  | { type: 'LOAD_STATE'; state: SlurpRunState }
+  | { type: 'USE_CONSUMABLE'; consumableId: ConsumableId }
+  | { type: 'CHOOSE_CONSUMABLE_TARGET'; target: string }
+  | { type: 'YUZU_SKIP' }
+  | { type: 'ENDLESS_CONTINUE' };

@@ -6,14 +6,17 @@ interface Props {
   letter: string;
   value: number;
   selected?: boolean;
+  boosted?: boolean;
   onPress?: () => void;
   size?: number;
 }
 
-// Letter tile — selected tiles are red-filled, unselected cream.
+// Letter tile — selected tiles are red-filled, unselected cream, boosted (wildcard) mustard.
 // Slight rotation based on letter character code (hand-pasted feel).
-export function RisoTile({ letter, value, selected = false, onPress, size = 38 }: Props) {
+export function RisoTile({ letter, value, selected = false, boosted = false, onPress, size = 38 }: Props) {
   const rotation = `${(letter.charCodeAt(0) % 5) - 2}deg`;
+  const bg = selected ? R.red : boosted ? R.mustard : R.cream;
+  const textColor = selected ? R.cream : R.ink;
 
   return (
     <TouchableOpacity
@@ -25,17 +28,17 @@ export function RisoTile({ letter, value, selected = false, onPress, size = 38 }
         {
           width: size,
           height: size,
-          backgroundColor: selected ? R.red : R.cream,
+          backgroundColor: bg,
           borderRadius: size * 0.22,
           transform: [{ rotate: rotation }],
         },
       ]}
     >
-      <Text style={[styles.letter, { fontSize: size * 0.48, color: selected ? R.cream : R.ink }]}>
+      <Text style={[styles.letter, { fontSize: size * 0.48, color: textColor }]}>
         {letter}
       </Text>
       <View style={styles.valueWrap}>
-        <Text style={[styles.value, { color: selected ? R.cream : R.ink, opacity: selected ? 0.7 : 0.65 }]}>
+        <Text style={[styles.value, { color: textColor, opacity: selected ? 0.7 : 0.65 }]}>
           {value}
         </Text>
       </View>

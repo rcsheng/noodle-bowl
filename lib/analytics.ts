@@ -33,3 +33,25 @@ export const helpSent = (gameId: string): void =>
 export const signedUp = (): void => track('sign_up');
 
 export const loggedIn = (): void => track('login');
+
+// Slurp analytics
+export const slurpRunStarted = (brothBase: string): void =>
+  track('slurp_run_started', { broth_base: brothBase });
+
+export const slurpTastingWon = (course: number, tasting: number, score: number, slurpsUsed: number): void =>
+  track('slurp_tasting_won', { course, tasting, score, slurps_used: slurpsUsed });
+
+export const slurpTastingLost = (course: number, tasting: number, score: number, quota: number): void =>
+  track('slurp_tasting_lost', { course, tasting, score, quota });
+
+export const slurpRunCompleted = (finalScore: number, toppingCount: number, pantryCount: number): void =>
+  track('slurp_run_completed', { final_score: finalScore, topping_count: toppingCount, pantry_count: pantryCount });
+
+export const slurpRunAbandoned = (course: number, tasting: number): void =>
+  track('slurp_run_abandoned', { course, tasting });
+
+export const slurpMarketPurchase = (itemType: string, itemId: string, cost: number): void =>
+  track('slurp_market_purchase', { item_type: itemType, item_id: itemId, cost });
+
+export const slurpEndlessMode = (finalScoreSoFar: number): void =>
+  track('slurp_endless_course', { final_score_so_far: finalScoreSoFar });

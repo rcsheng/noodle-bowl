@@ -1,15 +1,16 @@
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RisoBorder } from '@/components/slurp/RisoBorder';
 import { RisoButton } from '@/components/slurp/RisoButton';
 import { RisoMisreg } from '@/components/slurp/RisoMisreg';
 import { R, RF } from '@/constants/slurp/riso';
 import { useSlurp } from '@/context/SlurpContext';
+import { slurpRunAbandoned } from '@/lib/analytics';
 
 export default function SlurpLanding() {
-  const { runState, meta } = useSlurp();
+  const { runState, meta, dispatch } = useSlurp();
   const hasActiveRun = runState !== null && runState.phase !== 'over';
 
   function handleStart() {
@@ -18,6 +19,24 @@ export default function SlurpLanding() {
 
   function handleResume() {
     router.push('/slurp/tasting');
+  }
+
+  function handleAbandon() {
+    Alert.alert(
+      'Abandon Run?',
+      'Your progress will be lost. This cannot be undone.',
+      [
+        { text: 'Keep Playing', style: 'cancel' },
+        {
+          text: 'Abandon',
+          style: 'destructive',
+          onPress: () => {
+            if (runState) slurpRunAbandoned(runState.course, runState.tasting);
+            dispatch({ type: 'ABANDON_RUN' });
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -49,9 +68,15 @@ export default function SlurpLanding() {
             <RisoButton variant="ink" onPress={handleResume} style={styles.ctaFull}>
               RESUME RUN
             </RisoButton>
-            <TouchableOpacity onPress={handleStart} style={styles.newRunLink}>
-              <Text style={styles.newRunText}>or start a new run ↓</Text>
-            </TouchableOpacity>
+            <View style={styles.abandonRow}>
+              <TouchableOpacity onPress={handleAbandon} style={styles.abandonLink}>
+                <Text style={styles.abandonText}>abandon run</Text>
+              </TouchableOpacity>
+              <Text style={styles.abandonSep}> · </Text>
+              <TouchableOpacity onPress={handleStart} style={styles.newRunLink}>
+                <Text style={styles.newRunText}>new run</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           <RisoButton variant="ink" onPress={handleStart} style={styles.ctaFull}>
@@ -131,7 +156,11 @@ const styles = StyleSheet.create({
   },
   ctaStack: { marginBottom: 12 },
   ctaFull: { marginBottom: 0 },
-  newRunLink: { alignItems: 'center', paddingVertical: 8 },
+  abandonRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 8 },
+  abandonLink: { paddingHorizontal: 4 },
+  abandonText: { fontFamily: RF.serifItalic, fontSize: 12, color: R.red, opacity: 0.7 },
+  abandonSep: { fontFamily: RF.serifItalic, fontSize: 12, color: R.ink, opacity: 0.4 },
+  newRunLink: { paddingHorizontal: 4 },
   newRunText: {
     fontFamily: RF.serifItalic,
     fontSize: 12,

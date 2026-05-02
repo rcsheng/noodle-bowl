@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RisoBorder } from '@/components/slurp/RisoBorder';
@@ -8,9 +8,16 @@ import { RisoMisreg } from '@/components/slurp/RisoMisreg';
 import { R, RF } from '@/constants/slurp/riso';
 import { BROTH_BASE_LABELS } from '@/constants/slurp/market';
 import { useSlurp } from '@/context/SlurpContext';
+import { slurpEndlessMode } from '@/lib/analytics';
 
 export default function RunSummaryScreen() {
-  const { runState: state } = useSlurp();
+  const { runState: state, dispatch } = useSlurp();
+
+  useEffect(() => {
+    if (state?.phase === 'reveal') {
+      router.replace('/slurp/tasting');
+    }
+  }, [state?.phase]);
 
   const won = state?.finalScore != null;
   const score = state?.finalScore ?? state?.totalBrothScored ?? 0;
@@ -57,6 +64,18 @@ export default function RunSummaryScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
+          {won && (
+            <RisoButton
+              variant="ink"
+              onPress={() => {
+                slurpEndlessMode(score);
+                dispatch({ type: 'ENDLESS_CONTINUE' });
+              }}
+              style={styles.btn}
+            >
+              ∞ ENDLESS MODE
+            </RisoButton>
+          )}
           <RisoButton variant="red" onPress={handleNewRun} style={styles.btn}>
             NEW RUN
           </RisoButton>

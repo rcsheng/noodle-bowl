@@ -5,7 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RisoButton } from '@/components/slurp/RisoButton';
 import { RisoMisreg } from '@/components/slurp/RisoMisreg';
 import { R, RF } from '@/constants/slurp/riso';
+import { useAuth } from '@/context/AuthContext';
 import { useSlurp } from '@/context/SlurpContext';
+import { slurpRunStarted } from '@/lib/analytics';
 import type { BrothBaseId } from '@/packages/shared/slurp';
 
 const BROTH_OPTIONS: { id: BrothBaseId; name: string; tag: string; emoji: string }[] = [
@@ -17,15 +19,17 @@ const BROTH_OPTIONS: { id: BrothBaseId; name: string; tag: string; emoji: string
 
 export default function BrothSelectScreen() {
   const { dispatch } = useSlurp();
+  const { user } = useAuth();
   const [selected, setSelected] = useState<BrothBaseId>('classicChicken');
 
   function handleStart() {
     dispatch({
       type: 'START_RUN',
       brothBase: selected,
-      ownerUid: null,
+      ownerUid: user?.uid ?? null,
       seed: Date.now(),
     });
+    slurpRunStarted(selected);
     router.replace('/slurp/tasting');
   }
 
