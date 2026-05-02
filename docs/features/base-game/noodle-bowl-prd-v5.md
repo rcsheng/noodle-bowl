@@ -314,6 +314,26 @@ helpRequests/{token}                  // existing — unchanged
 
 ---
 
+## 11. Analytics (post-alpha addition)
+
+PostHog (posthog-react-native) wired 2026-05-01. Works on iOS, Android, and web — no native modules required.
+
+**Implementation:** `lib/analytics.ts` — thin wrapper around PostHog. Initialized at app startup in `app/_layout.tsx`. No-op if `EXPO_PUBLIC_POSTHOG_API_KEY` is absent (safe in test/CI environments).
+
+**Events tracked:**
+
+| Event | Trigger | Params |
+|---|---|---|
+| `game_complete` | Player submits answer | `game_id`, `correct`, `points` |
+| `challenge_sent` | Challenge link created | `game_id` |
+| `help_sent` | Help request created | `game_id` |
+| `sign_up` | Account created successfully | — |
+| `login` | Sign-in succeeded | — |
+
+**Required env var:** `EXPO_PUBLIC_POSTHOG_API_KEY` — set in `.env.local` and EAS production environment variables. Get the key from posthog.com → Project Settings → API Keys.
+
+---
+
 ## 10. Success Criteria
 
 - [ ] Anonymous user can upgrade to permanent without losing stats

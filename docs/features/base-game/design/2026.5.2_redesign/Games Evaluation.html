@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Games — Evaluation & Proposals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: -apple-system, system-ui, sans-serif; }
+  #app { width: 100vw; height: 100vh; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="text/babel" src="mock-assets/design-canvas.jsx"></script>
+<script type="text/babel" src="mock-assets/shared.jsx"></script>
+<script type="text/babel" src="mock-assets/games-current.jsx"></script>
+<script type="text/babel" src="mock-assets/games-proposals.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+
+const SERIF = 'Fraunces, Georgia, serif';
+const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+const INK = '#1a2030';
+const ACCENT = '#b04428';
+const MUTED = '#5a554c';
+const PAPER = '#fefcf6';
+
+function Note({ n, title, body, color = ACCENT }) {
+  return (
+    <div style={{ width: 220, fontFamily: SERIF, color: '#1f1d1a' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+        <span style={{
+          width: 18, height: 18, borderRadius: '50%', background: color, color: 'white',
+          fontFamily: MONO, fontSize: 10, fontWeight: 700,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>{n}</span>
+        <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, color, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {title}
+        </span>
+      </div>
+      <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: 'italic', color: '#3a342a', lineHeight: 1.45 }}>
+        {body}
+      </div>
+    </div>
+  );
+}
+
+function ReadmeCard() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '28px 26px', boxSizing: 'border-box', overflowY: 'auto' }}>
+      <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.3em', color: ACCENT, fontWeight: 700 }}>
+        GAMES · EVALUATION
+      </div>
+      <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 36, color: '#1a1817', lineHeight: 1.05, marginTop: 8, marginBottom: 14 }}>
+        Three games,<br/>one critique each,<br/>two or three remixes.
+      </div>
+      <div style={{ fontFamily: SERIF, fontSize: 14, color: '#3a342a', lineHeight: 1.55, marginBottom: 18 }}>
+        Each row evaluates one game's <em>play screen</em>. The leftmost phone is the live design (faithful but compact recreation). To its right: numbered concerns. Then 2–3 alternative proposals as side-by-side iPhone mocks, each with a one-line "what it changes / why."
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.16em', color: MUTED, textTransform: 'uppercase', marginBottom: 6 }}>Cross-cutting issues, all three games</div>
+      <ul style={{ fontFamily: SERIF, fontSize: 13, color: '#3a342a', lineHeight: 1.5, paddingLeft: 18, margin: 0 }}>
+        <li><strong>Masthead is enormous.</strong> Five horizontal rules and a 24px italic logotype eat ~25% of the viewport on every play screen. Fine on home; punitive in-game.</li>
+        <li><strong>Quadruple-bordered cards.</strong> Outer 1px + inset 1px @ 4px + drop shadow + section rules. The inset borders are decorative ornament that fight the content.</li>
+        <li><strong>Mono ALL CAPS labels everywhere.</strong> "YOUR ANSWER", "TOPIC", "CLAIM 1" — the label-to-content ratio is high enough to feel bureaucratic. Italic serif kicker for one of them, the rest plain, would breathe.</li>
+        <li><strong>"Stuck? Ask a Friend" is sized like the primary CTA.</strong> Asking for help is rare; offering it equal weight as Lock In trains the eye to ignore the primary action.</li>
+        <li><strong>No progress affordance.</strong> Every game shows the same "Lock In" button regardless of how much input is left. SoF in particular is three claims of identical-feeling work.</li>
+      </ul>
+    </div>
+  );
+}
+
+function CritiqueLede() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '24px 22px', boxSizing: 'border-box', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div>
+        <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', color: ACCENT, fontWeight: 700 }}>N° 01 · THE LEDE</div>
+        <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 22, color: '#1a1817', marginTop: 4, lineHeight: 1.1 }}>What's not working</div>
+      </div>
+      <Note n="1" title="Three competing voices, no hierarchy" body={<>Each reporter card has a colored header strip, a name, an outlet badge, an italic completion, AND a quoted pitch. All three look equally weighty. The eye has nowhere to land first.</>} />
+      <Note n="2" title="Selection state hijacks the card" body={<>Tapping inverts the entire card to dark + accent header. It's a giant change for a tap toggle and creates a "before/after" visual flicker every time the user changes their mind.</>} />
+      <Note n="3" title="Pitch quote is doing too much" body={<>The italic pitch repeats reporter framing, eats vertical room, and is hard to skim. Most users probably scan the completion text and ignore the pitch entirely — yet it's persistently shown for all three.</>} />
+      <Note n="4" title="The actual headline is buried" body={<>The fill-in-the-blank — the whole point of the game — is in a small inset card above the fold of three large reporter cards. The challenge should anchor the screen.</>} />
+    </div>
+  );
+}
+
+function CritiqueSpread() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '24px 22px', boxSizing: 'border-box', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div>
+        <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', color: ACCENT, fontWeight: 700 }}>N° 02 · THE SPREAD</div>
+        <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 22, color: '#1a1817', marginTop: 4, lineHeight: 1.1 }}>What's not working</div>
+      </div>
+      <Note n="1" title="A blank number field is the worst input for a guess" body={<>Asking "how many one-euro houses?" with no anchor is hostile. Users who don't know the rough order of magnitude have to commit blind and then feel stupid at reveal. There's no scaffolding.</>} />
+      <Note n="2" title="No sense of range, scale, or unit" body={<>The unit ("Houses") sits below the input as a quiet caption. Users don't know if the answer space is 1–20, 1–500, or 1–500,000. That changes the game entirely.</>} />
+      <Note n="3" title="One question per session feels thin" body={<>The game is a single Submit, single Reveal. No round structure, no "you're getting warmer." A brilliant guess and a wild stab feel the same on the way in.</>} />
+      <Note n="4" title="Reveal is just two big numbers" body={<>"Your Guess / The Answer" side by side with a "% off" — fine, but it doesn't teach. There's no visual sense of where you landed on a distribution, only a verdict.</>} />
+    </div>
+  );
+}
+
+function CritiqueSof() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '24px 22px', boxSizing: 'border-box', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div>
+        <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', color: ACCENT, fontWeight: 700 }}>N° 03 · SCIENCE OR FICTION</div>
+        <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 22, color: '#1a1817', marginTop: 4, lineHeight: 1.1 }}>What's not working</div>
+      </div>
+      <Note n="1" title="Two truths one lie, but the UI asks 3 binary votes" body={<>The premise is "find the fake," which is a single-tap puzzle. The UI forces three independent Science/Fiction votes — six taps minimum. That's friction without payoff; the puzzle doesn't actually need 3 votes.</>} />
+      <Note n="2" title="Wall of dense paragraph text" body={<>Three claim cards stacked, each with a topic intro above. Users facing ~150 words of small italic serif before any tap. SoF is the most reading-heavy game by far.</>} />
+      <Note n="3" title="Standard / Weird-True toggle competes with content" body={<>A second-tier mode toggle sits at the very top of the play screen, always visible, always asking to be re-evaluated. It belongs on the game's home tile, not in the round.</>} />
+      <Note n="4" title="No notion of confidence" body={<>Each vote is binary. "I'm pretty sure" and "wild guess" score identically, which removes the most interesting strategic dimension of a real-world S-or-F format.</>} />
+    </div>
+  );
+}
+
+function ProposalCard({ tag, title, what, why, tradeoff }) {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '22px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
+      <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', color: ACCENT, fontWeight: 700 }}>{tag}</div>
+      <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 22, color: '#1a1817', lineHeight: 1.1, marginBottom: 4 }}>{title}</div>
+      <div>
+        <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', color: MUTED, textTransform: 'uppercase', marginBottom: 4 }}>What changes</div>
+        <div style={{ fontFamily: SERIF, fontSize: 12.5, color: '#3a342a', lineHeight: 1.5 }}>{what}</div>
+      </div>
+      <div>
+        <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', color: MUTED, textTransform: 'uppercase', marginBottom: 4 }}>Why it helps</div>
+        <div style={{ fontFamily: SERIF, fontSize: 12.5, color: '#3a342a', lineHeight: 1.5 }}>{why}</div>
+      </div>
+      {tradeoff && (
+        <div style={{ borderTop: `1px solid rgba(0,0,0,0.12)`, paddingTop: 8, marginTop: 'auto' }}>
+          <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.16em', color: MUTED, textTransform: 'uppercase', marginBottom: 4 }}>Trade-off</div>
+          <div style={{ fontFamily: SERIF, fontSize: 11.5, fontStyle: 'italic', color: MUTED, lineHeight: 1.45 }}>{tradeoff}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PhoneFrame({ children }) {
+  return <MiniPhone w={280} h={570} bg="#1a2030" notch="#1a2030">{children}</MiniPhone>;
+}
+
+function App() {
+  return (
+    <DesignCanvas title="Noodle Bowl · Games — Evaluation & Proposals" subtitle="Per-game critique of Lede, Spread, and SoF, plus alternative directions to discuss.">
+
+      <DCSection id="readme" title="Read me first" defaultCollapsed={false}>
+        <DCArtboard id="readme" label="Overview" width={620} height={620}>
+          <ReadmeCard />
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── LEDE ─── */}
+      <DCSection id="lede" title="N° 01 — The Lede" defaultCollapsed={false}>
+        <DCArtboard id="lede-current" label="Current — play screen" width={300} height={620}>
+          <PhoneFrame><LedePlayCurrent /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="lede-critique" label="Critique" width={300} height={620}>
+          <CritiqueLede />
+        </DCArtboard>
+        <DCArtboard id="lede-a" label="A · Newsroom Pitch" width={300} height={620}>
+          <PhoneFrame><LedeA /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="lede-a-rationale" label="A — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="LEDE · PROPOSAL A"
+            title="Newsroom Pitch"
+            what={<>Reporters become a vertical "wire feed." Only the selected reporter expands to show their italic pitch quote; the others stay as one-liners. Selection is a small radio dot, not a card invert.</>}
+            why={<>Restores hierarchy: headline first, then a tight glanceable list, then the pitch only when you're considering a choice. Less ink overall, less visual flicker on selection.</>}
+            tradeoff={<>The pitch quote — a fun storytelling touch — only shows for one card at a time. If reading all three pitches matters, this hides them.</>}
+          />
+        </DCArtboard>
+        <DCArtboard id="lede-b" label="B · Headline-First" width={300} height={620}>
+          <PhoneFrame><LedeB /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="lede-b-rationale" label="B — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="LEDE · PROPOSAL B"
+            title="Headline-First Tap"
+            what={<>The headline is the screen — large italic serif at the top, with a small gold "?" tag in the blank. Three completion options below as accent-bar list items. Pitch quotes are tucked into a single contextual block tied to the current selection.</>}
+            why={<>Puts the puzzle (the headline) where the eye lands first, treats reporter identity as flavor rather than the unit of comparison, and reads more like a real newspaper game.</>}
+            tradeoff={<>De-emphasizes the "Three reporters" framing — the panelist personalities become decoration. If those characters are core IP, A is closer to the brief.</>}
+          />
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── SPREAD ─── */}
+      <DCSection id="spread" title="N° 02 — The Spread" defaultCollapsed={false}>
+        <DCArtboard id="spread-current" label="Current — play screen" width={300} height={620}>
+          <PhoneFrame><SpreadPlayCurrent /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="spread-critique" label="Critique" width={300} height={620}>
+          <CritiqueSpread />
+        </DCArtboard>
+        <DCArtboard id="spread-a" label="A · Number Line" width={300} height={620}>
+          <PhoneFrame><SpreadA /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="spread-a-rationale" label="A — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="SPREAD · PROPOSAL A"
+            title="Anchored Number Line"
+            what={<>Replace the blank text input with a draggable number line. The line shows two faint reference anchors ("typical small town", "1k pop. equivalent") to give scale. Below: ±1 / ±10 nudge buttons for fine control.</>}
+            why={<>Solves the "no sense of range" problem directly. Anchors give learners a footing without revealing the answer. Touch-friendly, no keyboard pop-up.</>}
+            tradeoff={<>Authoring overhead: every question now needs anchor copy and a sensible domain. Some answers are so far outside the line that anchors lie, which the editorial team has to police.</>}
+          />
+        </DCArtboard>
+        <DCArtboard id="spread-b" label="B · Higher / Lower" width={300} height={620}>
+          <PhoneFrame><SpreadB /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="spread-b-rationale" label="B — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="SPREAD · PROPOSAL B"
+            title="Bisection Round"
+            what={<>Instead of one open guess, the round becomes 3 quick "more or fewer than X" calls that bisect the answer space. Final round commits.</>}
+            why={<>Turns a one-shot question into a 30-second rhythm game with feedback at each step. Easier to start (no blank input), harder to fluke. Fits the ~2 min play time better than a single submit-and-wait.</>}
+            tradeoff={<>Bigger structural change. Scoring needs redesign. Editorial has to pick the bisection thresholds carefully so the game is still fun on extreme answers.</>}
+          />
+        </DCArtboard>
+        <DCArtboard id="spread-c" label="C · Crowd Distribution" width={300} height={620}>
+          <PhoneFrame><SpreadC /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="spread-c-rationale" label="C — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="SPREAD · PROPOSAL C"
+            title="Crowd Distribution"
+            what={<>Show a histogram of "what 2,847 readers guessed" before commit. The user's pin sits on the histogram and updates live. Reveal compares them to truth + crowd median.</>}
+            why={<>Anchors guesses with social proof (a real news-game superpower) and makes the reveal far more interesting: "you beat 78% of readers" is more memorable than "12% off."</>}
+            tradeoff={<>Requires real, fresh distribution data. Risks anchoring everyone to the existing crowd answer, which could compress variance over time. Mitigation: show distribution only post-commit.</>}
+          />
+        </DCArtboard>
+      </DCSection>
+
+      {/* ─── SOF ─── */}
+      <DCSection id="sof" title="N° 03 — Science or Fiction" defaultCollapsed={false}>
+        <DCArtboard id="sof-current" label="Current — play screen" width={300} height={620}>
+          <PhoneFrame><SofPlayCurrent /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="sof-critique" label="Critique" width={300} height={620}>
+          <CritiqueSof />
+        </DCArtboard>
+        <DCArtboard id="sof-a" label="A · Pick The Lie" width={300} height={620}>
+          <PhoneFrame><SofA /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="sof-a-rationale" label="A — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="SOF · PROPOSAL A"
+            title="Pick The Lie (one tap)"
+            what={<>The premise is "two truths, one lie" — so make the input match. One tap on the suspected fake. Optional confidence wager (1× / 2× points) before locking in.</>}
+            why={<>Six taps becomes one. Game name — "find the fake" — and the input model finally agree. Confidence wager preserves strategic depth without requiring three votes.</>}
+            tradeoff={<>Loses the "Science or Fiction" framing on a per-claim basis. Can't capture the case where a player is uncertain on multiple claims; B handles that.</>}
+          />
+        </DCArtboard>
+        <DCArtboard id="sof-b" label="B · Confidence Sliders" width={300} height={620}>
+          <PhoneFrame><SofB /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="sof-b-rationale" label="B — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="SOF · PROPOSAL B"
+            title="Confidence Sliders"
+            what={<>Each claim gets a Fiction ↔ Science slider. Position encodes both vote and confidence in one gesture. Center = uncertain.</>}
+            why={<>Adds the missing strategic layer (confidence) without changing the round structure. Reveal can show how far the slider was from the correct end, scaling points.</>}
+            tradeoff={<>Sliders are fiddly on small screens. Ambiguous reading: is "65% Science" a meaningful answer or just a half-committed tap? Needs careful copy at reveal.</>}
+          />
+        </DCArtboard>
+        <DCArtboard id="sof-c" label="C · One Claim At A Time" width={300} height={620}>
+          <PhoneFrame><SofC /></PhoneFrame>
+        </DCArtboard>
+        <DCArtboard id="sof-c-rationale" label="C — rationale" width={300} height={620}>
+          <ProposalCard
+            tag="SOF · PROPOSAL C"
+            title="Carousel · One Claim At A Time"
+            what={<>Show one claim per screen with progress dots. Two big tappable Science / Fiction buttons. Swipe (or tap an arrow) to move to the next claim.</>}
+            why={<>Eliminates the wall-of-text feeling. Each claim gets full attention. Progress dots give a "you're 2 of 3 done" beat the current design lacks.</>}
+            tradeoff={<>Harder to compare claims to each other ("is this really the fake, or is claim 1?") since you can't see them all at once. Mitigation: a "review all" step before lock-in.</>}
+          />
+        </DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('app'));
+root.render(<App />);
+</script>
+</body>
+</html>

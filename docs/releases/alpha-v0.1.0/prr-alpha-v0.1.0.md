@@ -11,14 +11,14 @@ First alpha to trusted testers via TestFlight. 5 games, anonymous → email auth
 | Version | `v0.1.0-alpha.1` |
 | Target platform | iOS |
 | Distribution channel | TestFlight (internal testers) |
-| Target date | 2026-04-29 |
+| Target date | 2026-04-30 |
 | Release owner | rcsheng |
 
 ---
 
 ## 1. Code quality ✅ Complete
 
-- [x] All tests passing — 281 app tests + 59 function tests + 34 rules tests
+- [x] All tests passing — 313 app tests + 59 function tests + 34 rules tests
 - [x] Code review complete
 - [x] Security review complete
 
@@ -26,7 +26,15 @@ First alpha to trusted testers via TestFlight. 5 games, anonymous → email auth
 
 ## 2. Manual smoke test ✅ Complete
 
-All blocks verified 2026-04-28 against local Firebase emulator (iPhone Expo Go + Android emulator Pixel_9).
+All blocks verified 2026-04-30 against **production Firebase** (QA collections via `start:qa`) on iPhone Expo Go.
+
+- Auth (sign-in, guest play, account upgrade) ✅
+- Challenge link generation + cross-device receive + respond ✅
+- Help request round-trip ✅
+- Friend reply card on home screen ✅
+- Stats tab shield display ✅
+
+Earlier emulator pass (2026-04-28) covered games, streaks, and seen-sync.
 
 ---
 
@@ -34,7 +42,11 @@ All blocks verified 2026-04-28 against local Firebase emulator (iPhone Expo Go +
 
 - [x] Production Firebase project live (`feat: prod firebase` — commit `3dc5f13`)
 - [x] Firestore security rules deployed
-- [x] Cloud Functions deployed (Node 22, firebase-functions 6.6.0)
+- [x] Cloud Functions deployed (Node 22, firebase-functions 6.6.0) — all 6 functions (challengeCreate/Get/Respond, helpCreate/Get/Respond) with `collectionPrefix` QA isolation support
+- [x] `challengeCreate` Cloud Run IAM fix applied 2026-04-30 — `allUsers run.invoker` grant was missing (Firebase does not re-apply on updates); fixed via GCP REST API. If redeployed from scratch, re-grant:
+  ```bash
+  gcloud run services add-iam-policy-binding challengecreate --region=us-central1 --member="allUsers" --role="roles/run.invoker" --project=noodle-bowl
+  ```
 - [ ] **Seed production content** — run once before the build:
   ```bash
   npm run seed:prod
@@ -123,7 +135,7 @@ eas submit --platform ios --profile production --latest
 
 | Step | Done by | Date |
 |---|---|---|
-| Smoke tests | rcsheng | 2026-04-28 |
+| Smoke tests | rcsheng | 2026-04-30 (prod Firebase QA) |
 | Code + security review | rcsheng | prior session |
 | Seed prod content | | |
 | Build | | |

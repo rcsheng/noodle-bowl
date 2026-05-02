@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Home Screen — Evaluation & Proposals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: -apple-system, system-ui, sans-serif; }
+  #app { width: 100vw; height: 100vh; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="text/babel" src="mock-assets/design-canvas.jsx"></script>
+<script type="text/babel" src="mock-assets/shared.jsx"></script>
+<script type="text/babel" src="mock-assets/current.jsx"></script>
+<script type="text/babel" src="mock-assets/proposals.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+
+const SERIF = 'Fraunces, Georgia, serif';
+const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+const INK = '#1a2030';
+const ACCENT = '#b04428';
+const MUTED = '#5a554c';
+const PAPER = '#fefcf6';
+
+// Annotation arrow + note pinned next to the current-state phone
+function Note({ x, y, w = 220, n, title, body, color = ACCENT }) {
+  return (
+    <div style={{ position: 'absolute', left: x, top: y, width: w, fontFamily: SERIF, color: '#1f1d1a' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+        <span style={{
+          width: 18, height: 18, borderRadius: '50%', background: color, color: 'white',
+          fontFamily: MONO, fontSize: 10, fontWeight: 700,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>{n}</span>
+        <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, color, letterSpacing: '0.14em' }}>
+          {title}
+        </span>
+      </div>
+      <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: 'italic', color: '#3a342a', lineHeight: 1.45 }}>
+        {body}
+      </div>
+    </div>
+  );
+}
+
+function ReadmeCard() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '28px 26px', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.3em', color: ACCENT, fontWeight: 700 }}>
+        HOME SCREEN · EVALUATION
+      </div>
+      <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 300, fontSize: 30, color: INK, letterSpacing: '-0.025em', lineHeight: 1.05, marginTop: 10 }}>
+        What's working, what's hurting, and five other ways to lay this out.
+      </div>
+      <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: 'italic', color: MUTED, marginTop: 12, lineHeight: 1.5 }}>
+        I recreated the current Hub home in the browser to look at it cold, then sketched five different layouts. Each proposal targets one or two specific problems (called out below) — not a full redesign yet. Pick what resonates and we'll deepen it.
+      </div>
+
+      <div style={{ marginTop: 18, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', color: MUTED }}>HOW TO USE THIS</div>
+      <div style={{ borderTop: '1px solid rgba(31,29,26,0.14)', marginTop: 4, marginBottom: 8 }} />
+      <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: 'italic', color: MUTED, lineHeight: 1.5 }}>
+        Section 1: the current home, recreated, with eight numbered critiques. Section 2: five alternative layouts (A–E) on iPhone frames with the rationale for each. They are <em>not</em> a polished system — they're conversation starters about hierarchy, density, and metaphor.
+      </div>
+
+      <div style={{ marginTop: 16, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', color: MUTED }}>SCOPE & ASSUMPTIONS</div>
+      <div style={{ borderTop: '1px solid rgba(31,29,26,0.14)', marginTop: 4, marginBottom: 8 }} />
+      <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: 'italic', color: MUTED, lineHeight: 1.5 }}>
+        I'm only touching the home tab game-list region (the masthead, stats card, and game cards). Friend-reply cards, banners, tab bar, and game screens themselves are untouched. I assume the current design system (Fraunces serif + JetBrains Mono + cool ink/paper palette) stays — these proposals all live inside it.
+      </div>
+    </div>
+  );
+}
+
+function CritiqueList() {
+  const items = [
+    ['1', 'Three identical cards = no hierarchy', 'The "anchor" card on game 01 has a gold border and the others have ink — but at a glance they read as the same weight. The user has no clear signal of "what should I tap next?". Compare to NYT Games which always has ONE clearly promoted puzzle.'],
+    ['2', 'Each card eats ~38% of the viewport', 'Header strip + double-border body + 18px padding × 3 cards means the user sees only ~1.2 games before scrolling. The list is short (3 items) — it should fit. Density is achievable without losing personality.'],
+    ['3', 'Decorative chrome stacks', 'Every card has: outer 1px border, 3px hard shadow, dark header strip, AND an inset 1px border-within-padding. Four nested borders is a lot. The inset border in particular reads as "broken layout" not "intentional".'],
+    ['4', 'Stats card competes with the games', 'The stats card has the same 1px border + 3px shadow + inset border treatment as a game card, plus its own dark backdrop. It wants to be glanceable but its visual weight says "this is also a button." Demote it.'],
+    ['5', 'Tagline is too long, too prosaic', '"Three reporters offer competing endings for today\'s headline. Only one is real." reads like a one-pager, not a game card. After day 2 the user knows the rules — the tagline becomes wallpaper. Either commit to a 3-word descriptor (NYT: "Solve the puzzle") or push the long copy into the game itself.'],
+    ['6', 'Status badges feel ad-hoc', 'Played → green-bordered "PLAYED ✓" rectangle in the header, then ALSO a green inline pill "+84 PTS" in the meta row, then a "Play Again" text. Three different ways to say "you finished this." Pick one.'],
+    ['7', 'No sense of progress through the day', 'There\'s no "1 of 3 done" or progress bar. The day is a 3-game routine — that should be a first-class object on this screen. Right now you\'d only know by counting green badges.'],
+    ['8', 'Mono caps lock everywhere', 'JetBrainsMono 8–10px in 0.14–0.18em uppercase appears 11 times on the screen (date, section label, num, badge, meta dots, all of it). It loses its signaling power — when everything is a label, nothing is a label.'],
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '24px 22px', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.3em', color: ACCENT, fontWeight: 700 }}>
+        EIGHT CRITIQUES
+      </div>
+      <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 22, color: INK, letterSpacing: '-0.01em', marginTop: 6, marginBottom: 8 }}>
+        Things that hurt humans.
+      </div>
+      <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: 'italic', color: MUTED, marginBottom: 14, lineHeight: 1.45 }}>
+        Numbered to match the callouts on the phone to the left. Listed roughly in order of impact.
+      </div>
+      {items.map(([n, title, body]) => (
+        <div key={n} style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
+          <span style={{
+            flex: '0 0 18px',
+            width: 18, height: 18, borderRadius: '50%', background: ACCENT, color: 'white',
+            fontFamily: MONO, fontSize: 10, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            marginTop: 1,
+          }}>{n}</span>
+          <div>
+            <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 13, color: INK, lineHeight: 1.2 }}>{title}</div>
+            <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: 11, color: MUTED, lineHeight: 1.5, marginTop: 2 }}>{body}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Wrap a phone preview alongside annotations
+function AnnotatedCurrent() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: 24, boxSizing: 'border-box', position: 'relative' }}>
+      {/* phone */}
+      <div style={{ position: 'absolute', left: 36, top: 40 }}>
+        <MiniPhone bg="#0d1322" notch="#0d1322" w={290} h={580}>
+          <CurrentHome />
+        </MiniPhone>
+      </div>
+
+      {/* annotation column */}
+      <div style={{ position: 'absolute', left: 360, top: 30, right: 24, bottom: 24 }}>
+        <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.25em', color: ACCENT, fontWeight: 700 }}>CURRENT · AS BUILT</div>
+        <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 22, color: INK, letterSpacing: '-0.01em', marginTop: 4, marginBottom: 6 }}>
+          The home tab today.
+        </div>
+        <div style={{ fontFamily: SERIF, fontSize: 11, fontStyle: 'italic', color: MUTED, lineHeight: 1.5 }}>
+          Faithful recreation from <code style={{ fontFamily: MONO, fontSize: 10 }}>app/(tabs)/index.tsx</code>. The middle game is shown in its "played" state to expose all card variants.
+        </div>
+
+        <div style={{ marginTop: 18, display: 'grid', gap: 10 }}>
+          {[
+            ['1', 'No hero', 'Anchor border is too quiet — three cards read as equal weight.'],
+            ['2', 'Density', 'Only ~1.2 cards visible at a time despite there being just 3.'],
+            ['3', 'Borders', '4 nested borders per card — outer, shadow, dark header, inset hairline.'],
+            ['4', 'Stats', 'Stats card uses the same chrome as a game card. Looks tappable.'],
+            ['5', 'Tagline', "Long, prosaic; becomes wallpaper after day 2."],
+            ['6', 'Played state', 'Three different signals for "done": badge, pill, "Play Again".'],
+            ['7', 'Day progress', 'No 1-of-3 indicator — the daily routine isn\'t a first-class object.'],
+            ['8', 'Mono fatigue', '11 mono-caps labels on screen; loses signaling power.'],
+          ].map(([n, t, b]) => (
+            <div key={n} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <span style={{
+                flex: '0 0 18px',
+                width: 18, height: 18, borderRadius: '50%', background: ACCENT, color: 'white',
+                fontFamily: MONO, fontSize: 10, fontWeight: 700,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                marginTop: 1,
+              }}>{n}</span>
+              <div>
+                <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 12, color: INK }}>{t}</div>
+                <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: 11, color: MUTED, lineHeight: 1.4 }}>{b}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Phone wrapper used in proposals
+function PhoneWrap({ children, bezel = '#0d1322' }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
+      <MiniPhone bg={bezel} notch={bezel} w={290} h={580}>{children}</MiniPhone>
+    </div>
+  );
+}
+
+// Rationale block for each proposal
+function Rationale({ tag, title, addresses, body, tradeoff, color = ACCENT }) {
+  return (
+    <div style={{ width: '100%', height: '100%', background: PAPER, padding: '26px 22px', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color }}>{tag}</div>
+      <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 26, color: INK, letterSpacing: '-0.02em', lineHeight: 1.05, marginTop: 6 }}>{title}</div>
+
+      <div style={{ marginTop: 16, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', color: MUTED }}>ADDRESSES</div>
+      <div style={{ borderTop: '1px solid rgba(31,29,26,0.14)', marginTop: 4, marginBottom: 6 }} />
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {addresses.map((n, i) => (
+          <span key={i} style={{
+            width: 18, height: 18, borderRadius: '50%', background: color, color: 'white',
+            fontFamily: MONO, fontSize: 10, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>{n}</span>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', color: MUTED }}>WHAT IT DOES</div>
+      <div style={{ borderTop: '1px solid rgba(31,29,26,0.14)', marginTop: 4, marginBottom: 6 }} />
+      <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: 'italic', color: '#3a342a', lineHeight: 1.5 }}>
+        {body}
+      </div>
+
+      <div style={{ marginTop: 14, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', color: MUTED }}>TRADE-OFF</div>
+      <div style={{ borderTop: '1px solid rgba(31,29,26,0.14)', marginTop: 4, marginBottom: 6 }} />
+      <div style={{ fontFamily: SERIF, fontSize: 12, fontStyle: 'italic', color: MUTED, lineHeight: 1.5 }}>
+        {tradeoff}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="intro" title="Home Screen · Evaluation" subtitle="Critique of the current Hub home, plus five proposed alternatives for the game-list region.">
+        <DCArtboard id="readme" label="Read me first" width={460} height={520}>
+          <ReadmeCard />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="current" title="Current state" subtitle="A faithful recreation of app/(tabs)/index.tsx, then eight specific things I'd push back on.">
+        <DCArtboard id="now" label="Recreated · annotated" width={760} height={620}>
+          <AnnotatedCurrent />
+        </DCArtboard>
+        <DCArtboard id="critique" label="The critiques in full" width={420} height={620}>
+          <CritiqueList />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="propA" title="Proposal A · Compact Index" subtitle="Newspaper-style index. All three games visible at once.">
+        <DCArtboard id="pa-screen" label="Screen" width={320} height={620}>
+          <PhoneWrap><ProposalA /></PhoneWrap>
+        </DCArtboard>
+        <DCArtboard id="pa-rationale" label="Why" width={420} height={620}>
+          <Rationale
+            tag="PROPOSAL A · COMPACT INDEX"
+            title="See the whole day in one glance."
+            addresses={['2', '3', '7', '8']}
+            body={"Strips the game cards down to a single-line index — number, italic title, one-line tagline, status. All three games fit above the fold. A real progress bar at the top replaces the ad-hoc \"played\" badges. Stats becomes a quiet single-line strip instead of its own card. Mono labels appear only twice (date stamp and progress count) so they regain meaning."}
+            tradeoff={"Loses some of the warmth — the cards-with-shadows feel goes away. If brand voice is 'newspaper' this is right; if it's 'sit down with a cup of tea' it may feel too efficient."}
+          />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="propB" title="Proposal B · Single Anchor + Up Next" subtitle="One promoted game, the rest demoted to a quiet list.">
+        <DCArtboard id="pb-screen" label="Screen" width={320} height={620}>
+          <PhoneWrap><ProposalB /></PhoneWrap>
+        </DCArtboard>
+        <DCArtboard id="pb-rationale" label="Why" width={420} height={620}>
+          <Rationale
+            tag="PROPOSAL B · SINGLE ANCHOR"
+            title="Make the next move obvious."
+            addresses={['1', '2', '4', '6']}
+            body={"Solves the \"all cards equal\" problem head-on. The next-unplayed game becomes a hero card with a dark inverted treatment and a real CTA. Played and other games drop into a list with status as a single label, not three. The stats line moves up to the masthead row so it stops competing for attention."}
+            tradeoff={"Once the user has played the headline game, it can feel like the page 'empties out.' The hero needs to gracefully demote (or hide) on the third visit of the day."}
+          />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="propC" title="Proposal C · Tasting Menu" subtitle="Lean into the noodle metaphor — courses, not cards.">
+        <DCArtboard id="pc-screen" label="Screen" width={320} height={620}>
+          <PhoneWrap><ProposalC /></PhoneWrap>
+        </DCArtboard>
+        <DCArtboard id="pc-rationale" label="Why" width={420} height={620}>
+          <Rationale
+            tag="PROPOSAL C · TASTING MENU"
+            title="The noodle metaphor, taken seriously."
+            addresses={['1', '3', '5', '7']}
+            body={"Reframes the day as a 3-course tasting menu. Big serif titles, hairline horizontal rules between courses, course numbers above. A status pill row at the top gives the day's progress. Played courses get a hand-drawn rotated stamp instead of a green badge — feels personal, not transactional. No card chrome at all."}
+            tradeoff={"Strongly committed metaphor. If you may add many more games (8, 12, etc.) this scales awkwardly — 'Course 12' loses its charm. Best for the locked 3-game format."}
+          />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="propD" title="Proposal D · Carousel Hero" subtitle="One card at a time, swipe through the bowl.">
+        <DCArtboard id="pd-screen" label="Screen" width={320} height={620}>
+          <PhoneWrap><ProposalD /></PhoneWrap>
+        </DCArtboard>
+        <DCArtboard id="pd-rationale" label="Why" width={420} height={620}>
+          <Rationale
+            tag="PROPOSAL D · CAROUSEL"
+            title="Let one card breathe."
+            addresses={['1', '2', '3', '5']}
+            body={"If we accept that game cards want personality and chrome, give each one the whole screen instead of cramming three. Swipeable deck with a peek of the next card. Big italic title, generous spacing, primary action obvious. Dot indicators show progress with a green dot for completed."}
+            tradeoff={"Adds an interaction layer — users may not realize they need to swipe to see games 2 and 3. Mitigated by the peek + arrow but still riskier than a list. Probably best for a future state with more games per day, not today's three."}
+          />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="propE" title="Proposal E · Daily Brief" subtitle="Lead with the news. Games are the table of contents.">
+        <DCArtboard id="pe-screen" label="Screen" width={320} height={620}>
+          <PhoneWrap><ProposalE /></PhoneWrap>
+        </DCArtboard>
+        <DCArtboard id="pe-rationale" label="Why" width={420} height={620}>
+          <Rationale
+            tag="PROPOSAL E · DAILY BRIEF"
+            title="The home is the front page."
+            addresses={['1', '4', '5', '7', '8']}
+            body={"Most ambitious of the five. The home becomes a real \"front page\" — there's an actual story-of-the-day teaser at the top, and the games sit underneath as a magazine TOC with leader dots. Repositions the product from \"a pile of brain games\" to \"a curated daily brief that happens to be playable.\" Stats demote to a quiet footer where they belong on a content-led screen."}
+            tradeoff={"Requires editorial work to write the daily brief excerpt every day. Could be derived from the same source articles that power the questions — but it's content design, not just UI. Highest payoff if the team wants to lean into the 'thinking-person's daily' positioning."}
+          />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="next" title="Next steps" subtitle="What I'd suggest doing with this.">
+        <DCArtboard id="next-card" label="Process" width={520} height={360}>
+          <div style={{ width: '100%', height: '100%', background: PAPER, padding: '26px 24px', boxSizing: 'border-box' }}>
+            <div style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: ACCENT }}>WHAT NOW</div>
+            <div style={{ fontFamily: SERIF, fontStyle: 'italic', fontWeight: 800, fontSize: 24, color: INK, letterSpacing: '-0.02em', marginTop: 6, marginBottom: 14 }}>
+              Pick a direction and we'll deepen it.
+            </div>
+            {[
+              ['1', 'Tell me which proposal (or which two) feels right — or which critique points you most agree / disagree with.'],
+              ['2', 'I\'ll build the chosen direction at full fidelity: animations, played states, friend-reply slots, edge cases (0/3 done, 3/3 done, streak-saved banner).'],
+              ['3', 'We can also hybridize — e.g. B\'s anchor card on top of A\'s compact list — that combo solves all 8 critiques together.'],
+              ['4', 'Then I\'ll port the chosen layout into the actual React Native code as a follow-up.'],
+            ].map(([n, body]) => (
+              <div key={n} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
+                <span style={{
+                  width: 18, height: 18, borderRadius: '50%', background: INK, color: 'white',
+                  fontFamily: MONO, fontSize: 10, fontWeight: 700,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 1, flex: '0 0 18px',
+                }}>{n}</span>
+                <div style={{ fontFamily: SERIF, fontSize: 13, fontStyle: 'italic', color: '#3a342a', lineHeight: 1.5 }}>{body}</div>
+              </div>
+            ))}
+          </div>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+</script>
+</body>
+</html>
