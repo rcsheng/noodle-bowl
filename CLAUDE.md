@@ -89,24 +89,57 @@ _(none yet — add entries here as recurring fetch/parse patterns are identified
 
 ## Project Overview
 
-React Native Expo app — daily brain-game with 5 games (Lede, Spread, SoF, Wave, Quip). Firebase backend with anonymous auth + email upgrade.
+React Native Expo app — daily brain-game with 5 shipped games (Lede, Spread, SoF, Wave, Quip) + Slurp (feature-flagged, `EXPO_PUBLIC_ENABLE_SLURP=true`). Firebase backend with anonymous auth + email upgrade.
 
 **Stack:** Expo Router v3, Firebase Auth + Firestore + Functions, AsyncStorage, zod, Jest.
 
 **Key paths:**
 - `app/(tabs)/` — tab screens (home, explore, friends, profile)
-- `app/games/` — game screens (lede, spread, sof, wave, quip)
+- `app/games/` — game screens (lede, spread, sof, wave, quip, slurp)
 - `app/auth/` — auth screens (sign-up, sign-in, forgot-password)
 - `context/` — AuthContext, ContentContext, GameContext + gameReducer
-- `lib/` — authApi, challengeApi, helpApi, contentRepo, pushTokens, firebase, logger
+- `lib/` — authApi, challengeApi, helpApi, contentRepo, spreadChoices, pushTokens, firebase, logger
 - `constants/data.ts` — bundled game content (fallback only; live content comes from Firestore `contentVersions`)
-- `constants/utils.ts` — pickFromBank, shuffleIndices, calculatePoints, scoreSpread
+- `constants/utils.ts` — pickFromBank, shuffleIndices, calculatePoints
 - `packages/shared/` — shared types (GameId, challenge/help I/O, ContentBanks, ContentVersion)
 - `functions/src/` — Cloud Functions (challengeCreate/Get/Respond, helpCreate/Get/Respond)
+- `components/masthead/` — CompactMasthead (used on all game screens)
 
 **Auth pattern:** anonymous by default → `linkWithCredential` upgrades to email/password preserving UID.
 
 **Content pattern:** `ContentProvider` → stale-while-revalidate (AsyncStorage cache + Firestore background refresh). Fallback to bundled `constants/data.ts` if both fail.
+
+## Docs Structure
+
+```
+docs/
+├── features/              # active feature work
+│   ├── base-game/
+│   │   ├── prd/           # noodle-bowl-prd-v6.md
+│   │   ├── tasks/         # noodle-bowl-tasks-v6.md
+│   │   ├── design/        # (empty — active designs go here)
+│   │   └── research/
+│   ├── slurp/             # prd.md, tasks.md, designs/
+│   └── content-pipeline/
+├── releases/              # one folder per release build; each PRR embeds its smoke test steps
+│   ├── alpha-v0.1.0/      # prr-alpha-v0.1.0.md
+│   ├── alpha-v0.1.1/      # prr-alpha-v0.1.1.md (Q2 redesign, no Slurp)
+│   └── alpha-v0.2.0/      # prr-alpha-v0.2.0.md (Slurp enabled)
+├── archive/               # mirrors features/ + smoke-test/ structure
+│   ├── features/base-game/
+│   │   ├── prd/           # v1–v5 PRDs
+│   │   ├── tasks/         # tasks-v5
+│   │   └── design/        # 2026.5.2_redesign specs
+│   └── smoke-test/        # smoke-test-plan.md (superseded; steps now in PRRs)
+├── templates/             # prr-template.md
+├── README.md
+└── RELEASES.md            # changelog + versioning convention
+```
+
+**Release versioning:** patch bump (0.1.x) for polish/fixes; minor bump (0.x.0) for new games/features.
+- `alpha-v0.1.0` — first alpha
+- `alpha-v0.1.1` — Q2 UI redesign (shipped)
+- `alpha-v0.2.0` — Slurp (planned)
 
 ## Testing
 
@@ -114,7 +147,7 @@ React Native Expo app — daily brain-game with 5 games (Lede, Spread, SoF, Wave
 - **Run:** `npm test` / `npm run test:coverage`
 - **Coverage targets:** `constants/utils.ts` and `context/gameReducer.ts` ≥ 80%
 - **TDD is mandatory** for new features and bug fixes — write RED test first.
-- **136 tests** currently passing across 8 suites.
+- **438 tests** currently passing across 37 suites.
 - Mocks live in `jest.setup.ts` (async-storage, reanimated, expo-clipboard, expo-haptics, expo-router, expo-notifications).
 
 ## Firestore Rules Pattern
@@ -160,87 +193,31 @@ npm run seed:emulator     # seed ContentVersion to local Firestore emulator
 npm run seed:prod         # seed to production (requires GOOGLE_APPLICATION_CREDENTIALS)
 ```
 
-## Manual Testing Checklist (run after each phase)
+## Manual Testing
 
-At the end of every phase, prompt the user to run through this checklist before moving on.
+Smoke test steps are embedded in each release's PRR (`docs/releases/{version}/prr-{version}.md`).
 
-### 1. Prerequisites (one-time setup)
+- **After any UI change:** run Block 0 from the current release PRR.
+- **Before any release build:** run all blocks from that release's PRR against `npm run start:qa`.
+- **Regression step tables** are in `docs/releases/alpha-v0.1.1/prr-alpha-v0.1.1.md` §2 — copy forward as needed.
 
-- [ ] `.env.local` exists with real Firebase project values (copied from `.env.local.example`)
-- [ ] `EXPO_PUBLIC_EMULATOR_HOST` set to your LAN IP if testing on a **physical device** (leave unset for simulators)
-- [ ] Firebase CLI installed: `npm install -g firebase-tools`
-- [ ] Functions compiled: `cd functions && npm run build` (only needed if `functions/lib/` is empty)
-- [ ] Expo Go installed on device/simulator
+### Test target declaration
 
-### 2. Start the emulator (Terminal A)
+**At the start of any testing session, tell Claude which version you're targeting** (e.g. "testing alpha-v0.1.1"). Claude will:
+1. Read that version's PRR `## Feature flags` section
+2. Check your `.env.local` against the "Smoke test value" column
+3. Call out any mismatches before proceeding
 
+Current test target is tracked in memory (`current_test_version.md`). When it changes, say so — Claude will update memory and re-check `.env.local`.
+
+Quick local smoke setup (dev emulator):
 ```bash
-firebase emulators:start
+npm run emulator        # Terminal 1 — wait for "All emulators ready"
+npm run seed:emulator   # Terminal 2 — seed content
+npx expo start --clear  # Terminal 2 — then scan QR or press i/a
 ```
 
-Emulator UI opens at http://localhost:4000 — use it to inspect Auth users, Firestore docs, and Function logs.
-
-> If port 8080 is in use from a previous session: find and kill the Java process (`netstat -ano | findstr 8080` on Windows, then `taskkill /PID <pid> /F`).
-
-### 3. Seed game content (Terminal B — Phase 2+)
-
+For QA against production Firebase (recommended before release):
 ```bash
-npm run seed:emulator
+npm run start:qa        # single terminal — prod Firebase, qa_ collections
 ```
-
-Verify a `contentVersions` doc appears in the Emulator UI at http://localhost:4000/firestore.
-
-### 4. Start Expo dev server (Terminal B or C)
-
-```bash
-npx expo start --clear
-```
-
-Scan the QR code with Expo Go (physical device) or press `i`/`a` for iOS Simulator / Android Emulator.
-
-### 5. Phase-specific smoke tests
-
-**Phase 1 — Auth**
-- [ ] App launches → plays as guest (no sign-in prompt)
-- [ ] Profile tab shows "Playing as Guest" with Create Account / Sign In buttons
-- [ ] Create Account → fill form → success → Profile shows display name + email
-- [ ] Sign Out → back to "Playing as Guest"
-- [ ] Sign In → correct credentials → Profile shows user again
-- [ ] Sign In → wrong password → friendly error message shown
-- [ ] Forgot Password → enter email → success message shown
-- [ ] Emulator UI → Authentication tab shows the created user
-
-**Phase 2 — Firestore content**
-- [ ] After seeding, open any game — questions load (not blank/crash)
-- [ ] Emulator UI → Firestore → `contentVersions` collection has one doc with `active: true`
-- [ ] Kill the emulator, reload the app → game still loads (from AsyncStorage cache)
-- [ ] Restart emulator, reload app → game loads fresh content from Firestore again
-
-**Phase 3 — E2E (when complete)**
-- [ ] Run Maestro flows: `maestro test e2e/`
-
-**Phase 4 — Stats (when complete)**
-- [ ] Play a game as guest → stats visible on home screen, Firestore has no entry
-- [ ] Play a game as signed-in user → Firestore `users/{uid}/stats` doc updated
-
-**QA — Challenge / Help isolation (run with `start:qa`)**
-- [ ] Build and deploy functions first: `cd functions && npm run build && firebase deploy --only functions,firestore:rules,firestore:indexes`
-- [ ] Start: `npm run start:qa`
-- [ ] If switching from emulator dev: tap **"Clear local data (dev)"** in the Profile tab to drop stale auth tokens (Android emulator can also use `npm run android:wipe`)
-- [ ] Profile screen → "Clear local data (dev)" button **is visible** (hidden only in production EAS builds)
-- [ ] Send a challenge from Device A → check Firebase Console → doc appears in **`qa_challenges`**, not `challenges`
-- [ ] Open the challenge link on Device B (also running `start:qa`) → challenge loads
-- [ ] Device B submits answer → doc in `qa_challenges` resolves; Device A home screen shows the friend card
-- [ ] Send a help request → doc appears in **`qa_helpRequests``**; helper can open and respond
-- [ ] After testing, delete `qa_challenges` and `qa_helpRequests` in Firebase Console to clean up
-
-**Phase 5 — Cross-device challenge (when complete)**
-- [ ] Send a challenge link from Device A
-- [ ] Open link on Device B → navigates to correct game + question
-- [ ] Device B submits answer → Device A receives push notification
-
-## V5 Remaining Phases
-
-- **Phase 3** — E2E framework (Maestro): auth flows, challenge link flow
-- **Phase 4** — Stats persistence to Firestore (uid-scoped; guest warning shown)
-- **Phase 5** — Cross-device E2E challenge flow

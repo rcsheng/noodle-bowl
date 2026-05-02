@@ -3,6 +3,7 @@
 **Purpose:** Verify that auth, content, gameplay, and the cross-device challenge/help flows work end-to-end before shipping or after any significant change.
 
 **Last verified:** 2026-04-28 — Blocks 1–10 ✅ PASSED on iPhone (Expo Go, Device A) + Android emulator `Pixel_9` (Expo Go, Device B) against local Firebase emulator.
+Block 0 updated 2026-05-02 to cover the Q2 redesign (home index list + Lede/Spread multiple-choice/SoF mode toggle). Not yet verified on device.
 
 > **Coverage gap:** Blocks 1–10 cover Phases 1–5 plus the self-challenge guard / `ChallengeSignUpBanner` (AC1.11). Phase 6 (Help-Sent modal, home reply cards, orphan GC, challenge reply card on home) and Phase 7 (shields, masthead counter, anon→signup interaction migration, "Back to Home/Answers" navigation) ACs are confirmed via the matching items in `docs/prd/noodle-bowl-tasks-v5.md` but are not yet written into this plan as repeatable steps. See "Future blocks to add" at the bottom.
 
@@ -40,6 +41,58 @@ npx expo start --clear
 ---
 
 ## Test suite
+
+### Block 0 — Q2 Redesign: home index + three games
+
+Run on **one device** (no cross-device interactions needed). Do this before Blocks 1–10.
+
+#### 0a — Home tab (Compact Index)
+
+| # | Step | Expected |
+|---|---|---|
+| 0a.1 | Cold-launch the app | Home shows a tight list: N° 01 The Lede, N° 02 The Spread, N° 03 Science or Fiction — all three visible without scrolling |
+| 0a.2 | Check row styling | Each row has a game number in mono, bold-italic title, tagline below, meta strip below that. No card borders, no shadows on rows. |
+| 0a.3 | Tap a row | Navigates to the correct game screen |
+| 0a.4 | Check unplayed trailing element | Each unplayed game shows a small `PLAY` button (ink fill, white caps) on the right |
+| 0a.5 | Play any game to completion, return to home | The played game's trailing changes to `✓ +N` in gold with `PLAY AGAIN` underlined below it |
+| 0a.6 | The other two games | Still show the `PLAY` button |
+
+#### 0b — Lede (Headline-First)
+
+| # | Step | Expected |
+|---|---|---|
+| 0b.1 | Tap The Lede | Screen opens with a compact masthead (two thin rules, "Noodle Bowl" + date) — not the four-rule home masthead |
+| 0b.2 | Read the headline | Large bold-italic serif text. A gold square `...` pill is inline where the blank is. No reporter names, outlets, or pitch quotes anywhere. |
+| 0b.3 | Tap one of the three choices | Row fills with ink background; left bar turns accent. The `...` pill stays as `...` — it does not change to A/B/C. Lock-in button reads `LOCK IN B` (matching letter). |
+| 0b.4 | Tap a different choice | Selection moves; only one row is filled at a time. |
+| 0b.5 | Tap "Lock In" | Reveal appears. The `...` pill turns green. A single ink-background box shows: "THE REAL HEADLINE" label, then the full completed headline, then the explanation — all together with no gap between them. |
+| 0b.6 | On play screen: look below the Lock-in button | "Stuck? Ask a friend" is a small underlined text link, not a full-width button. |
+
+#### 0c — Spread (Multiple Choice)
+
+| # | Step | Expected |
+|---|---|---|
+| 0c.1 | Tap The Spread | Screen opens with compact masthead. Question card visible at top. "TAP TO CHOOSE" kicker below. |
+| 0c.2 | Read the four choices | Four rows, each with a left bar, the value + unit, and a letter (A–D). All four are plausible numbers within the same order of magnitude as each other. |
+| 0c.3 | Tap a choice | Row fills with ink background; left bar turns accent. Lock-in button reads `LOCK IN B` (matching letter). |
+| 0c.4 | Tap a different choice | Selection moves; only one row filled at a time. |
+| 0c.5 | Tap "Lock In X" | Reveal: correct choice turns green, wrong pick (if any) turns accent. Result card shows "Nailed It" or "Not Quite", the real answer, and points (+10 or 0). Explanation block below. |
+| 0c.6 | On play screen: look below the lock-in button | "Stuck? Ask a friend" is a small underlined text link. |
+
+#### 0d — Science or Fiction (Pick The Lie)
+
+| # | Step | Expected |
+|---|---|---|
+| 0d.1 | Tap Science or Fiction | Screen opens with compact masthead. Two-button segmented control at top: `STANDARD` (active, ink fill) and `WEIRD & TRUE` (inactive). |
+| 0d.2 | Read the topic line | Reads "SCIENCE OR FICTION · [TOPIC]" in mono caps, noticeably larger than before. |
+| 0d.3 | Read the instructions | "Two of these are real. One is a lie." + "TAP THE FAKE" in mono caps. No confidence wager buttons anywhere on screen. |
+| 0d.4 | Tap `WEIRD & TRUE` | Button switches to ink fill; `STANDARD` becomes outline. Question changes to a weird-and-true topic. |
+| 0d.5 | Tap claim 2 | Only claim 2 gets the accent fill + "← MY PICK". Claims 1 and 3 are unaffected. |
+| 0d.6 | Tap claim 1 | Selection moves to claim 1 only. |
+| 0d.7 | Tap "Lock In Claim N" | Reveal screen. Score shows +10 (correct) or 0 (wrong). No wager note. |
+| 0d.8 | On play screen: look below the Lock-in button | "Stuck? Ask a friend" is a small underlined text link. |
+
+---
 
 ### Block 1 — App launch & anonymous play
 
@@ -182,7 +235,7 @@ Run on **both devices independently**.
 
 ## Pass criteria
 
-All items in Blocks 1–9 behave as expected. No crashes, no blank screens, no "Something went wrong" errors during normal flows.
+All items in Blocks 0–9 behave as expected. No crashes, no blank screens, no "Something went wrong" errors during normal flows.
 
 ## Future blocks to add (Phase 6/7 — verified ad hoc, not yet scripted here)
 

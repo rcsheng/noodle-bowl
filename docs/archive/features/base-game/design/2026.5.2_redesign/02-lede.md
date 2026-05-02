@@ -45,7 +45,7 @@ We are flipping that. The **headline is the screen.** The three completion optio
 ### Headline block
 - Kicker: `FINISH THE HEADLINE` — `F.mono`, 10pt, letterSpacing 2, `C.muted`.
 - Headline text: `F.frauncesBoldItalic`, 22pt, `C.ink`, lineHeight 1.2. Read from `LedeItem.partialHeadline`.
-- The blank "`___`" in the source string is replaced inline with a small **gold pill** containing `?` (or the chosen letter `B` after selection). Pill is `C.gold` background, `C.ink` text, mono 11pt caps, padding 2/8, no border-radius (square corners — match the existing accent block treatment).
+- The blank "`___`" in the source string is replaced inline with a small **gold pill** containing `...` — always, regardless of selection state. Pill turns green (`C.green` background) during reveal. Pill is mono 11pt, no border-radius (square corners).
 
 ### Choice list
 - Heading: `TAP TO CHOOSE` — mono 10pt caps, `C.muted`, marginBottom 12.
@@ -76,20 +76,31 @@ If a compact masthead component does not exist yet, create one as `components/ma
 
 `LedeItem` and `LedePanelist` types in `constants/data.ts` are **not changed**. We continue to read `partialHeadline`, `panelists[i].completion`, and `panelists[i].isCorrect`. The `name`, `role`, and `pitch` fields are simply unused on the play screen now.
 
-> Optional follow-up (out of scope for this brief): once the play screen ships, consider whether `name`/`role`/`pitch` are still earning their keep on the **reveal** screen. If not, prune in a future cleanup pass.
+`name`, `role`, and `pitch` fields on `LedePanelist` are unused on both the play and reveal screens.
+
+### Reveal screen
+
+The reveal combines the full correct headline and explanation into a **single ink-background box** (no separate boxes). Contents top to bottom:
+1. `THE REAL HEADLINE` — mono 9pt caps, `C.onDarkDim`.
+2. Full headline with the blank filled in (`partialHeadline.replace('___', correctCompletion)`) — `F.frauncesBoldItalic`, 18pt, `C.onDark`.
+3. Explanation text — `F.fraunces`, 15pt, `C.onDark`.
+
+No reporter names, outlets, or pitch quotes appear anywhere in the reveal.
 
 ## Acceptance criteria
 
-- [ ] Zero references to reporter names, outlets, or pitch quotes anywhere on the play screen.
+- [ ] Zero references to reporter names, outlets, or pitch quotes anywhere on the play or reveal screen.
 - [ ] Headline is the largest piece of text on the screen.
+- [ ] Inline headline pill always shows `...`; never the selected letter.
+- [ ] Pill turns green during reveal.
 - [ ] Three choices read as a list, not three competing cards.
 - [ ] Selected state is a single visual change (fill + accent bar) — no card-flip, no scale animation.
-- [ ] Primary CTA label updates with selection.
+- [ ] Primary CTA label updates with selection (`LOCK IN B`).
 - [ ] "Ask a Friend" is a text link, not a button.
 - [ ] Compact masthead in use; old full masthead is removed from this screen.
+- [ ] Reveal shows the full correct headline (blank filled in) and explanation in one combined box.
 
 ## Out of scope
 
-- The reveal screen.
 - Challenge / help variants of Lede.
 - Any change to `LedeItem` data shape.
