@@ -35,24 +35,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // When pointing at production Firebase, validate the token is actually
-        // live for this project. A cached token from the local emulator will
-        // look valid here but be rejected by prod Cloud Functions, causing
-        // silent "unauthenticated" errors. Force-refreshing catches this early
-        // and triggers an automatic sign-out → fresh anonymous session.
-        if (process.env.EXPO_PUBLIC_USE_EMULATOR !== 'true') {
-          try {
-            await firebaseUser.getIdToken(/* forceRefresh= */ true);
-          } catch (err) {
-            // Only sign out for genuine token invalidity (stale emulator tokens,
-            // revoked credentials). Transient network errors must NOT sign the user
-            // out — that would create a null auth window that races with
-            // in-flight callables and produces spurious "unauthenticated" errors.
-            const code = (err as { code?: string }).code ?? '';
-            if (code !== 'auth/network-request-failed') {
-              await signOut(auth);
-              return; // listener fires again with null → signInAnonymously branch
-            }
+        // Validate the stored token is live for the current environment.
+        // Catches stale tokens from any environment switch — emulator→prod or
+        // prod→emulator — before they cause silent "unauthenticated" errors.
+        try {
+          await firebaseUser.getIdToken(/* forceRefresh= */ true);
+        } catch (err) {
+          // Only sign out for genuine token invalidity. Transient network errors
+          // must NOT sign the user out — that would create a null auth window
+          // that races with in-flight callables and produces spurious errors.
+          const code = (err as { code?: string }).code ?? '';
+          if (code !== 'auth/network-request-failed') {
+            await signOut(auth);
+            return; // listener fires again with null → signInAnonymously branch
           }
         }
         // Preserve a previously known displayName when Firebase passes a
