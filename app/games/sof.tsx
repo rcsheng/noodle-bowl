@@ -91,6 +91,7 @@ export default function SofScreen() {
   const [weirdMode, setWeirdMode] = useState(false);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
+  const [helpError, setHelpError] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpToken, setHelpToken] = useState<string | null>(null);
   const [showChallenge, setShowChallenge] = useState(false);
@@ -186,6 +187,7 @@ export default function SofScreen() {
     setPhase('play');
     setRevealData(null);
     setHelpUrl('');
+    setHelpError(false);
     setHelpToken(null);
   };
 
@@ -196,6 +198,7 @@ export default function SofScreen() {
     setPhase('play');
     setRevealData(null);
     setHelpUrl('');
+    setHelpError(false);
     setHelpToken(null);
   };
 
@@ -205,6 +208,7 @@ export default function SofScreen() {
       return;
     }
     setShowFriend(true);
+    setHelpError(false);
     setHelpLoading(true);
     try {
       const result = await createHelp({
@@ -219,7 +223,7 @@ export default function SofScreen() {
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'sof', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[sof] createHelp failed', err);
-      setHelpUrl('');
+      setHelpError(true);
     } finally {
       setHelpLoading(false);
     }
@@ -518,7 +522,7 @@ export default function SofScreen() {
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopyHelp} activeOpacity={0.7}>
               <Text style={styles.urlText}>
-                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+                {helpLoading ? 'Generating link…' : helpError ? "Couldn't reach our servers" : helpUrl}
               </Text>
             </TouchableOpacity>
 

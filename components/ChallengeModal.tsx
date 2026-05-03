@@ -76,7 +76,7 @@ export function ChallengeModal({ visible, onClose, correct, predictLabel, predic
       setStep('share');
     } catch (err) {
       logger.error('[ChallengeModal] buildChallengeUrl failed', err);
-      setUrlError('Could not generate challenge link. Please try again.');
+      setUrlError("Couldn't reach our servers · check your connection");
     } finally {
       setUrlLoading(false);
     }

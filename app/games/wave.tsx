@@ -91,6 +91,7 @@ export default function WaveScreen() {
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
+  const [helpError, setHelpError] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpToken, setHelpToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -209,6 +210,7 @@ export default function WaveScreen() {
     userPosRef.current = 50;
     setRevealData(null);
     setHelpUrl('');
+    setHelpError(false);
     setHelpToken(null);
   };
 
@@ -218,6 +220,7 @@ export default function WaveScreen() {
       return;
     }
     setShowFriend(true);
+    setHelpError(false);
     setHelpLoading(true);
     try {
       const result = await createHelp({
@@ -232,7 +235,7 @@ export default function WaveScreen() {
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'wave', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[wave] createHelp failed', err);
-      setHelpUrl('');
+      setHelpError(true);
     } finally {
       setHelpLoading(false);
     }
@@ -518,7 +521,7 @@ export default function WaveScreen() {
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopy} activeOpacity={0.7}>
               <Text style={styles.urlText}>
-                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+                {helpLoading ? 'Generating link…' : helpError ? "Couldn't reach our servers" : helpUrl}
               </Text>
             </TouchableOpacity>
 

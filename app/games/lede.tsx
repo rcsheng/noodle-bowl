@@ -75,6 +75,7 @@ export default function LedeScreen() {
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
+  const [helpError, setHelpError] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpToken, setHelpToken] = useState<string | null>(null);
   const [showChallenge, setShowChallenge] = useState(false);
@@ -174,6 +175,7 @@ export default function LedeScreen() {
     setPhase('play');
     setRevealData(null);
     setHelpUrl('');
+    setHelpError(false);
     setHelpToken(null);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
@@ -184,6 +186,7 @@ export default function LedeScreen() {
       return;
     }
     setShowFriend(true);
+    setHelpError(false);
     setHelpLoading(true);
     try {
       const result = await createHelp({
@@ -198,7 +201,7 @@ export default function LedeScreen() {
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'lede', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[lede] createHelp failed', err);
-      setHelpUrl('');
+      setHelpError(true);
     } finally {
       setHelpLoading(false);
     }
@@ -497,7 +500,7 @@ export default function LedeScreen() {
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopyHelp} activeOpacity={0.7}>
               <Text style={styles.urlText}>
-                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+                {helpLoading ? 'Generating link…' : helpError ? "Couldn't reach our servers" : helpUrl}
               </Text>
             </TouchableOpacity>
 

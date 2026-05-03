@@ -108,6 +108,7 @@ export default function QuipScreen() {
   const [points, setPoints] = useState(0);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
+  const [helpError, setHelpError] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpToken, setHelpToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -216,6 +217,7 @@ export default function QuipScreen() {
     setRevealedCount(0);
     setPoints(0);
     setHelpUrl('');
+    setHelpError(false);
     setHelpToken(null);
   };
 
@@ -225,6 +227,7 @@ export default function QuipScreen() {
       return;
     }
     setShowFriend(true);
+    setHelpError(false);
     setHelpLoading(true);
     try {
       const result = await createHelp({
@@ -239,7 +242,7 @@ export default function QuipScreen() {
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'quip', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[quip] createHelp failed', err);
-      setHelpUrl('');
+      setHelpError(true);
     } finally {
       setHelpLoading(false);
     }
@@ -508,7 +511,7 @@ export default function QuipScreen() {
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopy} activeOpacity={0.7}>
               <Text style={styles.urlText}>
-                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+                {helpLoading ? 'Generating link…' : helpError ? "Couldn't reach our servers" : helpUrl}
               </Text>
             </TouchableOpacity>
 
