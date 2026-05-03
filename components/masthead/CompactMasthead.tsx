@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+
 import { C, F } from '@/constants/theme';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
@@ -18,10 +19,10 @@ export function CompactMasthead() {
       <View style={styles.borderLine} />
       <View style={styles.borderLine} />
       <View style={styles.inner}>
-        <Text>
+        <View style={styles.logoRow}>
           <Text style={styles.logoMain}>Noodle </Text>
           <Text style={styles.logoAccent}>Bowl</Text>
-        </Text>
+        </View>
         <Text style={styles.date}>{getCompactDate()}</Text>
       </View>
       <View style={styles.borderLine} />
@@ -48,6 +49,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 10,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   logoMain: {
     fontFamily: F.frauncesXBoldItalic,
