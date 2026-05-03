@@ -4,10 +4,10 @@ Behavioral guidelines for the noodle-bowl project. Based on https://github.com/f
 
 ## 0. Context Hygiene
 
-**At the end of every phase or major task, say:**
-> "Phase X complete. Recommend starting a fresh conversation (`/clear`) before Phase Y to avoid context bloat. Run `/compact` if you want to continue here."
+**At the end of every phase or major task, say** (with the actual phase name/number filled in):
+> "[Task] complete. Recommend starting a fresh conversation (`/clear`) before the next phase to avoid context bloat. Run `/compact` if you want to continue here."
 
-Do this unprompted — don't wait for the user to ask.
+Do this unprompted — don't wait for the user to ask. Never say "Phase X" or "Phase Y" literally — always substitute the real name.
 
 ## 1. Think Before Coding
 
@@ -89,13 +89,13 @@ _(none yet — add entries here as recurring fetch/parse patterns are identified
 
 ## Project Overview
 
-React Native Expo app — daily brain-game with 5 shipped games (Lede, Spread, SoF, Wave, Quip) + Slurp (feature-flagged, `EXPO_PUBLIC_ENABLE_SLURP=true`). Firebase backend with anonymous auth + email upgrade.
+React Native Expo app — daily brain-game with 5 games (Lede, Spread, SoF, Wave, Quip). Firebase backend with anonymous auth + email upgrade.
 
 **Stack:** Expo Router v3, Firebase Auth + Firestore + Functions, AsyncStorage, zod, Jest.
 
 **Key paths:**
 - `app/(tabs)/` — tab screens (home, explore, friends, profile)
-- `app/games/` — game screens (lede, spread, sof, wave, quip, slurp)
+- `app/games/` — game screens (lede, spread, sof, wave, quip)
 - `app/auth/` — auth screens (sign-up, sign-in, forgot-password)
 - `context/` — AuthContext, ContentContext, GameContext + gameReducer
 - `lib/` — authApi, challengeApi, helpApi, contentRepo, spreadChoices, pushTokens, firebase, logger
@@ -119,12 +119,10 @@ docs/
 │   │   ├── tasks/         # noodle-bowl-tasks-v6.md
 │   │   ├── design/        # (empty — active designs go here)
 │   │   └── research/
-│   ├── slurp/             # prd.md, tasks.md, designs/
 │   └── content-pipeline/
 ├── releases/              # one folder per release build; each PRR embeds its smoke test steps
 │   ├── alpha-v0.1.0/      # prr-alpha-v0.1.0.md
-│   ├── alpha-v0.1.1/      # prr-alpha-v0.1.1.md (Q2 redesign, no Slurp)
-│   └── alpha-v0.2.0/      # prr-alpha-v0.2.0.md (Slurp enabled)
+│   └── alpha-v0.1.1/      # prr-alpha-v0.1.1.md (Q2 redesign)
 ├── archive/               # mirrors features/ + smoke-test/ structure
 │   ├── features/base-game/
 │   │   ├── prd/           # v1–v5 PRDs
@@ -139,7 +137,6 @@ docs/
 **Release versioning:** patch bump (0.1.x) for polish/fixes; minor bump (0.x.0) for new games/features.
 - `alpha-v0.1.0` — first alpha
 - `alpha-v0.1.1` — Q2 UI redesign (shipped)
-- `alpha-v0.2.0` — Slurp (planned)
 
 ## Testing
 

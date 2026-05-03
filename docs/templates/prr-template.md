@@ -23,7 +23,6 @@ List every flag and its required state for this build. Verify before running smo
 
 | Flag | Smoke test value | Production build value | Notes |
 |---|---|---|---|
-| `EXPO_PUBLIC_ENABLE_SLURP` | `true` / `false` / unset | `true` / `false` / unset | Slurp game tab |
 | `EXPO_PUBLIC_COLLECTION_PREFIX` | `qa_` | unset | Must be unset in prod; `qa_` during smoke only |
 
 > Set flags in `.env.local` for local smoke runs. Production EAS builds read from `eas.json` env block or Expo secrets.

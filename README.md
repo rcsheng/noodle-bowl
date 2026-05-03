@@ -116,6 +116,57 @@ npm run test:rules       # Firestore security-rules suite (requires emulator run
 
 ---
 
+## EAS Build & Publish
+
+Requires `eas-cli` installed globally: `npm install -g eas-cli` and `eas login`.
+
+### Build profiles (from `eas.json`)
+
+| Profile | Distribution | Use for |
+|---|---|---|
+| `development` | Internal (TestFlight/link) | Dev client builds for feature work |
+| `preview` | Internal (TestFlight/link) | QA / smoke testing |
+| `production` | App Store / Play Store | Release builds |
+
+### Build commands
+
+```bash
+# Build for a single platform
+eas build --profile preview --platform ios
+eas build --profile preview --platform android
+
+# Build for both platforms at once
+eas build --profile production --platform all
+
+# Build a development client (needed when native deps change)
+eas build --profile development --platform ios
+```
+
+### OTA updates (JS-only changes)
+
+Push a JS bundle to all users on a channel without a new binary:
+
+```bash
+eas update --channel preview --message "fix: correct answer highlight"
+eas update --channel production --message "feat: new game mode"
+```
+
+> OTA updates only work for JS changes. Native dependency changes (new `expo-*` modules, `app.json` native fields) require a new binary build.
+
+### Submit to App Store / Play Store
+
+```bash
+# iOS — uses appleId + ascAppId + appleTeamId from eas.json submit.production
+eas submit --platform ios --profile production --latest
+
+# Android
+eas submit --platform android --profile production --latest
+```
+
+`--latest` picks up the most recent completed production build automatically. To submit a specific build, pass `--id <build-id>` instead.
+
+---
+
 ## Functions
 
 Cloud Functions source lives in `functions/src/`. After editing:

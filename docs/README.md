@@ -21,7 +21,6 @@ research/     Research specific to this feature
 **Existing:**
 - `docs/features/base-game/` — core 5-game experience (Lede, Spread, SoF, Wave, Quip)
 - `docs/features/content-pipeline/` — Firestore content delivery
-- `docs/features/slurp/` — Slurp word-finding roguelike
 
 ---
 
