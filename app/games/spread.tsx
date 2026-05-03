@@ -75,6 +75,7 @@ export default function SpreadScreen() {
   const [revealData, setRevealData] = useState<RevealData | null>(null);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
+  const [helpError, setHelpError] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpToken, setHelpToken] = useState<string | null>(null);
   const [showChallenge, setShowChallenge] = useState(false);
@@ -172,6 +173,7 @@ export default function SpreadScreen() {
     setQuestionIdx(idx);
     loadQuestion(item);
     setHelpUrl('');
+    setHelpError(false);
     setHelpToken(null);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
@@ -182,6 +184,7 @@ export default function SpreadScreen() {
       return;
     }
     setShowFriend(true);
+    setHelpError(false);
     setHelpLoading(true);
     try {
       const result = await createHelp({
@@ -196,7 +199,7 @@ export default function SpreadScreen() {
       addFriendInteraction({ type: 'sent_help', friendName: 'A Friend', gameId: 'spread', questionIndex: questionIdx, shieldEarned: false, token: result.token });
     } catch (err) {
       logger.error('[spread] createHelp failed', err);
-      setHelpUrl('');
+      setHelpError(true);
     } finally {
       setHelpLoading(false);
     }
@@ -440,7 +443,11 @@ export default function SpreadScreen() {
         visible={showChallenge}
         onClose={() => setShowChallenge(false)}
         correct={revealData?.correct ?? false}
-        predictLabel="What do you think they'll pick?"
+        predictLabel="Which option do you think they'll pick?"
+        predictOptions={question ? choices.map(c => ({
+          label: `${c.toLocaleString()} ${question.unit}`,
+          value: String(c),
+        })) : []}
         buildChallengeUrl={async (friendName, prediction) => {
           const result = await createChallenge({
             gameId: 'spread',
@@ -475,7 +482,7 @@ export default function SpreadScreen() {
 
             <TouchableOpacity style={styles.urlBox} onPress={handleCopyHelp} activeOpacity={0.7}>
               <Text style={styles.urlText}>
-                {helpLoading ? 'Generating link…' : helpUrl || 'Could not generate link'}
+                {helpLoading ? 'Generating link…' : helpError ? "Couldn't reach our servers" : helpUrl}
               </Text>
             </TouchableOpacity>
 
