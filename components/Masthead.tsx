@@ -3,12 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { C, F } from '@/constants/theme';
 import { getIssueNumber, getTodayString } from '@/constants/utils';
 import { useGame } from '@/context/GameContext';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export function Masthead() {
   const issueNum = getIssueNumber();
   const today = getTodayString();
   const { state } = useGame();
   const { dailyStreak, streakShieldsAvailable } = state.stats;
+  const { isOffline } = useNetworkStatus();
 
   return (
     <View style={styles.wrap}>
@@ -29,6 +31,9 @@ export function Masthead() {
             {dailyStreak > 0 && streakShieldsAvailable > 0 ? '  ' : ''}
             {streakShieldsAvailable > 0 ? `🛡 ${streakShieldsAvailable}` : ''}
           </Text>
+        )}
+        {isOffline && (
+          <Text style={styles.offlineBanner}>NO INTERNET · USING SAVED CONTENT</Text>
         )}
       </View>
       <View style={styles.borderLine} />
@@ -91,6 +96,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 1.2,
     color: C.ink,
+    marginTop: 10,
+  },
+  offlineBanner: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: C.accentWarm,
     marginTop: 10,
   },
 });

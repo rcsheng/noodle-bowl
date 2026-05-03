@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { C, F } from '@/constants/theme';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 function getCompactDate(): string {
   const d = new Date();
@@ -10,6 +11,8 @@ function getCompactDate(): string {
 }
 
 export function CompactMasthead() {
+  const { isOffline } = useNetworkStatus();
+
   return (
     <View style={styles.wrap}>
       <View style={styles.borderLine} />
@@ -23,6 +26,9 @@ export function CompactMasthead() {
       </View>
       <View style={styles.borderLine} />
       <View style={styles.borderLine} />
+      {isOffline && (
+        <Text style={styles.offlineBanner}>NO INTERNET · USING SAVED CONTENT</Text>
+      )}
     </View>
   );
 }
@@ -63,5 +69,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
+  },
+  offlineBanner: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: C.accentWarm,
+    textAlign: 'center',
+    marginTop: 6,
   },
 });
