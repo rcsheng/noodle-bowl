@@ -1,0 +1,20 @@
+Generate a Quip game item from the news story below.
+
+The Quip is an open-ended prompt that players complete with a funny or creative response.
+
+Rules:
+- The setup frames the story as a prompt to complete: players fill in what comes next.
+- Use patterns like: "Scientists confirmed X. Their follow-up paper is titled...", "Researchers discovered Y. Their grant proposal read...", "The committee reviewed the situation and concluded...", "Experts say the real takeaway is...", "The official press release began..."
+- End with an ellipsis (...) or a colon (:) that naturally invites a funny completion.
+- Keep the setup to one or two sentences — punchy and absurd, not expository.
+- sourceHint is a brief citation: "Source Name, Year".
+
+Return ONLY valid JSON. No markdown, no code blocks, no prose.
+
+Schema:
+{
+  "setup": "<setup sentence(s) ending with ... or :>",
+  "sourceHint": "<Source Name, Year>"
+}
+
+Story:

@@ -1,4 +1,4 @@
-import type { LedeItem, QuipPrompt, SofItem, SpreadItem, WaveItem } from '@/constants/data';
+import type { LedeItem, QuipPrompt, SofItem, SpreadItem, WaveItem } from '../../constants/data';
 
 export interface ContentBanks {
   lede: LedeItem[];

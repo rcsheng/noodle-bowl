@@ -21,7 +21,13 @@
     "avd": "%LOCALAPPDATA%/Android/Sdk/emulator/emulator -avd Pixel_9",
     "android:wipe": "adb shell pm clear host.exp.exponent",
     "seed:emulator": "node scripts/seed-content.js",
-    "seed:prod": "cross-env SEED_TARGET=prod node scripts/seed-content.js"
+    "seed:prod": "cross-env SEED_TARGET=prod node scripts/seed-content.js",
+    "pipeline:ingest": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest.ts",
+    "pipeline:select": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/select.ts",
+    "pipeline:generate": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/generate.ts",
+    "pipeline:review": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/review.ts",
+    "pipeline:publish": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts",
+    "pipeline:publish:emulator": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --emulator"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
@@ -61,12 +67,15 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.94.0",
     "@expo/ngrok": "^4.1.3",
     "@firebase/rules-unit-testing": "^4.0.1",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "29.5.14",
+    "@types/node": "^25.6.0",
     "@types/react": "~19.1.0",
     "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "firebase-tools": "^15.15.0",

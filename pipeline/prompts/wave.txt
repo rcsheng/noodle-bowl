@@ -1,0 +1,24 @@
+Generate a Wave game item from the news story below.
+
+The Wave is a sentiment dial — players guess where actual public or expert opinion sits on a spectrum between two poles.
+
+Rules:
+- leftLabel and rightLabel are genuine opposing perspectives on this story, not strawmen. Use concrete, specific labels.
+- Good pole pairs: "alarming / reassuring", "overreaction / justified", "good for workers / bad for workers", "underreported / overhyped", "pro-tech / pro-caution", "surprising / expected".
+- Avoid poles that are too politically loaded without a defensible center of gravity.
+- The story is a single clear sentence summarizing the news item.
+- truthPosition is an integer from 0 (fully left pole) to 100 (fully right pole), representing where actual surveyed public opinion or expert consensus sits.
+- The explanation (2-3 sentences) justifies the truthPosition: cite why opinion leans where it does, what surveys or evidence supports it.
+
+Return ONLY valid JSON. No markdown, no code blocks, no prose.
+
+Schema:
+{
+  "leftLabel": "<left pole>",
+  "rightLabel": "<right pole>",
+  "story": "<one sentence news summary>",
+  "truthPosition": <0-100 integer>,
+  "explanation": "<2-3 sentences justifying the position>"
+}
+
+Story:

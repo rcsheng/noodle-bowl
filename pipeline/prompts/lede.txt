@@ -1,0 +1,25 @@
+Generate a Lede game item from the news story below.
+
+Rules:
+- Cut the headline at a natural but AMBIGUOUS point — the blank should be fillable in multiple plausible ways.
+- The two WRONG completions must be FUNNY: absurd enough to entertain, but close enough to almost be believable. Think "tabloid headline that nearly makes sense."
+- Do NOT use any numbers, percentages, or statistics in any completion (e.g. "47 million", "3 days", "12%"). Numerical guessing belongs to a different game. All completions must be descriptive and qualitative.
+- The CORRECT completion is the real ending of the headline — accurate, not funny.
+- The explanation (1-2 sentences) confirms the real answer with brief context.
+- Set panelist name, role, and pitch to empty strings ("") — they are vestigial fields not shown in the UI.
+
+Return ONLY valid JSON. No markdown, no code blocks, no prose.
+
+Schema:
+{
+  "partialHeadline": "<headline text ending with ___, where the blank is the ambiguous part>",
+  "sourceHint": "<Publication Name, Year>",
+  "panelists": [
+    {"name": "", "role": "", "completion": "<funny wrong completion>", "pitch": "", "isCorrect": false},
+    {"name": "", "role": "", "completion": "<real correct completion>", "pitch": "", "isCorrect": true},
+    {"name": "", "role": "", "completion": "<funny wrong completion>", "pitch": "", "isCorrect": false}
+  ],
+  "explanation": "<1-2 sentences confirming the real answer>"
+}
+
+Story:
