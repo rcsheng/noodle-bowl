@@ -44,3 +44,6 @@ app-example
 
 # business assets (separate projects, not part of the app repo)
 /business/
+
+# pipeline runtime data (generated at pipeline run time, not committed)
+pipeline/data/
