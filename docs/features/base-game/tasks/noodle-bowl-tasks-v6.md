@@ -40,6 +40,20 @@ Everything in v5 Phases 1, 2, 4, 6, 7, 8 and the full 2026 Q2 redesign (§12) is
 
 ---
 
+## TJ feedback — reveal UX (PRD §15)
+
+- [x] [P1] **§15.1 Reveal layout reorder — Lede.** Move result/reveal box above the choice list in the reveal phase.
+- [x] [P1] **§15.1 Reveal layout reorder — Spread.** Move resultCard above choiceList in the reveal phase.
+- [x] [P1] **§15.1 Reveal layout reorder — SoF.** Move resultCard above claimList in the reveal phase.
+- [x] [P1] **§15.1 Audit Wave + Quip** for the same issue; apply if present.
+- [x] [P1] **§15.2 "Back to Home" text link — all game screens.** Visible at top and bottom in all phases (play and reveal); mono 14pt, muted, caps.
+- [x] [P1] **§15.4 Reveal visual polish** — ✓/✗ indicators, green/accent row backgrounds, compact result cards ("Correct"/"Incorrect" verdict, 22pt/18pt font sizes), Lede explanation-only reveal.
+- [x] [P1] **§15.5 Seed data: remove panelist prefixes** — `constants/data.ts` updated; 5 LEDE_BANK items cleaned.
+- [ ] [P1] **§15.5 Reseed QA/Prod** — run `SEED_TARGET=prod node scripts/seed-content.js` against production Firebase after emulator reseeding confirmed.
+- [ ] [P1] **§15.3 Spread distractor decimal precision.** When truth has decimal places, round distractors to the same precision. Fix `lib/spreadChoices.ts`; integer truths unaffected.
+
+---
+
 ## Cross-cutting
 
 - [ ] [P1] Run **code-reviewer** agent over the 2026 Q2 redesign diff before next alpha build.

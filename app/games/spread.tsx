@@ -230,11 +230,9 @@ export default function SpreadScreen() {
       >
         <CompactMasthead />
 
-        {phase !== 'reveal' && (
-          <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back to Home</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+          <Text style={styles.backText}>← Back to Home</Text>
+        </TouchableOpacity>
 
         <View style={styles.labelRow}>
           <Text style={styles.label}>The Spread</Text>
@@ -329,10 +327,10 @@ export default function SpreadScreen() {
                       {choice.toLocaleString()} {question.unit}
                     </Text>
                     <Text style={[
-                      styles.choiceLetter,
-                      (isCorrect || wasPicked) && styles.choiceLetterSelected,
+                      styles.choiceIndicator,
+                      (isCorrect || wasPicked) && styles.choiceIndicatorOnColor,
                     ]}>
-                      {CHOICE_LETTERS[i]}
+                      {isCorrect ? '✓' : wasPicked ? '✗' : ''}
                     </Text>
                   </View>
                 );
@@ -343,11 +341,9 @@ export default function SpreadScreen() {
             <View style={styles.resultCard}>
               <View style={styles.cardInnerBorder} />
               <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
-                {revealData.correct ? 'Nailed It' : 'Not Quite'}
+                {revealData.correct ? 'Correct' : 'Incorrect'}
               </Text>
-              <Text style={styles.resultAnswer}>
-                The answer: {question.answer.toLocaleString()} {question.unit}
-              </Text>
+              <Text style={styles.resultDivider}> · </Text>
               <Text style={styles.resultPoints}>
                 {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
               </Text>
@@ -517,12 +513,13 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   backButton: {
-    marginBottom: 20,
+    paddingVertical: 8,
+    marginBottom: 16,
   },
   backText: {
     fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 2,
+    fontSize: 14,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
   },
@@ -635,6 +632,16 @@ const styles = StyleSheet.create({
   choiceLetterSelected: {
     color: C.onDarkDim,
   },
+  choiceIndicator: {
+    fontFamily: F.monoBold,
+    fontSize: 18,
+    paddingRight: 14,
+    minWidth: 32,
+    textAlign: 'right',
+  },
+  choiceIndicatorOnColor: {
+    color: C.onDark,
+  },
   helpLink: {
     alignItems: 'center',
     paddingVertical: 8,
@@ -649,18 +656,20 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   resultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: C.rule,
     backgroundColor: C.paper,
-    padding: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     marginBottom: 16,
-    alignItems: 'center',
     ...cardShadow,
   },
   resultVerdict: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 34,
-    marginBottom: 6,
+    fontSize: 22,
   },
   resultCorrect: {
     color: C.green,
@@ -668,17 +677,15 @@ const styles = StyleSheet.create({
   resultWrong: {
     color: C.accent,
   },
-  resultAnswer: {
-    fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+  resultDivider: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
     color: C.muted,
-    marginBottom: 8,
+    marginHorizontal: 2,
   },
   resultPoints: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 24,
+    fontSize: 18,
     color: C.ink,
   },
   infoBox: {

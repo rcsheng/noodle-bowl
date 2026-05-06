@@ -250,11 +250,9 @@ export default function LedeScreen() {
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <CompactMasthead />
 
-        {phase === 'play' && (
-          <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back to Home</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+          <Text style={styles.backText}>← Back to Home</Text>
+        </TouchableOpacity>
 
         {/* Headline block */}
         <Text style={styles.kicker}>Finish the Headline</Text>
@@ -270,29 +268,34 @@ export default function LedeScreen() {
           {headlineAfter}
         </Text>
 
-        {/* Choice list */}
         {phase === 'play' && (
           <Text style={styles.choiceHeading}>Tap to choose</Text>
         )}
 
-        <View style={styles.choiceList}>
+        <View testID="lede-choice-list" style={styles.choiceList}>
           {orderedPanelists.map(({ panelist, originalIdx }, displayIdx) => {
             const letter = LETTERS[displayIdx];
             const isSelected = selected === originalIdx;
 
             if (phase === 'reveal') {
               const revealState = getChoiceRevealState(originalIdx);
+              const indicator = revealState === 'correct' ? '✓' : revealState === 'wrong' ? '✗' : '';
+              const isColored = revealState !== 'neutral';
               return (
-                <View key={originalIdx} style={styles.choiceRow}>
-                  <View style={[
-                    styles.choiceBar,
-                    revealState === 'correct' && styles.choiceBarCorrect,
-                    revealState === 'wrong' && styles.choiceBarWrong,
-                  ]} />
+                <View key={originalIdx} style={[
+                  styles.choiceRow,
+                  revealState === 'correct' && styles.choiceRowCorrect,
+                  revealState === 'wrong' && styles.choiceRowWrong,
+                ]}>
+                  <View style={[styles.choiceBar, isColored && styles.choiceBarOnColor]} />
                   <View style={styles.choiceBody}>
-                    <Text style={styles.choiceText}>{panelist.completion}</Text>
+                    <Text style={[styles.choiceText, isColored && styles.choiceTextSelected]}>
+                      {panelist.completion}
+                    </Text>
                   </View>
-                  <Text style={styles.choiceLetter}>{letter}</Text>
+                  <Text style={[styles.choiceIndicator, isColored && styles.choiceIndicatorOnColor]}>
+                    {indicator}
+                  </Text>
                 </View>
               );
             }
@@ -318,14 +321,24 @@ export default function LedeScreen() {
           })}
         </View>
 
-        {/* Reveal: combined headline + explanation */}
-        {phase === 'reveal' && (
-          <View testID="lede-reveal-box" style={styles.revealBox}>
-            <Text style={styles.revealHeadlineLabel}>The Real Headline</Text>
-            <Text style={styles.revealHeadline}>
-              {question.partialHeadline.replace('___', correctPanelist?.completion ?? '')}
+        {/* Reveal: compact result indicator */}
+        {phase === 'reveal' && revealData && (
+          <View testID="lede-result-card" style={styles.resultCard}>
+            <View style={styles.cardInnerBorder} />
+            <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
+              {revealData.correct ? 'Correct' : 'Incorrect'}
             </Text>
-            <Text style={styles.truthExplanation}>{question.explanation}</Text>
+            <Text style={styles.resultDivider}> · </Text>
+            <Text style={styles.resultPoints}>
+              {revealData.correct ? `+${revealData.points} pts` : '0 pts'}
+            </Text>
+          </View>
+        )}
+
+        {/* Reveal: explanation only */}
+        {phase === 'reveal' && (
+          <View testID="lede-reveal-box" style={styles.infoBox}>
+            <Text style={styles.infoText}>{question.explanation}</Text>
           </View>
         )}
 
@@ -355,20 +368,9 @@ export default function LedeScreen() {
           </>
         )}
 
-        {/* Reveal phase: result + post-game actions */}
+        {/* Reveal phase: post-game actions */}
         {phase === 'reveal' && (
           <>
-            {revealData && (
-              <View style={styles.resultCard}>
-                <View style={styles.cardInnerBorder} />
-                <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
-                  {revealData.correct ? 'Correct' : 'Wrong'}
-                </Text>
-                <Text style={styles.resultPoints}>
-                  {revealData.correct ? `+${revealData.points} pts` : '0 pts'}
-                </Text>
-              </View>
-            )}
 
             {isChallengeMode ? (
               <>
@@ -535,12 +537,13 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   backButton: {
-    marginBottom: 20,
+    paddingVertical: 8,
+    marginBottom: 16,
   },
   backText: {
     fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 2,
+    fontSize: 14,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
   },
@@ -594,6 +597,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
+  choiceRowCorrect: {
+    backgroundColor: C.green,
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  choiceRowWrong: {
+    backgroundColor: C.accent,
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   choiceBar: {
     width: 4,
     alignSelf: 'stretch',
@@ -602,11 +617,8 @@ const styles = StyleSheet.create({
   choiceBarSelected: {
     backgroundColor: C.accent,
   },
-  choiceBarCorrect: {
-    backgroundColor: C.green,
-  },
-  choiceBarWrong: {
-    backgroundColor: C.accent,
+  choiceBarOnColor: {
+    backgroundColor: C.onDark,
   },
   choiceBody: {
     flex: 1,
@@ -632,31 +644,28 @@ const styles = StyleSheet.create({
   choiceLetterSelected: {
     color: C.onDarkDim,
   },
-  revealBox: {
-    backgroundColor: C.ink,
-    padding: 20,
+  choiceIndicator: {
+    fontFamily: F.monoBold,
+    fontSize: 18,
+    paddingRight: 14,
+    minWidth: 32,
+    textAlign: 'right',
+  },
+  choiceIndicatorOnColor: {
+    color: C.onDark,
+  },
+  infoBox: {
+    borderLeftWidth: 3,
+    borderLeftColor: C.accent,
+    backgroundColor: C.paperDark,
+    padding: 14,
     marginBottom: 16,
   },
-  revealHeadlineLabel: {
-    fontFamily: F.mono,
-    fontSize: 9,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: C.onDarkDim,
-    marginBottom: 8,
-  },
-  revealHeadline: {
-    fontFamily: F.frauncesBoldItalic,
-    fontSize: 18,
-    color: C.onDark,
-    lineHeight: 26,
-    marginBottom: 12,
-  },
-  truthExplanation: {
-    fontFamily: F.fraunces,
-    fontSize: 15,
-    color: C.onDark,
-    lineHeight: 22,
+  infoText: {
+    fontFamily: F.frauncesItalic,
+    fontSize: 14,
+    color: C.ink,
+    lineHeight: 20,
   },
   primaryBtn: {
     backgroundColor: C.ink,
@@ -705,12 +714,15 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   resultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: C.rule,
     backgroundColor: C.paper,
-    padding: 24,
-    marginBottom: 20,
-    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 16,
     ...cardShadow,
   },
   cardInnerBorder: {
@@ -725,8 +737,7 @@ const styles = StyleSheet.create({
   },
   resultVerdict: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 36,
-    marginBottom: 4,
+    fontSize: 22,
   },
   resultCorrect: {
     color: C.green,
@@ -734,9 +745,15 @@ const styles = StyleSheet.create({
   resultWrong: {
     color: C.accent,
   },
+  resultDivider: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.muted,
+    marginHorizontal: 2,
+  },
   resultPoints: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 24,
+    fontSize: 18,
     color: C.ink,
   },
   comparisonPanel: {

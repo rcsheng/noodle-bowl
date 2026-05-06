@@ -9,10 +9,26 @@ export function roundToSigFigs(n: number): number {
   return Math.round(n / factor) * factor;
 }
 
+function getDecimalPlaces(n: number): number {
+  const dot = n.toString().indexOf('.');
+  return dot === -1 ? 0 : n.toString().length - dot - 1;
+}
+
+function roundToDecimalPlaces(n: number, places: number): number {
+  const factor = Math.pow(10, places);
+  return Math.round(n * factor) / factor;
+}
+
 const MULTIPLIERS = [0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 1.3, 1.5, 1.7, 2.0, 2.5, 3.0, 4.0];
 
 // Returns 4 distinct nicely-rounded choices including truth, shuffled.
 export function generateChoices(truth: number, rng: () => number = Math.random): number[] {
+  const decimalPlaces = getDecimalPlaces(truth);
+  const roundCandidate = (n: number): number =>
+    decimalPlaces > 0
+      ? roundToDecimalPlaces(n, decimalPlaces)
+      : roundToSigFigs(Math.round(n));
+
   const seen = new Set<number>([truth]);
   const distractors: number[] = [];
 
@@ -25,7 +41,7 @@ export function generateChoices(truth: number, rng: () => number = Math.random):
 
   for (const m of pool) {
     if (distractors.length === 3) break;
-    const candidate = roundToSigFigs(Math.round(truth * m));
+    const candidate = roundCandidate(truth * m);
     if (candidate > 0 && !seen.has(candidate)) {
       seen.add(candidate);
       distractors.push(candidate);
@@ -35,7 +51,7 @@ export function generateChoices(truth: number, rng: () => number = Math.random):
   // Fallback if pool exhausted (rare for extreme values)
   let offset = 2;
   while (distractors.length < 3) {
-    const fallback = roundToSigFigs(truth * offset);
+    const fallback = roundCandidate(truth * offset);
     if (!seen.has(fallback) && fallback > 0) {
       seen.add(fallback);
       distractors.push(fallback);

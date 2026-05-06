@@ -307,7 +307,7 @@ export const LEDE_BANK: LedeItem[] = [
         isCorrect: false,
       },
     ],
-    explanation: 'Iris had it right — researchers in the Red Sea documented octopuses literally punching their fish hunting partners during cooperative hunts, sometimes to assert control. Published in Ecology, 2020–2024.',
+    explanation: 'Researchers in the Red Sea documented octopuses literally punching their fish hunting partners during cooperative hunts, sometimes to assert control. Published in Ecology, 2020–2024.',
   },
   {
     partialHeadline: 'Pacific Island Nation Tuvalu To Become',
@@ -335,7 +335,7 @@ export const LEDE_BANK: LedeItem[] = [
         isCorrect: false,
       },
     ],
-    explanation: 'Dex was right. At COP27 in 2022, Tuvalu announced it would recreate itself in the metaverse to preserve its statehood and culture as rising seas threaten the islands — the first nation to attempt digital sovereignty.',
+    explanation: 'At COP27 in 2022, Tuvalu announced it would recreate itself in the metaverse to preserve its statehood and culture as rising seas threaten the islands — the first nation to attempt digital sovereignty.',
   },
   {
     partialHeadline: 'Switzerland Legally Requires Every Home To',
@@ -363,7 +363,7 @@ export const LEDE_BANK: LedeItem[] = [
         isCorrect: false,
       },
     ],
-    explanation: 'Dex called it. A 1963 Swiss law still requires nuclear fallout shelter capacity for every resident. New buildings must include shelters or owners pay into a communal shelter fund.',
+    explanation: 'A 1963 Swiss law still requires nuclear fallout shelter capacity for every resident. New buildings must include shelters or owners pay into a communal shelter fund.',
   },
   {
     partialHeadline: 'ChatGPT Reached One Million Users In Just',
@@ -391,7 +391,7 @@ export const LEDE_BANK: LedeItem[] = [
         isCorrect: false,
       },
     ],
-    explanation: 'Dex was right. Sam Altman confirmed ChatGPT hit one million users in 5 days — the fastest growth of any consumer product in history at that point.',
+    explanation: 'Sam Altman confirmed ChatGPT hit one million users in 5 days — the fastest growth of any consumer product in history at that point.',
   },
   {
     partialHeadline: 'Florida Man Arrested After Breaking Into A Restaurant To',
@@ -419,7 +419,7 @@ export const LEDE_BANK: LedeItem[] = [
         isCorrect: true,
       },
     ],
-    explanation: 'Pip had it. A man in Tampa broke into a closed restaurant and was found cleaning dishes, claiming he just wanted to help. Police arrested him for burglary anyway.',
+    explanation: 'A man in Tampa broke into a closed restaurant and was found cleaning dishes, claiming he just wanted to help. Police arrested him for burglary anyway.',
   },
 ];
 

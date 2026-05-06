@@ -164,6 +164,119 @@ export function buildChoicesForItem(item: SpreadItem): number[]
 
 ---
 
+## 15. Post-Alpha UX Refinements (TJ Feedback — May 2026)
+
+### 15.1 Reveal layout reorder
+
+**Affected files:** `app/games/lede.tsx`, `app/games/spread.tsx`, `app/games/sof.tsx`, `app/games/wave.tsx`, `app/games/quip.tsx`
+
+**Problem:** On reveal, the result card renders below all claim/choice content. On SoF this means three expanded claim cards with explanations before the verdict — easily 3–4 screens of content. Users must scroll to see their outcome.
+
+**Fix:** In the reveal phase, render the result card *before* the claim/choice list. The verdict is the most urgent information; explanations are supporting detail.
+
+**Implementation:**
+
+Lede reveal order:
+1. choiceList (colored rows with ✓/✗ indicators)
+2. resultCard (compact verdict · divider · points)
+3. infoBox (explanation only — removed "THE REAL HEADLINE" label and full correct headline)
+
+Spread reveal order:
+1. choiceList (locked, color-coded with ✓/✗ indicators)
+2. resultCard (compact verdict · divider · points)
+3. infoBox (explanation)
+
+SoF reveal order:
+1. claimList (with explanations, ✓/✗ indicators on claim header)
+2. resultCard (compact verdict · divider · points)
+3. `scrollTo` auto-scrolls to resultCard on lock-in (100ms delay, scrollRef)
+
+Wave, Quip:
+- Result cards already compact; no layout reorder needed
+
+#### AC 15.1
+
+- [x] On lock-in, resultCard is visible on first scroll on Spread, SoF, Lede.
+- [x] All existing reveal content (choices, explanations, CTAs) remains present; only render order changes.
+- [x] Challenge mode and help mode reveal layouts follow the same reorder.
+- [x] Wave and Quip audited; result cards already compact.
+
+---
+
+### 15.2 "Back to Home" text link visibility
+
+**Affected files:** `app/games/lede.tsx`, `app/games/spread.tsx`, `app/games/sof.tsx`, `app/games/wave.tsx`, `app/games/quip.tsx`
+
+**Problem:** "Back to Home" link is small/muted; users cannot easily navigate home after finishing a game, especially in reveal phase.
+
+**Implementation:**
+
+"← Back to Home" is a small muted mono-caps text link, always visible at both **top and bottom** of the scroll content on all game screens, in both **play and reveal phases**. Font size: 14px (bumped from 12px). No phase conditions; no testID added.
+
+#### AC 15.2
+
+- [x] "← Back to Home" text link visible at top of game screen in all phases (play and reveal).
+- [x] "← Back to Home" text link visible at bottom of game screen in all phases (play and reveal).
+- [x] Link styled: mono 14pt, muted color, caps.
+- [x] Same treatment applied consistently across all game screens: Lede, Spread, SoF, Wave, Quip.
+
+---
+
+### 15.4 Reveal visual polish: indicators and compact verdict
+
+**Affected files:** `app/games/lede.tsx`, `app/games/spread.tsx`, `app/games/sof.tsx`, `app/games/wave.tsx`, `app/games/quip.tsx`, `constants/utils.ts`
+
+**Problem:** Reveal phase uses A/B/C letters on choice rows and lacks clear visual hierarchy between verdict and explanations.
+
+**Implementation:**
+
+**Choice/claim indicators (Lede, Spread, SoF):**
+- Replace A/B/C letters with **✓/✗ symbols** on choice/claim rows in reveal
+- Lede and Spread: full-row colored backgrounds (green = correct, accent red = wrong pick)
+- SoF: colored header row on claim card only
+
+**Compact result card (all 5 games):**
+- Single `flexDirection: 'row'` layout: verdict · divider · points
+- Verdict text: 22pt font size (down from 34pt)
+- Points text: 18pt font size (down from 24pt)
+- Verdict standardized across all games: "Correct" or "Incorrect" (removed SoF-specific "You spotted the fake!" / "That was the real one.")
+
+**Lede reveal enhancement:**
+- Explanation-only infoBox in reveal (removed "THE REAL HEADLINE" label and full correct headline)
+- Only `question.explanation` is shown in the result box
+
+**Tests updated:**
+- `app/games/__tests__/lede.test.tsx`: 6 tests, was 7
+- `app/games/__tests__/sof.toggle.test.tsx`: updated for new compact result card styling
+
+#### AC 15.4
+
+- [x] ✓/✗ indicators replace A/B/C letters on choice/claim rows in reveal (Lede, Spread, SoF).
+- [x] Full-row green/accent background colors on revealed choice rows (Lede, Spread; SoF uses colored header row).
+- [x] Result card displays verdict · divider · points in single row layout.
+- [x] Verdict font: 22pt; points font: 18pt.
+- [x] All games use "Correct" or "Incorrect" verdict text.
+- [x] Lede reveal shows explanation only; "THE REAL HEADLINE" label removed.
+- [x] Tests updated and passing.
+
+---
+
+### 15.3 Spread distractor decimal precision
+
+**Affected file:** `lib/spreadChoices.ts`
+
+**Problem:** When the truth value has decimal places (e.g. 4.7), distractors are generated via `roundToSigFigs(Math.round(truth * m))`. The inner `Math.round` strips the decimal before rounding, so all distractors are integers — visually inconsistent with a decimal truth.
+
+**Fix:** Detect the number of decimal places in the truth value. When it is > 0, round distractors to that many decimal places using a dedicated `roundToDecimalPlaces` helper instead of `roundToSigFigs(Math.round(...))`. Integer truths retain existing behavior.
+
+#### AC 15.3
+
+- [ ] For a truth with N decimal places, all 4 choices have at most N decimal places.
+- [ ] Integer truth values continue to produce integer choices (no regression).
+- [ ] `roundToDecimalPlaces` is tested in `lib/__tests__/spreadChoices.test.ts`.
+
+---
+
 ## 13. Architecture Decisions Summary (updated)
 
 | Area | Decision |
@@ -187,5 +300,9 @@ export function buildChoicesForItem(item: SpreadItem): number[]
 - [x] Spread: multiple-choice, seeded distractors, single-tap lock-in
 - [x] SoF: single-tap, no wager, segmented mode toggle
 - [x] CompactMasthead shared across all game screens
-- [x] 438 tests passing, 0 failing
+- [x] §15.1 Reveal layout reorder (Lede, Spread, SoF, Wave, Quip audited)
+- [x] §15.2 "Back to Home" text link always visible (top and bottom, all phases)
+- [x] §15.4 Reveal visual polish (✓/✗ indicators, compact result cards, "Correct"/"Incorrect", Lede explanation-only reveal)
+- [x] §15.5 Seed data panelist prefixes removed from LEDE_BANK
+- [x] 438+ tests passing, 0 failing
 - [x] Coverage ≥ 80% for new lib code (`spreadChoices.ts`)

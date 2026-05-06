@@ -368,21 +368,24 @@ export default function WaveScreen() {
             {revealData && (
               <View style={styles.resultCard}>
                 <View style={styles.cardInnerBorder} />
-                <Text
-                  style={[
-                    styles.resultVerdict,
-                    revealData.correct ? styles.resultCorrect : styles.resultWrong,
-                  ]}
-                >
-                  {Math.abs(revealData.userPosition - revealData.truthPosition) <= 10
-                    ? 'Spot On'
-                    : revealData.correct
-                    ? 'Close Read'
-                    : 'Off the Mark'}
-                </Text>
-                <Text style={styles.resultPoints}>
-                  {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
-                </Text>
+                <View style={styles.resultRow}>
+                  <Text
+                    style={[
+                      styles.resultVerdict,
+                      revealData.correct ? styles.resultCorrect : styles.resultWrong,
+                    ]}
+                  >
+                    {Math.abs(revealData.userPosition - revealData.truthPosition) <= 10
+                      ? 'Spot On'
+                      : revealData.correct
+                      ? 'Close Read'
+                      : 'Off the Mark'}
+                  </Text>
+                  <Text style={styles.resultDivider}> · </Text>
+                  <Text style={styles.resultPoints}>
+                    {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
+                  </Text>
+                </View>
                 <Text style={styles.resultDistance}>
                   {Math.round(Math.abs(revealData.userPosition - revealData.truthPosition))} pts away
                   from the public average
@@ -753,15 +756,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.rule,
     backgroundColor: C.paper,
-    padding: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
     ...cardShadow,
   },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   resultVerdict: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 34,
-    marginBottom: 4,
+    fontSize: 22,
   },
   resultCorrect: {
     color: C.green,
@@ -769,11 +777,16 @@ const styles = StyleSheet.create({
   resultWrong: {
     color: C.accent,
   },
+  resultDivider: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.muted,
+    marginHorizontal: 2,
+  },
   resultPoints: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 24,
+    fontSize: 18,
     color: C.ink,
-    marginBottom: 8,
   },
   resultDistance: {
     fontFamily: F.mono,

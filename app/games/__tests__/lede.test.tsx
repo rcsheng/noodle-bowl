@@ -122,26 +122,17 @@ describe('Lede headline pill', () => {
 // ── combined reveal box ───────────────────────────────────────────────────────
 
 describe('Lede reveal box', () => {
-  it('renders the full correct headline (blank replaced by completion)', async () => {
-    const screen = await renderAndWait();
-    await reachReveal(screen);
-    // blank replaced: 'Banks ordered to stop ___ by regulators' + 'sharing client data'
-    // → 'Banks ordered to stop sharing client data by regulators'
-    expect(screen.getByText('Banks ordered to stop sharing client data by regulators')).toBeTruthy();
-  });
-
-  it('renders the explanation after the headline', async () => {
+  it('renders the explanation in reveal', async () => {
     const screen = await renderAndWait();
     await reachReveal(screen);
     expect(screen.getByText('A 1963 law still prohibits this practice.')).toBeTruthy();
   });
 
-  it('shows headline and explanation inside the same container', async () => {
+  it('shows explanation inside the reveal box', async () => {
     const screen = await renderAndWait();
     await reachReveal(screen);
     const box = screen.getByTestId('lede-reveal-box');
     const { getByText } = within(box);
-    expect(getByText('Banks ordered to stop sharing client data by regulators')).toBeTruthy();
     expect(getByText('A 1963 law still prohibits this practice.')).toBeTruthy();
   });
 
@@ -153,3 +144,4 @@ describe('Lede reveal box', () => {
     expect(screen.queryByText('Charlie')).toBeNull();
   });
 });
+

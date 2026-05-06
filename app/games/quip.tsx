@@ -377,6 +377,7 @@ export default function QuipScreen() {
                     ? 'One Fan'
                     : 'Tough Room'}
                 </Text>
+                <Text style={styles.resultDivider}> · </Text>
                 <Text style={styles.resultPoints}>+{points} pts</Text>
               </View>
 
@@ -782,23 +783,31 @@ const styles = StyleSheet.create({
     color: C.muted,
   },
   resultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: C.rule,
     backgroundColor: C.paper,
-    padding: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     marginBottom: 20,
-    alignItems: 'center',
     ...cardShadow,
   },
   resultVerdict: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 34,
+    fontSize: 22,
     color: C.ink,
-    marginBottom: 6,
+  },
+  resultDivider: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.muted,
+    marginHorizontal: 2,
   },
   resultPoints: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 24,
+    fontSize: 18,
     color: C.accentWarm,
   },
   challengePanel: {

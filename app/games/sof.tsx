@@ -64,6 +64,8 @@ export default function SofScreen() {
   const { banks } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const resultY = useRef(0);
   const {
     challengeToken,
     challengeQuestionIndex,
@@ -138,6 +140,9 @@ export default function SofScreen() {
     updateGameStats('sof', correct, points);
     Analytics.gameComplete('sof', correct, Math.max(0, points));
     setPhase('reveal');
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: resultY.current - 16, animated: true });
+    }, 100);
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
       try {
@@ -250,14 +255,12 @@ export default function SofScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <CompactMasthead />
 
-        {phase === 'play' && (
-          <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back to Home</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+          <Text style={styles.backText}>← Back to Home</Text>
+        </TouchableOpacity>
 
         {/* Mode toggle — segmented control */}
         {!isChallengeMode && !isHelpMode && phase === 'play' && (
@@ -304,24 +307,23 @@ export default function SofScreen() {
             if (phase === 'reveal' && revealData) {
               const isFake = originalIdx === revealData.fakeClaim;
               const isWrongPick = originalIdx === selectedClaim && !isFake;
+              const isColored = isFake || isWrongPick;
               return (
-                <View
-                  key={originalIdx}
-                  style={[
-                    styles.claimCard,
-                    isFake && styles.claimCardFake,
-                    isWrongPick && styles.claimCardWrongPick,
-                  ]}
-                >
-                  <View style={styles.claimHeader}>
-                    <Text style={styles.claimNum}>CLAIM {displayIdx + 1}</Text>
-                    {isFake && <Text style={styles.fakeLabel}>← THE FAKE</Text>}
+                <View key={originalIdx} style={styles.claimCard}>
+                  <View style={[
+                    styles.claimHeader,
+                    isFake && styles.claimHeaderFake,
+                    isWrongPick && styles.claimHeaderWrong,
+                  ]}>
+                    <Text style={[styles.claimNum, isColored && styles.claimNumOnColor]}>
+                      CLAIM {displayIdx + 1}
+                    </Text>
+                    <Text style={[styles.claimIndicator, isColored && styles.claimIndicatorOnColor]}>
+                      {isFake ? '✓' : isWrongPick ? '✗' : ''}
+                    </Text>
                   </View>
                   <Text style={styles.claimText}>{claim.text}</Text>
                   <View style={styles.revealSection}>
-                    <View style={[styles.verdictTag, claim.isScience ? styles.verdictScience : styles.verdictFiction]}>
-                      <Text style={styles.verdictTagText}>{claim.isScience ? 'Science' : 'Fiction'}</Text>
-                    </View>
                     <Text style={styles.explanationText}>{claim.explanation}</Text>
                     {claim.source && (
                       <TouchableOpacity
@@ -386,11 +388,15 @@ export default function SofScreen() {
         {/* Reveal */}
         {phase === 'reveal' && revealData && (
           <>
-            <View style={styles.resultCard}>
+            <View
+              style={styles.resultCard}
+              onLayout={(e) => { resultY.current = e.nativeEvent.layout.y; }}
+            >
               <View style={styles.cardInnerBorder} />
               <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
-                {revealData.correct ? 'You spotted the fake!' : 'That was the real one.'}
+                {revealData.correct ? 'Correct' : 'Incorrect'}
               </Text>
+              <Text style={styles.resultDivider}> · </Text>
               <Text style={styles.resultPoints}>
                 {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
               </Text>
@@ -557,12 +563,13 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   backButton: {
-    marginBottom: 20,
+    paddingVertical: 8,
+    marginBottom: 16,
   },
   backText: {
     fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 2,
+    fontSize: 14,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
   },
@@ -631,25 +638,25 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: C.ink,
     backgroundColor: C.paper,
-    padding: 14,
+    overflow: 'hidden',
   },
   claimCardSelected: {
     backgroundColor: C.accent,
     borderColor: C.accent,
   },
-  claimCardFake: {
-    borderColor: C.green,
-    borderWidth: 2,
-  },
-  claimCardWrongPick: {
-    borderColor: C.accent,
-    borderWidth: 2,
-  },
   claimHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+  claimHeaderFake: {
+    backgroundColor: C.green,
+  },
+  claimHeaderWrong: {
+    backgroundColor: C.accent,
   },
   claimNum: {
     fontFamily: F.mono,
@@ -661,21 +668,31 @@ const styles = StyleSheet.create({
   claimNumSelected: {
     color: C.onDarkDim,
   },
+  claimNumOnColor: {
+    color: C.onDark,
+  },
+  claimIndicator: {
+    fontFamily: F.monoBold,
+    fontSize: 18,
+    minWidth: 32,
+    textAlign: 'right',
+    color: C.muted,
+  },
+  claimIndicatorOnColor: {
+    color: C.onDark,
+  },
   myPickLabel: {
     fontFamily: F.frauncesItalic,
     fontSize: 12,
     color: C.onDarkDim,
-  },
-  fakeLabel: {
-    fontFamily: F.frauncesItalic,
-    fontSize: 12,
-    color: C.green,
   },
   claimText: {
     fontFamily: F.fraunces,
     fontSize: 15,
     color: C.ink,
     lineHeight: 22,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
   },
   claimTextSelected: {
     color: C.onDark,
@@ -683,27 +700,9 @@ const styles = StyleSheet.create({
   revealSection: {
     borderTopWidth: 1,
     borderTopColor: C.paperDarker,
+    paddingHorizontal: 14,
     paddingTop: 12,
-    marginTop: 10,
-  },
-  verdictTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginBottom: 10,
-  },
-  verdictScience: {
-    backgroundColor: C.green,
-  },
-  verdictFiction: {
-    backgroundColor: C.accent,
-  },
-  verdictTagText: {
-    fontFamily: F.monoBold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: C.onDark,
+    paddingBottom: 14,
   },
   explanationText: {
     fontFamily: F.fraunces,
@@ -766,12 +765,16 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   resultCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: C.rule,
     backgroundColor: C.paper,
-    padding: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     marginBottom: 20,
-    alignItems: 'center',
     ...cardShadow,
   },
   cardInnerBorder: {
@@ -786,8 +789,7 @@ const styles = StyleSheet.create({
   },
   resultVerdict: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 30,
-    marginBottom: 4,
+    fontSize: 20,
     textAlign: 'center',
   },
   resultCorrect: {
@@ -796,9 +798,15 @@ const styles = StyleSheet.create({
   resultWrong: {
     color: C.accent,
   },
+  resultDivider: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.muted,
+    marginHorizontal: 2,
+  },
   resultPoints: {
     fontFamily: F.frauncesXBoldItalic,
-    fontSize: 24,
+    fontSize: 18,
     color: C.ink,
   },
   challengePanel: {

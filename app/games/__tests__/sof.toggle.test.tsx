@@ -202,6 +202,57 @@ describe('SoF mode pre-loading', () => {
   });
 });
 
+// ── reveal: fake claim only (§15.1) ──────────────────────────────────────────
+
+async function reachReveal(screen: ReturnType<typeof render>, claimText = 'Claim B') {
+  fireEvent.press(screen.getByText(claimText));
+  await act(async () => {});
+  fireEvent.press(screen.getByText(/LOCK IN CLAIM/i));
+  await act(async () => {});
+}
+
+describe('SoF reveal — fake claim only (§15.1)', () => {
+  it('shows the fake claim in reveal', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    await reachReveal(screen);
+    expect(screen.queryByText('Claim B')).toBeTruthy();
+  });
+
+  it('shows all three claims in reveal', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    await reachReveal(screen);
+    expect(screen.queryByText('Claim A')).toBeTruthy();
+    expect(screen.queryByText('Claim B')).toBeTruthy();
+    expect(screen.queryByText('Claim C')).toBeTruthy();
+  });
+
+  it('shows explanations for all claims in reveal', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    await reachReveal(screen);
+    expect(screen.queryByText('Exp A')).toBeTruthy();
+    expect(screen.queryByText('Exp B')).toBeTruthy();
+    expect(screen.queryByText('Exp C')).toBeTruthy();
+  });
+
+  it('shows correct verdict when fake is picked', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    await reachReveal(screen, 'Claim B');
+    expect(screen.queryByText('Correct')).toBeTruthy();
+  });
+
+  it('shows wrong verdict and still shows fake when non-fake is picked', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    await reachReveal(screen, 'Claim A');
+    expect(screen.queryByText('Incorrect')).toBeTruthy();
+    expect(screen.queryByText('Claim B')).toBeTruthy();
+  });
+});
+
 // ── claim shuffle ──────────────────────────────────────────────────────────
 
 describe('SoF claim shuffle', () => {

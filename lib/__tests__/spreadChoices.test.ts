@@ -69,3 +69,33 @@ describe('generateChoices', () => {
     expect(unique.size).toBe(4);
   });
 });
+
+describe('generateChoices — decimal precision (§15.3)', () => {
+  it('distractors are not all integers when truth has 1 decimal place', () => {
+    const truth = 4.7;
+    const choices = generateChoices(truth, makeRng([0.1, 0.5, 0.9, 0.2, 0.8, 0.3, 0.7, 0.4, 0.6]));
+    const distractors = choices.filter(c => c !== truth);
+    expect(distractors.every(d => Number.isInteger(d))).toBe(false);
+  });
+
+  it('all choices have at most 1 decimal place when truth has 1 decimal place', () => {
+    const truth = 4.7;
+    const choices = generateChoices(truth, makeRng([0.1, 0.5, 0.9, 0.2, 0.8, 0.3, 0.7, 0.4, 0.6]));
+    choices.forEach(c => {
+      expect(c).toBe(parseFloat(c.toFixed(1)));
+    });
+  });
+
+  it('all choices have at most 2 decimal places when truth has 2 decimal places', () => {
+    const truth = 3.14;
+    const choices = generateChoices(truth, makeRng([0.2, 0.8, 0.4, 0.6, 0.1, 0.9, 0.3, 0.7, 0.5]));
+    choices.forEach(c => {
+      expect(c).toBe(parseFloat(c.toFixed(2)));
+    });
+  });
+
+  it('integer truth still produces integer choices (no regression)', () => {
+    const choices = generateChoices(500, makeRng([0.1, 0.5, 0.9, 0.2, 0.8, 0.3, 0.7, 0.4, 0.6]));
+    choices.forEach(c => expect(Number.isInteger(c)).toBe(true));
+  });
+});
