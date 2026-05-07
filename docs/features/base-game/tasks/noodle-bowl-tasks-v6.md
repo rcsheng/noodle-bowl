@@ -27,7 +27,7 @@ Everything in v5 Phases 1, 2, 4, 6, 7, 8 and the full 2026 Q2 redesign (§12) is
 
 ## Streak shields follow-ups (PRD §7)
 
-- [ ] [P1] **"Streak saved!" banner.** Show a brief celebration banner on the home screen the first time a shield is consumed. Requires fixing the `streakShieldUsedToday` flag — it currently is not reset on normal continuation, which causes the banner to show incorrectly on subsequent plays. Fix the reducer first, then add the banner.
+- [x] [P1] **"Streak saved!" banner.** Show a brief celebration banner on the home screen the first time a shield is consumed. Requires fixing the `streakShieldUsedToday` flag — it currently is not reset on normal continuation, which causes the banner to show incorrectly on subsequent plays. Fix the reducer first, then add the banner.
 - [ ] [P2] Shield-fill animation when a shield is earned.
 - [ ] [P2] Retroactive shield credit for anon→sign-in to a different existing account (currently out of scope per §7.4).
 
@@ -35,7 +35,6 @@ Everything in v5 Phases 1, 2, 4, 6, 7, 8 and the full 2026 Q2 redesign (§12) is
 
 ## Infrastructure follow-ups (PRD §7.5)
 
-- [ ] [P1] **`firebase-functions` v6 → v7.** Major version — own session. Introduces breaking API changes; track release notes before starting.
 - [ ] [P2] Remove the debug "Clear local data" button from the Profile tab before first TestFlight cut, OR confirm the `__DEV__` gate is sufficient to leave it in. Currently it is stripped from release builds by Metro's dead-code elimination.
 
 ---
@@ -49,8 +48,8 @@ Everything in v5 Phases 1, 2, 4, 6, 7, 8 and the full 2026 Q2 redesign (§12) is
 - [x] [P1] **§15.2 "Back to Home" text link — all game screens.** Visible at top and bottom in all phases (play and reveal); mono 14pt, muted, caps.
 - [x] [P1] **§15.4 Reveal visual polish** — ✓/✗ indicators, green/accent row backgrounds, compact result cards ("Correct"/"Incorrect" verdict, 22pt/18pt font sizes), Lede explanation-only reveal.
 - [x] [P1] **§15.5 Seed data: remove panelist prefixes** — `constants/data.ts` updated; 5 LEDE_BANK items cleaned.
-- [ ] [P1] **§15.5 Reseed QA/Prod** — run `SEED_TARGET=prod node scripts/seed-content.js` against production Firebase after emulator reseeding confirmed.
-- [ ] [P1] **§15.3 Spread distractor decimal precision.** When truth has decimal places, round distractors to the same precision. Fix `lib/spreadChoices.ts`; integer truths unaffected.
+- [x] [P1] **§15.5 Reseed QA/Prod** — run `SEED_TARGET=prod node scripts/seed-content.js` against production Firebase after emulator reseeding confirmed.
+- [x] [P1] **§15.3 Spread distractor decimal precision.** When truth has decimal places, round distractors to the same precision. Fix `lib/spreadChoices.ts`; integer truths unaffected.
 
 ---
 

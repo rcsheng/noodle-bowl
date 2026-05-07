@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 
 import { ChallengeReplyCard } from '@/components/ChallengeReplyCard';
@@ -32,7 +33,7 @@ function getSectionDate(): string {
 
 export default function HubScreen() {
   const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner } = useGame();
-  const { banks } = useContent();
+  const { banks, reload } = useContent();
   const { totalPoints, dailyStreak, streakShieldUsedToday, streakSavedBannerSeen } = state.stats;
   const showStreakSavedBanner = streakShieldUsedToday && !streakSavedBannerSeen;
   const assists = state.friendInteractions.filter(i => i.type === 'gave_help').length;
@@ -45,16 +46,31 @@ export default function HubScreen() {
     i => i.type === 'challenge_accepted' && i.token && !i.homeCardDismissed,
   );
 
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setRefreshKey(k => k + 1);
+    await reload();
+    setRefreshing(false);
+  }, [reload]);
+
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
+
   const [validatedTokens, setValidatedTokens] = useState<Set<string>>(new Set());
   useEffect(() => {
     let cancelled = false;
+    // challenge_accepted interactions are already verified by GameContext's onSnapshot
+    // (it only adds them after confirming resolvedAt is set), so no re-validation needed.
     const checks: { interaction: typeof state.friendInteractions[0]; collection: string }[] = [
       ...candidateHelpResults
         .filter(i => !validatedTokens.has(i.token!))
         .map(i => ({ interaction: i, collection: HELP_REQUESTS })),
-      ...candidateChallengeResults
-        .filter(i => !validatedTokens.has(i.token!))
-        .map(i => ({ interaction: i, collection: CHALLENGES })),
     ];
     if (checks.length === 0) return;
 
@@ -86,16 +102,20 @@ export default function HubScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     candidateHelpResults.map(i => i.token).join('|'),
-    candidateChallengeResults.map(i => i.token).join('|'),
+    refreshKey,
   ]);
 
   const helpResults = candidateHelpResults.filter(i => validatedTokens.has(i.token!));
-  const challengeResults = candidateChallengeResults.filter(i => validatedTokens.has(i.token!));
+  const challengeResults = candidateChallengeResults;
   const hasReplies = helpResults.length > 0 || challengeResults.length > 0;
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
         <Masthead />
 
         <View style={styles.statsCard}>

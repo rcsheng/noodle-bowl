@@ -33,39 +33,46 @@ const banks: ContentBanks = {
 
 describe('evaluateHelperAnswer', () => {
   describe('lede', () => {
-    test('returns label, questionText, correctLabel when helper picked the real panelist', () => {
-      const r = evaluateHelperAnswer('lede', 0, 'Bea', banks);
+    test('returns completion as label and correctLabel when helper picked the correct option (index 1)', () => {
+      const r = evaluateHelperAnswer('lede', 0, '1', banks);
       expect(r.correct).toBe(true);
-      expect(r.label).toBe('Bea');
+      expect(r.label).toBe('on tape');
       expect(r.questionText).toBe('Cat Burglar Caught');
-      expect(r.correctLabel).toBe('Bea');
+      expect(r.correctLabel).toBe('on tape');
     });
 
-    test('wrong when helper picked a fake panelist (correctLabel still set)', () => {
-      const r = evaluateHelperAnswer('lede', 0, 'Alex', banks);
+    test('wrong when helper picked a wrong option (correctLabel still set to correct completion)', () => {
+      const r = evaluateHelperAnswer('lede', 0, '0', banks);
       expect(r.correct).toBe(false);
-      expect(r.label).toBe('Alex');
-      expect(r.correctLabel).toBe('Bea');
+      expect(r.label).toBe('red-handed');
+      expect(r.correctLabel).toBe('on tape');
     });
 
-    test('null correct when panelist name is unknown but questionText present', () => {
-      const r = evaluateHelperAnswer('lede', 0, 'Nobody', banks);
+    test('null correct when index is out of range but questionText and correctLabel still returned', () => {
+      const r = evaluateHelperAnswer('lede', 0, '9', banks);
       expect(r.correct).toBeNull();
       expect(r.questionText).toBe('Cat Burglar Caught');
-      expect(r.correctLabel).toBe('Bea');
+      expect(r.correctLabel).toBe('on tape');
     });
   });
 
   describe('spread', () => {
-    test('correct + correctLabel formatted with unit', () => {
-      const r = evaluateHelperAnswer('spread', 0, '110', banks);
+    test('correct when answer matches exactly', () => {
+      const r = evaluateHelperAnswer('spread', 0, '100', banks);
       expect(r.correct).toBe(true);
-      expect(r.label).toBe('110 units');
+      expect(r.label).toBe('100 units');
       expect(r.correctLabel).toBe('100 units');
       expect(r.questionText).toBe('q');
     });
 
-    test('wrong when deviation exceeds 30%', () => {
+    test('wrong when answer does not match exactly', () => {
+      const r = evaluateHelperAnswer('spread', 0, '110', banks);
+      expect(r.correct).toBe(false);
+      expect(r.label).toBe('110 units');
+      expect(r.correctLabel).toBe('100 units');
+    });
+
+    test('wrong when far off', () => {
       const r = evaluateHelperAnswer('spread', 0, '500', banks);
       expect(r.correct).toBe(false);
     });

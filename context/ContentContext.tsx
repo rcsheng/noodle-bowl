@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import type { ContentBanks, ContentVersion } from '@/packages/shared/contentTypes';
 
@@ -10,6 +10,7 @@ interface ContentContextValue {
   banks: ContentBanks;
   versionId: string;
   isLoading: boolean;
+  reload: () => Promise<void>;
 }
 
 const ContentContext = createContext<ContentContextValue | null>(null);
@@ -60,8 +61,21 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [authLoading, isAuthed]);
 
+  const reload = useCallback(async () => {
+    if (!isAuthed) return;
+    try {
+      const active = await findActive();
+      if (active) {
+        setVersion(active);
+        await cache(active);
+      }
+    } catch (err) {
+      logger.warn('ContentContext: reload failed', err);
+    }
+  }, [isAuthed]);
+
   return (
-    <ContentContext.Provider value={{ banks: version.banks, versionId: version.id, isLoading }}>
+    <ContentContext.Provider value={{ banks: version.banks, versionId: version.id, isLoading, reload }}>
       {children}
     </ContentContext.Provider>
   );

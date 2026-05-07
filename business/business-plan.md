@@ -27,7 +27,7 @@
 
 ## 1. Executive Summary
 
-**Noodle Bowl** is a daily mobile and web brain game app built around real news. It delivers 5–10 minutes of varied cognitive play — bluffing, numerical estimation, and scientific literacy — through three focused daily games, unified under a single streak mechanic that drives daily return.
+**Noodle Bowl** is a daily mobile and web brain game app built around real news. It delivers 5–10 minutes of varied cognitive play — deduction, numerical estimation, and scientific literacy — through three focused daily games, unified under a single streak mechanic that drives daily return.
 
 The app occupies a clear market gap: the intersection of *daily ritual habit* (Wordle, NYT Games), *current news* (NPR quizzes, daily briefings), and *multiple game formats* (Jackbox-style variety). No single competitor currently owns all three.
 
@@ -65,9 +65,8 @@ Forced light mode only (prevents iOS in-app browser dark mode override).
 #### N°01 — The Lede *(Anchor Game)*
 **"Finish The Headline"** · ~2 minutes
 
-A real news headline appears with the punchline blacked out. Three reporters with distinct personalities each pitch their version of the real ending. The player picks which reporter is telling the truth. The bluffing-confidence dynamic — a wrong answer that sounds convincing — creates the same panel-show tension as *Wait Wait Don't Tell Me*.
+A real news headline appears with the punchline blacked out. Three possible endings are presented as a tappable list — all plausible, only one real. The player picks which ending actually ran. The wrong options are written to be genuinely convincing, so the reveal lands with the same satisfying surprise as *Wait Wait Don't Tell Me*.
 
-- Three reporters: Iris Bellamy (The Naturalist), Dex Holloway (The Skeptic), Pip Calderone (The Optimist)
 - Scoring: +10 base · wrong = 0
 - Anchor position on hub — the most distinctive game in the market
 
@@ -338,7 +337,7 @@ At launch-minimum banks (30/30/20), a daily user playing all three games gets ~4
 
 ### 7.2 Sourcing by Game
 
-**The Lede** — Requires the highest editorial effort. Each story needs: a real headline with a newsworthy punchline, three believable completions (two wrong, one right), each with a confident personality-appropriate pitch. Cannot be automated — requires a writer familiar with the source material.
+**The Lede** — Requires the highest editorial effort. Each story needs: a real headline with a newsworthy punchline, and three believable completions (two wrong, one right) that are genuinely plausible but wrong in interesting ways. Cannot be automated — requires a writer familiar with the source material.
 
 **The Spread** — Numerical facts from reliable news sources. Search patterns: "survey finds X%", "costs $Y billion", "took N days". Semi-automatable with AI assistance + human accuracy review. Sources: Reuters, AP, Bloomberg, scientific papers.
 
@@ -413,7 +412,7 @@ The social growth loop is the primary acquisition engine and a secondary retenti
 **Moment:** Player just answered, feels confident or competitive.  
 **Action:** Predicts how friend will answer → shares challenge link → friend plays on web without install.  
 **Reward:** +10 bonus points when friend completes challenge.  
-**The hook:** The predict-your-friend step transforms a passive share into an active bet. The comparison screen ("You picked Dex · Alex picked Pip · Correct: Pip") is the emotional payoff that drives both parties back to the app.
+**The hook:** The predict-your-friend step transforms a passive share into an active bet. The comparison screen ("You picked Option A · Alex picked Option C · Correct: Option C") is the emotional payoff that drives both parties back to the app.
 
 ### 9.3 Web-First Friend Experience
 

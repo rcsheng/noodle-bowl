@@ -1,5 +1,4 @@
 import type { GameId } from '@/constants/data';
-import { scoreSpread } from '@/constants/utils';
 import type { ContentBanks } from '@/packages/shared/contentTypes';
 
 export interface HelperAnswerEvaluation {
@@ -30,13 +29,18 @@ export function evaluateHelperAnswer(
     case 'lede': {
       const item = banks.lede[questionIndex];
       if (!item) return { ...EMPTY, label: trimmed };
-      const realPanelist = item.panelists.find(p => p.isCorrect);
-      const picked = item.panelists.find(p => p.name === trimmed);
+      const correctPanelist = item.panelists.find(p => p.isCorrect);
+      const correctLabel = correctPanelist?.completion ?? null;
+      const idx = parseInt(trimmed, 10);
+      if (isNaN(idx) || !item.panelists[idx]) {
+        return { correct: null, label: trimmed, questionText: item.partialHeadline, correctLabel };
+      }
+      const panelist = item.panelists[idx];
       return {
-        correct: picked ? picked.isCorrect : null,
-        label: picked ? picked.name : trimmed,
+        correct: panelist.isCorrect,
+        label: panelist.completion,
         questionText: item.partialHeadline,
-        correctLabel: realPanelist?.name ?? null,
+        correctLabel,
       };
     }
 
@@ -48,9 +52,8 @@ export function evaluateHelperAnswer(
       if (Number.isNaN(numeric)) {
         return { correct: null, label: trimmed, questionText: item.question, correctLabel };
       }
-      const { correct } = scoreSpread(numeric, item.answer);
       return {
-        correct,
+        correct: numeric === item.answer,
         label: `${numeric} ${item.unit}`,
         questionText: item.question,
         correctLabel,

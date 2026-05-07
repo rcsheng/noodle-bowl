@@ -48,7 +48,7 @@ Secondary north star: **viral coefficient** from the challenge/help growth loop 
 
 ### 2.1 Positioning Statement
 
-For news-curious adults who want a daily mental workout that's fun, not homework, Noodle Bowl is the daily brain game app that turns real news into play. Unlike NYT Games (single puzzle format) or trivia apps (passive recall), Noodle Bowl exercises multiple cognitive muscles — bluffing, estimation, scientific reasoning — across three focused games, every day.
+For news-curious adults who want a daily mental workout that's fun, not homework, Noodle Bowl is the daily brain game app that turns real news into play. Unlike NYT Games (single puzzle format) or trivia apps (passive recall), Noodle Bowl exercises multiple cognitive muscles — deduction, estimation, scientific reasoning — across three focused games, every day.
 
 ### 2.2 Brand Personality
 
@@ -95,9 +95,9 @@ Pale blue-gray background · deep navy ink · brick-red accent · Fraunces itali
 
 **Name:** James, 38, software engineer  
 **Habits:** *The Skeptics' Guide to the Universe*, *Wait Wait Don't Tell Me*, *Conan O'Brien Needs A Friend* listener. Plays NYT Mini Crossword. Considers himself "pretty good at Science or Fiction."  
-**What he wants:** A game that rewards his eclectic knowledge without being trivia-bro about it. Enjoys the bluffing mechanic — the confidence of a wrong answer is funny.  
+**What he wants:** A game that rewards his eclectic knowledge without being trivia-bro about it. Enjoys picking the real headline ending — the wrong options are written to be convincing, and being fooled is funny.  
 **How he finds apps:** Product Hunt, Hacker News Show HN, word-of-mouth from podcast communities.  
-**Noodle Bowl moment:** Gets tricked by Dex Holloway's pitch. Challenges a friend. They argue about it over Slack.
+**Noodle Bowl moment:** Gets tricked by a plausible-but-wrong Lede option. Challenges a friend. They argue about it over Slack.
 
 ---
 
@@ -146,14 +146,13 @@ These are ranked by how well they balance brand fit, mechanic clarity, and memor
 
 | Name | Mechanic Fit | Brand Fit | Memorable | Notes |
 |------|-------------|-----------|-----------|-------|
-| **The Pitch** | ★★★★★ | ★★★★ | ★★★★ | Best alternative. "Pitch" = a reporter pitching their story completion. Dual meaning (sports/media). Active, competitive feel. |
+| **The Pitch** | ★★★★★ | ★★★★ | ★★★★ | "Pitch" = a story pitch, which maps to picking the real headline. Dual meaning (sports/media). Active, competitive feel. |
 | **The Scoop** | ★★★★ | ★★★★★ | ★★★★★ | Warm, playful, distinctly journalistic. Everyone knows "got the scoop." Slightly more casual than NB's tone. |
-| **The Bluff** | ★★★★★ | ★★★ | ★★★★ | Most mechanically accurate — the game IS a bluffing game. Loses the journalism aesthetic. |
+| **The Reveal** | ★★★★★ | ★★★★ | ★★★ | Mechanically accurate — the payoff is always the reveal. Slightly passive. |
 | **The Hook** | ★★★★ | ★★★★ | ★★★★ | Journalistic (a hook draws readers in) and colloquial. Slightly generic. |
 | **The Desk** | ★★★ | ★★★★★ | ★★★ | "The news desk" — strong editorial feel, but mechanic isn't obvious. |
-| **The Reporter** | ★★★★ | ★★★★ | ★★★ | Clear (three reporters, pick the truth-teller) but descriptive rather than evocative. |
 
-**If forced to rename:** Go with **The Pitch**. It describes the mechanic exactly (three reporters pitching their version of the headline ending), has an active/competitive connotation, and still reads as journalistic without requiring journalism knowledge to understand.
+**If forced to rename:** Go with **The Pitch**. It maps cleanly to the mechanic (picking which headline ending is the real story), has a competitive connotation, and reads as journalistic without requiring journalism knowledge to understand.
 
 ---
 
@@ -263,7 +262,7 @@ Expected conversion: lower than challenge loop, but helper intent is higher — 
 
 The post-challenge web page is the highest-leverage marketing asset in the product. It needs:
 - Visual identity that immediately signals quality (Fraunces, paper aesthetic, no generic mobile look)
-- The comparison reveal as the emotional hook ("You picked Dex. Ric picked Pip. Pip was right.")
+- The comparison reveal as the emotional hook ("You picked Option A. Alex picked Option C. Option C was right.")
 - Download CTA that appears only after the comparison — not before, not during
 - Copy that sells the daily habit, not just the single game: "Play fresh games every day →"
 
@@ -311,7 +310,7 @@ The result copy should be tunable — test whether including the streak or hidin
 
 **Screenshot strategy:**
 - Screenshot 1: Hub screen — "Three games. One daily session."
-- Screenshot 2: The Lede in play — reporter cards visible, bluffing mechanic clear
+- Screenshot 2: The Lede in play — headline with blank visible, three completion options below
 - Screenshot 3: The Spread reveal — "You were 8% off"
 - Screenshot 4: Science or Fiction — claim cards with correct/incorrect revealed
 - Screenshot 5: Challenge comparison — "You vs. Alex" side-by-side
@@ -350,7 +349,7 @@ Do not prompt for a review until the user has played for 5+ consecutive days. At
 
 **Weekly:**
 - Streak leaderboard screenshot (anonymized or opted-in users)
-- A Lede question "making of" — show the three reporter pitches before revealing which was real
+- A Lede question "making of" — show the three completion options written for a headline, explain what makes the wrong ones convincing
 
 **As needed:**
 - Engage reply threads on any organic result shares
@@ -443,7 +442,7 @@ Authentic story of building a polished, editorially considered game app as a sol
 
 **The Skeptics' Guide to the Universe (SGU):** The Science or Fiction mechanic is directly modeled after their podcast segment. An official partnership ("powered by SGU content" or a co-branded Science or Fiction week) would be a natural fit and reach a loyal, highly relevant audience. Approach: reach out to the SGU team with a comp account and explain the inspiration.
 
-**Wait Wait Don't Tell Me (NPR):** The Lede's reporter-persona bluffing mechanic has the same soul as Wait Wait's bluffing round. NPR is unlikely to officially partner (bureaucracy), but an individual mention from a Wait Wait panelist on social could be extremely high-value. Approach: organic — make a great product, find an in.
+**Wait Wait Don't Tell Me (NPR):** The Lede's "pick the real ending" mechanic has the same soul as Wait Wait's bluffing round — plausible wrong answers, satisfying reveal. NPR is unlikely to officially partner (bureaucracy), but an individual mention from a Wait Wait panelist on social could be extremely high-value. Approach: organic — make a great product, find an in.
 
 **Local and independent news organizations:** Many local news outlets are looking for engagement tools. A co-branded "City Edition" using local news stories could be a partnership model that helps both sides. Approach: propose a pilot to 2–3 outlets with active digital audiences.
 

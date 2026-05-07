@@ -35,6 +35,11 @@ import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/typ
 const LETTERS = ['A', 'B', 'C'] as const;
 type Letter = typeof LETTERS[number];
 
+function truncateCompletion(text: string): string {
+  const words = text.split(' ');
+  return words.length > 7 ? words.slice(0, 7).join(' ') + '…' : text;
+}
+
 type Phase = 'play' | 'reveal';
 
 interface RevealData {
@@ -125,7 +130,7 @@ export default function LedeScreen() {
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
       try {
-        const friendAnswer = question.panelists[selected].name;
+        const friendAnswer = String(selected);
         const comparison = await respondToChallenge({ token: challengeToken, friendAnswer });
         setChallengeComparison(comparison);
         addFriendInteraction({
@@ -145,7 +150,7 @@ export default function LedeScreen() {
 
     if (isHelpMode && helpTokenParam && !helpRespondResult) {
       try {
-        const result = await respondToHelp({ token: helpTokenParam, helperAnswer: question.panelists[selected].name });
+        const result = await respondToHelp({ token: helpTokenParam, helperAnswer: String(selected) });
         setHelpRespondResult(result);
         addFriendInteraction({
           type: 'gave_help',
@@ -381,18 +386,20 @@ export default function LedeScreen() {
                     <View style={styles.comparisonRow}>
                       <Text style={styles.comparisonKey}>Your answer</Text>
                       <Text style={styles.comparisonVal}>
-                        {selected !== null ? question.panelists[selected].name : '—'}
+                        {selected !== null ? truncateCompletion(question.panelists[selected].completion) : '—'}
                       </Text>
                     </View>
                     <View style={styles.comparisonRow}>
                       <Text style={styles.comparisonKey}>{challengeSenderName ?? 'Sender'}'s answer</Text>
-                      <Text style={styles.comparisonVal}>{challengeComparison.senderAnswer}</Text>
+                      <Text style={styles.comparisonVal}>
+                        {truncateCompletion(question.panelists[parseInt(challengeComparison.senderAnswer, 10)]?.completion ?? challengeComparison.senderAnswer)}
+                      </Text>
                     </View>
                     <View style={styles.comparisonRow}>
                       <Text style={styles.comparisonKey}>Their prediction</Text>
                       <Text style={styles.comparisonVal}>
-                        {challengeComparison.senderPrediction}{' '}
-                        {challengeComparison.senderPrediction === (selected !== null ? question.panelists[selected].name : '') ? '✓' : '✗'}
+                        {truncateCompletion(question.panelists[parseInt(challengeComparison.senderPrediction, 10)]?.completion ?? challengeComparison.senderPrediction)}{' '}
+                        {challengeComparison.senderPrediction === String(selected) ? '✓' : '✗'}
                       </Text>
                     </View>
                   </View>
@@ -464,16 +471,16 @@ export default function LedeScreen() {
         onClose={() => setShowChallenge(false)}
         correct={revealData?.correct ?? false}
         predictLabel="Which ending do you think they'll pick?"
-        predictOptions={question ? orderedPanelists.map(({ panelist }) => ({
-          label: panelist.completion.split(' ').slice(0, 7).join(' ') + '…',
-          value: panelist.name,
+        predictOptions={question ? orderedPanelists.map(({ panelist, originalIdx }) => ({
+          label: truncateCompletion(panelist.completion),
+          value: String(originalIdx),
         })) : []}
         buildChallengeUrl={async (friendName, prediction) => {
           const result = await createChallenge({
             gameId: 'lede',
             questionIndex: questionIdx,
             senderPrediction: prediction,
-            senderAnswer: selected !== null ? question!.panelists[selected].name : '',
+            senderAnswer: selected !== null ? String(selected) : '',
             senderName: user?.displayName ?? 'A Friend',
             senderPushToken: getCachedPushToken(),
           });
