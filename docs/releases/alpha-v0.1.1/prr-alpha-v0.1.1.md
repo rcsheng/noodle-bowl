@@ -40,7 +40,7 @@ EXPO_PUBLIC_COLLECTION_PREFIX=qa_
 
 ## 1. Code quality
 
-- [ ] All tests passing — `npm test` (438 tests, 37 suites at branch cut)
+- [ ] All tests passing — `npm test` (353 tests, 34 suites at branch cut)
 - [ ] Functions tests passing — `cd functions && npm test`
 - [ ] No TypeScript errors — `npx tsc --noEmit`
 - [ ] Code review complete (code-reviewer agent)

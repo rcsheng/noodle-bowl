@@ -14,7 +14,7 @@ const mockSignOut = jest.fn().mockResolvedValue(undefined);
 const mockRegisterPushToken = jest.fn().mockResolvedValue(null);
 
 jest.mock('firebase/auth', () => ({
-  onIdTokenChanged: (...args: unknown[]) => mockOnIdTokenChanged(...args),
+  onIdTokenChanged: (auth: unknown, cb: (user: unknown) => void) => mockOnIdTokenChanged(auth, cb),
   signInAnonymously: (...args: unknown[]) => mockSignInAnonymously(...args),
   signOut: (...args: unknown[]) => mockSignOut(...args),
 }));

@@ -426,7 +426,7 @@ export default function LedeScreen() {
                   <View style={styles.comparisonPanel}>
                     <View style={styles.cardInnerBorder} />
                     <Text style={styles.helpSentHeading}>Help Sent</Text>
-                    <Text style={[styles.truthExplanation, { textAlign: 'center' }]}>
+                    <Text style={[styles.infoText, { textAlign: 'center' }]}>
                       Your answer has been sent to {helpAskerName || 'your friend'}.
                     </Text>
                   </View>

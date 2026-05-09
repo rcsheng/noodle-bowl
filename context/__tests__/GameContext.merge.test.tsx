@@ -57,7 +57,7 @@ describe('reducer: MERGE_FROM_SERVER', () => {
   const serverStatsOlder = { ...initialState.stats, totalPoints: 10, lastPlayedDate: '2026-04-10' };
   const serverStatsSameDate = { ...initialState.stats, totalPoints: 300, lastPlayedDate: '2026-04-20' };
 
-  function makeState(stats = localStats) {
+  function makeState(stats: typeof initialState.stats = localStats) {
     return { ...initialState, stats };
   }
 
