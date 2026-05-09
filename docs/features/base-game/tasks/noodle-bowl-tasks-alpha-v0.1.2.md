@@ -2,6 +2,7 @@
 
 **PRD ref:** `noodle-bowl-prd-alpha-v0.1.2.md`
 **Last updated:** 2026-05-09
+**Deep links verified:** ✓ challenge + help links open correctly in TestFlight build (2026-05-09)
 
 ---
 
@@ -15,10 +16,11 @@
 
 ## Universal link infrastructure (PRD §2) — MANUAL / INFRA
 
-- [ ] Create AASA file (content in PRD §2a)
-- [ ] Deploy AASA to `https://noodlebowl.app/.well-known/apple-app-site-association`
-  - No redirect, `application/json`, served over HTTPS
-- [ ] Verify Apple CDN: `https://app-site-association.cdn-apple.com/a/v1/noodlebowl.app`
+- [x] Create AASA file (content in PRD §2a)
+- [x] Deploy AASA to `https://noodlebowl.app/.well-known/apple-app-site-association`
+  - Updated from iOS 12 format (`appID`/`paths`) to iOS 13+ format (`appIDs`/`components`)
+- [x] Verify Apple CDN: `https://app-site-association.cdn-apple.com/a/v1/noodlebowl.app`
+- [x] End-to-end verified on device: challenge and help links open correctly in TestFlight build
 
 ---
 
@@ -34,7 +36,7 @@
 
 - [ ] Run `npm test` — all passing
 - [ ] Run `npx tsc --noEmit` — clean
-- [ ] Run deep link smoke test — Block 11 in PRR
+- [x] Run deep link smoke test — Block 11 in PRR ✓ verified 2026-05-09
 - [ ] Cut `eas build --platform ios --profile production`
 - [ ] Submit to TestFlight — `eas submit --platform ios --profile production --latest`
 - [ ] Tag: `git tag -a alpha-v0.1.2 -m "fix: deep link routing for /c/ and /h/ universal links"`
