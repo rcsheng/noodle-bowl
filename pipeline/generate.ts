@@ -65,7 +65,7 @@ async function generateSpread(client: Anthropic, s: StoryCandidate): Promise<Spr
   }
 }
 
-async function generateSof(client: Anthropic, cluster: SofCluster): Promise<SofItem | null> {
+async function generateSof(client: Anthropic, cluster: SofCluster, weird: boolean): Promise<SofItem | null> {
   try {
     const storiesText = cluster.stories
       .slice(0, 2)
@@ -74,7 +74,7 @@ async function generateSof(client: Anthropic, cluster: SofCluster): Promise<SofI
     const raw = await callClaude(
       client,
       SONNET,
-      loadPrompt('sof') + `Topic cluster: ${cluster.domain}\n${storiesText}`
+      loadPrompt(weird ? 'sof-weird' : 'sof') + `Topic cluster: ${cluster.domain}\n${storiesText}`
     );
     return sofItemSchema.parse(raw) as SofItem;
   } catch (e) {
@@ -106,12 +106,12 @@ async function generateWave(client: Anthropic, s: StoryCandidate): Promise<WaveI
 async function runBatch<T>(
   label: string,
   items: unknown[],
-  fn: (item: never) => Promise<T | null>
+  fn: (item: never, index: number) => Promise<T | null>
 ): Promise<T[]> {
   process.stdout.write(`Generating ${items.length} ${label}... `);
   const results: T[] = [];
-  for (const item of items) {
-    const result = await fn(item as never);
+  for (let i = 0; i < items.length; i++) {
+    const result = await fn(items[i] as never, i);
     if (result) results.push(result);
     process.stdout.write('.');
   }
@@ -138,7 +138,8 @@ async function main() {
 
   const ledeItems = await runBatch('Lede', ledeStories, (s) => generateLede(client, s));
   const spreadItems = await runBatch('Spread', spreadStories, (s) => generateSpread(client, s));
-  const sofItems = await runBatch('SoF', sofClusters, (c) => generateSof(client, c));
+  // Alternate weird/standard so the bank is ~50/50 weirdAndTrue across clusters
+  const sofItems = await runBatch('SoF', sofClusters, (c, i) => generateSof(client, c, i % 2 === 1));
 
   const quipSource = ledeStories;
   const waveSource = ledeStories;

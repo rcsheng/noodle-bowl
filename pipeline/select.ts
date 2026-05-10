@@ -44,13 +44,22 @@ function main() {
     group.push(c);
     byDomain.set(c.domain, group);
   }
-  // Slide through each domain's stories in windows of 2 to produce multiple clusters.
-  // Each cluster feeds one SofItem; the previous one-per-domain approach capped output at ~7.
+  // Round-robin across domains so SoF clusters are spread across topics.
+  // Previous approach exhausted one domain first, producing homogeneous clusters.
+  const domainList = Array.from(byDomain.entries()).filter(([, s]) => s.length >= 2);
+  const domainIdx = new Map(domainList.map(([d]) => [d, 0]));
   const sofClusters: SofCluster[] = [];
-  outer: for (const [domain, stories] of byDomain) {
-    for (let i = 0; i + 1 < stories.length; i += 2) {
-      sofClusters.push({ domain, stories: stories.slice(i, i + 3) });
-      if (sofClusters.length >= TARGET_SOF_CLUSTERS) break outer;
+  let madeProgress = true;
+  while (sofClusters.length < TARGET_SOF_CLUSTERS && madeProgress) {
+    madeProgress = false;
+    for (const [domain, stories] of domainList) {
+      if (sofClusters.length >= TARGET_SOF_CLUSTERS) break;
+      const i = domainIdx.get(domain)!;
+      if (i + 1 < stories.length) {
+        sofClusters.push({ domain, stories: stories.slice(i, i + 3) });
+        domainIdx.set(domain, i + 2);
+        madeProgress = true;
+      }
     }
   }
 
