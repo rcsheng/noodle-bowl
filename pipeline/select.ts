@@ -13,7 +13,7 @@ function score(c: StoryCandidate): number {
   let s = 0;
   if (c.headline.length < 100) s += 2;
   if (['science', 'nature', 'technology'].includes(c.domain)) s += 2;
-  if (c.ingestSource === 'wikipedia') s += 2;
+  if (c.ingestSource === 'researched') s += 3;
   if (c.summary.length > MIN_SUMMARY_LENGTH) s += 1;
   if (c.hasNumber) s += 1;
   if (c.tags.includes('weird')) s += 5;
@@ -33,18 +33,21 @@ function main() {
   console.log(`Reading candidates from ${path.basename(filePath)}`);
   const { candidates } = readJson<CandidatesFile>(filePath);
 
-  // Merge weird candidates if pipeline:ingest:weird has been run today
+  // Merge supplemental candidate files if present (weird, researched)
   let allCandidates = candidates;
-  const weirdPath = filePath.replace(/\.json$/, '-weird.json');
-  if (fs.existsSync(weirdPath)) {
+  const seenIds = new Set(candidates.map((c) => c.id));
+
+  for (const suffix of ['-weird', '-researched']) {
+    const supplementPath = filePath.replace(/\.json$/, `${suffix}.json`);
+    if (!fs.existsSync(supplementPath)) continue;
     try {
-      const { candidates: weirdCandidates } = readJson<CandidatesFile>(weirdPath);
-      const seenIds = new Set(candidates.map((c) => c.id));
-      const uniqueWeird = weirdCandidates.filter((c) => !seenIds.has(c.id));
-      allCandidates = [...candidates, ...uniqueWeird];
-      console.log(`  + ${uniqueWeird.length} weird candidates (from ${path.basename(weirdPath)})`);
+      const { candidates: extra } = readJson<CandidatesFile>(supplementPath);
+      const unique = extra.filter((c) => !seenIds.has(c.id));
+      unique.forEach((c) => seenIds.add(c.id));
+      allCandidates = [...allCandidates, ...unique];
+      console.log(`  + ${unique.length} candidates (from ${path.basename(supplementPath)})`);
     } catch {
-      // Weird candidates unavailable — no-op
+      // Supplemental file unavailable — no-op
     }
   }
 

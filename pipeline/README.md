@@ -12,6 +12,7 @@ ingest → select → generate → review → publish
 | Stage | Script | Output |
 |---|---|---|
 | ingest | `ingest.ts` + `ingest-weird.ts` | `data/candidates/YYYY-MM-DD.json` + `…-weird.json` |
+| ingest (researched) | `ingest-researched.ts` | `data/candidates/YYYY-MM-DD-researched.json` |
 | select | `select.ts` | `data/selected/YYYY-MM-DD.json` |
 | generate | `generate.ts` | `data/generated/YYYY-MM-DD.json` |
 | review | `review.ts` | stdout only (human gate) |
@@ -22,11 +23,12 @@ ingest → select → generate → review → publish
 ### Daily run
 
 ```bash
-npm run pipeline:ingest        # fetch today's news, Wikipedia, and oddities
-npm run pipeline:select        # select candidates for each game
-npm run pipeline:generate      # call Claude to generate game content (~2–3 min)
-npm run pipeline:review        # spot-check 5 random samples per game type
-npm run pipeline:publish       # publish to Firestore (deactivates previous version)
+npm run pipeline:ingest              # fetch today's news and oddities
+npm run pipeline:ingest:researched   # optional: parse hand-researched .md files
+npm run pipeline:select              # select candidates for each game
+npm run pipeline:generate            # call Claude to generate game content (~2–3 min)
+npm run pipeline:review              # spot-check 5 random samples per game type
+npm run pipeline:publish             # publish to Firestore (deactivates previous version)
 ```
 
 ### First-time bulk run (60-day bank)
@@ -34,7 +36,7 @@ npm run pipeline:publish       # publish to Firestore (deactivates previous vers
 Run once before launch to pre-populate the content bank.
 
 ```bash
-npm run pipeline:ingest:bulk          # 60-day news + Wikipedia + today's oddities
+npm run pipeline:ingest:bulk          # 60-day news + today's oddities
 npm run pipeline:select -- --scale=2  # 2× targets: 60 lede, 60 spread, 120 SoF clusters
 npm run pipeline:generate             # ~15–20 min
 npm run pipeline:review
@@ -59,7 +61,7 @@ Set in `.env.local` (project root):
 
 Writes two files for the same date:
 
-- `YYYY-MM-DD.json` — stories from TheNewsAPI (top/historical news) and Wikipedia "On This Day"
+- `YYYY-MM-DD.json` — stories from TheNewsAPI (top/historical news)
 - `YYYY-MM-DD-weird.json` — oddities sourced by scraping AP News, NPR, Sky News, and UPI,
   then resolving each headline to a real article via TheNewsAPI keyword search
 
@@ -83,7 +85,7 @@ and selects targets for each game.
 |---|---|
 | Headline under 100 chars | +2 |
 | Domain is science / nature / technology | +2 |
-| Source is Wikipedia | +2 |
+| `ingestSource` is `researched` | +3 |
 | Summary over 80 chars | +1 |
 | Contains a number | +1 |
 | Tagged `weird` | +5 |
@@ -105,7 +107,7 @@ and selects targets for each game.
 ### generate
 
 Calls Claude (Sonnet) to generate game content for every selected candidate.
-Skips Lede items that Claude judges as too dry to make a good puzzle (returns `{"skip": true}`).
+Skips items that Claude judges as too dry to make a good puzzle (returns `{"skip": true}`).
 
 Quip and Wave are not yet generated — published as empty arrays so the app falls back
 to bundled content.
@@ -135,8 +137,11 @@ then marks all previous versions inactive.
 ```
 pipeline/data/
 ├── candidates/
-│   ├── YYYY-MM-DD.json        # regular ingest output
-│   └── YYYY-MM-DD-weird.json  # oddities ingest output
+│   ├── YYYY-MM-DD.json             # regular ingest output (TheNewsAPI)
+│   ├── YYYY-MM-DD-weird.json       # oddities ingest output (scraped)
+│   └── YYYY-MM-DD-researched.json  # hand-researched articles (optional)
+├── researched/
+│   └── *.md                        # source markdown tables for ingest-researched.ts
 ├── selected/
 │   └── YYYY-MM-DD.json
 └── generated/
@@ -154,21 +159,34 @@ Key fields on every candidate. Full type definition in `types.ts`.
 |---|---|---|
 | `id` | `string` | SHA-256 of the article URL (16 hex chars) |
 | `headline` | `string` | Article title |
-| `summary` | `string` | Article description (truncated to 500 chars for Wikipedia) |
+| `summary` | `string` | Article description |
 | `url` | `string` | Canonical article URL |
 | `source` | `string` | Publisher domain |
-| `ingestSource` | `thenewsapi \| wikipedia` | Which pipeline produced this candidate |
+| `ingestSource` | `thenewsapi \| scraped \| researched` | Which pipeline produced this candidate |
 | `tags` | `string[]` | Pipeline signals — currently `["weird"]` or `[]` |
 | `hasNumber` | `boolean` | Headline or summary contains a numeric value |
 | `domain` | `string` | Classified topic: `science`, `nature`, `politics`, `business`, `technology`, `culture`, `general` |
 | `sourceArticle` | `TheNewsAPIArticle?` | Full raw TheNewsAPI response (includes `published_at`, `snippet`, `image_url`, etc.) |
-| `sourceEvent` | `WikipediaOnThisDayEvent?` | Full raw Wikipedia On This Day event |
 
 ## Adding a new ingest source
 
 1. Create `pipeline/ingest-<name>.ts` that writes a `CandidatesFile` to
    `pipeline/data/candidates/YYYY-MM-DD-<name>.json`.
 2. Set appropriate `tags` on each `StoryCandidate` (e.g. `['breaking']`).
-3. In `select.ts`, add a merge block (pattern: copy the weird merge block and adjust the filename suffix).
-4. Add scoring rules for the new tag if the candidates should be prioritised for a particular game.
-5. Chain the new script into `pipeline:ingest` in `package.json`.
+3. In `select.ts`, add the suffix `'-<name>'` to the `suffixes` loop — it will be auto-merged
+   and deduplicated by URL hash.
+4. Add scoring rules for the new `ingestSource` or tag if candidates should be prioritised.
+5. Add a `pipeline:ingest:<name>` script to `package.json`.
+
+### Hand-researched articles format
+
+Drop `.md` files into `pipeline/data/researched/`. Each file must contain a pipe-delimited
+markdown table. Two column layouts are supported:
+
+- **8-column** (original): `Episode Date | Title | Segment | Quoted Headline | Source (Outlet) | Source URL | Publication Date | Notes`
+- **10-column** (extended): adds `Episode URL` and `Timestamp` columns after `Title` and `Segment`
+
+Both layouts are detected automatically from the header row. The `Segment` column must contain
+`"Bluff the Listener"` (case-insensitive) to tag a candidate `weird`; all other segments get
+no tags. The `Original Article URL` / `Source URL` column must contain a valid `https://` URL
+(bare or in a markdown link). Rows without a valid URL are skipped.

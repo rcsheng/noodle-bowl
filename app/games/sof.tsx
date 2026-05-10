@@ -38,7 +38,7 @@ type Phase = 'play' | 'reveal';
 interface RevealData {
   correct: boolean;
   points: number;
-  fakeClaim: number;
+  scienceClaim: number;
   prevStreak: number;
 }
 
@@ -132,11 +132,11 @@ export default function SofScreen() {
 
   const handleLockIn = async () => {
     if (!question || selectedClaim === null) return;
-    const fakeClaim = question.claims.findIndex(c => !c.isScience);
-    const correct = selectedClaim === fakeClaim;
+    const scienceClaim = question.claims.findIndex(c => c.isScience);
+    const correct = selectedClaim === scienceClaim;
     const points = correct ? 10 : 0;
     const prevStreak = state.stats.sof.streak;
-    setRevealData({ correct, points, fakeClaim, prevStreak });
+    setRevealData({ correct, points, scienceClaim, prevStreak });
     updateGameStats('sof', correct, points);
     Analytics.gameComplete('sof', correct, Math.max(0, points));
     setPhase('reveal');
@@ -249,7 +249,7 @@ export default function SofScreen() {
   const currentSlot = weirdMode ? weirdSlot : standardSlot;
   const question = currentSlot?.item ?? null;
   const questionIdx = currentSlot?.idx ?? 0;
-  const claimOrder = currentSlot?.claimOrder ?? [0, 1, 2];
+  const claimOrder = currentSlot?.claimOrder ?? [0, 1];
 
   if (!question) return null;
 
@@ -293,8 +293,8 @@ export default function SofScreen() {
         {/* Instructions */}
         {phase === 'play' && (
           <View style={styles.instructions}>
-            <Text style={styles.instructionSub}>Tap the Fake</Text>
-            <Text style={styles.instructionMain}>Two are real · one is a lie</Text>
+            <Text style={styles.instructionSub}>Tap the Science</Text>
+            <Text style={styles.instructionMain}>One is real · one is fiction</Text>
           </View>
         )}
 
@@ -305,21 +305,21 @@ export default function SofScreen() {
             const selected = selectedClaim === originalIdx;
 
             if (phase === 'reveal' && revealData) {
-              const isFake = originalIdx === revealData.fakeClaim;
-              const isWrongPick = originalIdx === selectedClaim && !isFake;
-              const isColored = isFake || isWrongPick;
+              const isScienceClaim = originalIdx === revealData.scienceClaim;
+              const isWrongPick = originalIdx === selectedClaim && !isScienceClaim;
+              const isColored = isScienceClaim || isWrongPick;
               return (
                 <View key={originalIdx} style={styles.claimCard}>
                   <View style={[
                     styles.claimHeader,
-                    isFake && styles.claimHeaderFake,
+                    isScienceClaim && styles.claimHeaderFake,
                     isWrongPick && styles.claimHeaderWrong,
                   ]}>
                     <Text style={[styles.claimNum, isColored && styles.claimNumOnColor]}>
                       CLAIM {displayIdx + 1}
                     </Text>
                     <Text style={[styles.claimIndicator, isColored && styles.claimIndicatorOnColor]}>
-                      {isFake ? '✓' : isWrongPick ? '✗' : ''}
+                      {isScienceClaim ? '✓' : isWrongPick ? '✗' : ''}
                     </Text>
                   </View>
                   <Text style={styles.claimText}>{claim.text}</Text>
@@ -413,13 +413,13 @@ export default function SofScreen() {
                     <View style={styles.cardInnerBorder} />
                     <Text style={styles.challengePanelLabel}>Challenge Results</Text>
                     <View style={styles.challengeRow}>
-                      <Text style={styles.challengeKey}>Your fiction pick</Text>
+                      <Text style={styles.challengeKey}>Your science pick</Text>
                       <Text style={styles.challengeVal}>
                         {selectedClaim !== null ? `Claim ${selectedClaim + 1}` : '—'}
                       </Text>
                     </View>
                     <View style={styles.challengeRow}>
-                      <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s fiction pick</Text>
+                      <Text style={styles.challengeKey}>{challengeSenderName ?? 'Sender'}'s science pick</Text>
                       <Text style={styles.challengeVal}>Claim {challengeComparison.senderAnswer}</Text>
                     </View>
                     <View style={styles.challengeRow}>
@@ -493,7 +493,7 @@ export default function SofScreen() {
         visible={showChallenge}
         onClose={() => setShowChallenge(false)}
         correct={revealData?.correct ?? false}
-        predictLabel="Which claim do you think they'll call Fiction?"
+        predictLabel="Which claim do you think they'll call Science?"
         predictOptions={question.claims.map((claim, i) => ({
           label: `${i + 1}. ${claim.text.split(' ').slice(0, 6).join(' ')}…`,
           value: String(i + 1),

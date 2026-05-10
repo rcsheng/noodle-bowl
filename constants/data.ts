@@ -474,7 +474,7 @@ export const WAVE_BANK: WaveItem[] = [
 export const SOF_BANK: SofItem[] = [
   {
     topic: 'Animal Behavior',
-    intro: 'Three claims about animal behavior. Two are real findings; one is fabricated.',
+    intro: 'One real finding about animal behavior — and one that sounds like it could be.',
     weirdAndTrue: false,
     claims: [
       {
@@ -482,12 +482,6 @@ export const SOF_BANK: SofItem[] = [
         isScience: true,
         explanation: 'Real. The Queen Mary University of London study showed bees acquired the behavior socially, not individually — evidence of basic cultural learning.',
         source: { name: 'PLOS Biology', url: 'https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.3001541' },
-      },
-      {
-        text: "Researchers documented octopuses punching fish hunting partners during cooperative hunts, apparently to assert control or out of spite.",
-        isScience: true,
-        explanation: "Real. The behavior was observed in the Red Sea and published in Ecology, showing octopuses sometimes 'discipline' fish that fail to cooperate.",
-        source: { name: 'Ecology (Ecological Society of America)', url: 'https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3266' },
       },
       {
         text: 'A 2023 study found that captive elephants can identify their human keepers\' moods by smell alone, even when the keeper is in a different building.',
@@ -499,7 +493,7 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Space & Astronomy',
-    intro: 'Three claims about recent space discoveries. Two are real; one is fabricated.',
+    intro: 'One real space discovery — and one that sounds plausible but isn\'t.',
     weirdAndTrue: false,
     claims: [
       {
@@ -507,12 +501,6 @@ export const SOF_BANK: SofItem[] = [
         isScience: true,
         explanation: "Real. The probe achieved this speed during its closest perihelion, coming within 3.8 million miles of the Sun's surface.",
         source: { name: 'NASA', url: 'https://science.nasa.gov/mission/parker-solar-probe/' },
-      },
-      {
-        text: 'The James Webb Space Telescope detected water vapor in the atmosphere of an exoplanet roughly the size of Jupiter, located about 700 light-years from Earth.',
-        isScience: true,
-        explanation: "Real. JWST detected water vapor and other molecules in WASP-39b's atmosphere in 2022.",
-        source: { name: 'NASA / JWST Mission', url: 'https://webbtelescope.org/contents/news-releases/2022/news-2022-040' },
       },
       {
         text: 'A 2024 study from the European Space Agency found that the Moon is gradually spiraling closer to Earth at a rate of 1.5 centimeters per year.',
@@ -524,7 +512,7 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Medicine & Health',
-    intro: 'Three medical research claims. Two are real; one is fabricated.',
+    intro: 'One real medical breakthrough — and one that sounds authoritative but isn\'t.',
     weirdAndTrue: false,
     claims: [
       {
@@ -532,12 +520,6 @@ export const SOF_BANK: SofItem[] = [
         isScience: true,
         explanation: 'Real. Casgevy, developed by Vertex and CRISPR Therapeutics, became the first FDA-approved CRISPR therapy in late 2023.',
         source: { name: 'FDA', url: 'https://www.fda.gov/news-events/press-announcements/fda-approves-first-gene-therapies-treat-patients-sickle-cell-disease' },
-      },
-      {
-        text: 'Researchers at Stanford developed a wearable patch that uses ultrasound waves to non-invasively monitor deep-tissue blood flow in real time.',
-        isScience: true,
-        explanation: 'Real. The wearable ultrasound patch published in Nature Biomedical Engineering can continuously monitor cardiovascular signals.',
-        source: { name: 'Nature Biomedical Engineering', url: 'https://www.nature.com/articles/s41551-021-00763-4' },
       },
       {
         text: 'A Harvard Medical School study found that listening to classical music for 30 minutes daily reduces resting blood pressure by an average of 18 percent in adults over 50.',
@@ -549,7 +531,7 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Earth & Environment',
-    intro: 'Three claims about our planet. Two are real; one is fabricated.',
+    intro: 'One real environmental finding — and one that sounds official but isn\'t.',
     weirdAndTrue: false,
     claims: [
       {
@@ -557,12 +539,6 @@ export const SOF_BANK: SofItem[] = [
         isScience: true,
         explanation: "Real. The 'wood wide web' phenomenon was extensively documented by Suzanne Simard and others. Trees connect via mycorrhizal fungi.",
         source: { name: 'Nature', url: 'https://www.nature.com/articles/41557' },
-      },
-      {
-        text: 'A 2024 study found that microplastics have been detected in human placentas and in samples of arterial plaque, raising concerns about cardiovascular impact.',
-        isScience: true,
-        explanation: 'Real. Multiple peer-reviewed studies have detected microplastics in human placentas (2020) and carotid arterial plaque (2024), linked to higher cardiovascular risk.',
-        source: { name: 'New England Journal of Medicine', url: 'https://www.nejm.org/doi/full/10.1056/NEJMoa2309822' },
       },
       {
         text: "A 2023 Greenpeace study found that the Pacific Ocean's salinity has decreased by 12 percent over the past decade due to glacial melt.",
@@ -574,15 +550,9 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Technology & AI',
-    intro: 'Three claims about recent technology. Two are real; one is fabricated.',
+    intro: 'One real tech milestone — and one that sounds credible but isn\'t.',
     weirdAndTrue: false,
     claims: [
-      {
-        text: "When OpenAI's ChatGPT launched in November 2022, it reached one million users in just five days — faster than any consumer product in history at that point.",
-        isScience: true,
-        explanation: 'Real. Sam Altman confirmed the milestone publicly. Instagram took 75 days; Spotify took 150.',
-        source: { name: 'Reuters / OpenAI', url: 'https://www.reuters.com/business/chatgpt-sets-record-fastest-growing-user-base-analyst-note-2023-02-01/' },
-      },
       {
         text: "DeepMind's AlphaFold has predicted the 3D structure of nearly every known protein, releasing a database of over 200 million predicted structures freely available to researchers.",
         isScience: true,
@@ -599,7 +569,7 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Weird & True: Law & Order',
-    intro: 'Three bizarre real-world stories. Two actually happened. One is fabricated satire.',
+    intro: 'One bizarre thing that really happened — and one plausible-sounding story that didn\'t.',
     weirdAndTrue: true,
     claims: [
       {
@@ -607,12 +577,6 @@ export const SOF_BANK: SofItem[] = [
         isScience: true,
         explanation: 'Real. A Tampa man was found scrubbing dishes at a closed restaurant and was arrested for burglary anyway, despite his claim that he was only trying to help. (Tampa Bay Times, 2023)',
         source: { name: 'Tampa Bay Times', url: 'https://www.tampabay.com' },
-      },
-      {
-        text: 'A UK man was stopped at a border crossing with 70 kilograms of garlic hidden in his vehicle. Garlic carries high import duties in Britain.',
-        isScience: true,
-        explanation: 'Real. Garlic is a surprisingly common smuggling target in the UK due to steep import tariffs. Border agents regularly seize large quantities. (The Guardian, 2021)',
-        source: { name: 'The Guardian', url: 'https://www.theguardian.com' },
       },
       {
         text: 'A man in Ohio was cited by municipal inspectors after repeatedly pressure-washing his neighbor\'s driveway at 5 a.m. as "a favor," citing an unwritten neighborhood code of conduct.',
@@ -624,15 +588,9 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Weird & True: Strange Places',
-    intro: 'Three claims about unusual places and institutions. Two are real; one is fabricated.',
+    intro: 'One real oddity about a place — and one plausible-sounding claim that isn\'t true.',
     weirdAndTrue: true,
     claims: [
-      {
-        text: 'Multiple Italian towns have sold abandoned, crumbling houses for one euro to buyers willing to commit to a full renovation within three years.',
-        isScience: true,
-        explanation: 'Real. Towns including Sambuca, Mussomeli, and Bivona launched €1 home programs to reverse depopulation. The renovation commitment is legally binding. (BBC, 2019)',
-        source: { name: 'BBC', url: 'https://www.bbc.com' },
-      },
       {
         text: 'Japan opened the world\'s first hotel staffed almost entirely by robots in 2015, including a robotic dinosaur at the front desk. Many robots were later removed after causing more problems than they solved.',
         isScience: true,
@@ -649,15 +607,9 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Weird & True: Remarkable People',
-    intro: 'Three claims about people who did something extraordinary — or apparently did. Two are real; one is fabricated.',
+    intro: 'One real extraordinary story about a person — and one convincing fabrication.',
     weirdAndTrue: true,
     claims: [
-      {
-        text: 'An Oregon man successfully petitioned a court to legally change his name to Captain Awesome in 2008, convincing a judge it was not intended for fraudulent purposes.',
-        isScience: true,
-        explanation: 'Real. Scott Nall legally became Captain Awesome in Oregon. The judge found no fraud and granted the petition. He was not embarrassed about it. (The Oregonian, 2008)',
-        source: { name: 'The Oregonian', url: 'https://www.oregonlive.com' },
-      },
       {
         text: 'At COP27 in 2022, the Pacific island nation of Tuvalu announced it would build a digital replica of the entire country in the metaverse to preserve its statehood as rising seas threaten the physical islands.',
         isScience: true,
@@ -674,7 +626,7 @@ export const SOF_BANK: SofItem[] = [
   },
   {
     topic: 'Weird & True: Rules & Regulations',
-    intro: 'Three claims about surprising laws and scientific findings. Two are real; one is fabricated.',
+    intro: 'One real surprising law or regulation — and one that sounds equally plausible but isn\'t.',
     weirdAndTrue: true,
     claims: [
       {
@@ -682,12 +634,6 @@ export const SOF_BANK: SofItem[] = [
         isScience: true,
         explanation: 'Real. Switzerland has more fallout shelter capacity per capita than any other nation. The Cold War law was never repealed and remains enforceable. (Swiss Federal Civil Protection Law)',
         source: { name: 'Swiss Federal Chancellery', url: 'https://www.admin.ch' },
-      },
-      {
-        text: 'Researchers documented octopuses literally punching fish during cooperative hunting expeditions in the Red Sea, sometimes apparently out of spite rather than for any strategic advantage.',
-        isScience: true,
-        explanation: 'Real. Marine biologists filmed the behavior in the Red Sea and published findings in Ecology. The "spite" interpretation is supported by the timing and targeting of the punches. (Ecology, 2020)',
-        source: { name: 'Ecology (Ecological Society of America)', url: 'https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3266' },
       },
       {
         text: 'Denmark passed a 2022 workplace regulation requiring all open-plan offices with more than 20 employees to designate at least one lockable "deep focus pod" for uninterrupted work.',
@@ -716,10 +662,10 @@ export const GAME_META: Record<GameId, { num: string; section: string; title: st
   },
   sof: {
     num: 'N° 03',
-    section: 'Two Truths, One Lie',
+    section: 'Real or Fabricated',
     title: 'Science or Fiction',
-    tagline: 'Three claims. Two are real and cited. One is fabricated. Find the fake.',
-    meta: ['Cited sources', '~3 min'],
+    tagline: 'Two claims. One is real and cited. One is fabricated. Find the science.',
+    meta: ['Cited sources', '~2 min'],
   },
   quip: {
     num: 'N° 05',

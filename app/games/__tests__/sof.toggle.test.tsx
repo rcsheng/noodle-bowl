@@ -57,7 +57,6 @@ const makeQuestion = (weirdAndTrue: boolean): SofItem => ({
   claims: [
     { text: 'Claim A', isScience: true, explanation: 'Exp A', source: null },
     { text: 'Claim B', isScience: false, explanation: 'Exp B', source: null },
-    { text: 'Claim C', isScience: true, explanation: 'Exp C', source: null },
   ],
 });
 
@@ -202,54 +201,45 @@ describe('SoF mode pre-loading', () => {
   });
 });
 
-// ── reveal: fake claim only (§15.1) ──────────────────────────────────────────
+// ── reveal ─────────────────────────────────────────────────────────────────────
 
-async function reachReveal(screen: ReturnType<typeof render>, claimText = 'Claim B') {
+async function reachReveal(screen: ReturnType<typeof render>, claimText = 'Claim A') {
   fireEvent.press(screen.getByText(claimText));
   await act(async () => {});
   fireEvent.press(screen.getByText(/LOCK IN CLAIM/i));
   await act(async () => {});
 }
 
-describe('SoF reveal — fake claim only (§15.1)', () => {
-  it('shows the fake claim in reveal', async () => {
-    const screen = render(<SofScreen />);
-    await act(async () => {});
-    await reachReveal(screen);
-    expect(screen.queryByText('Claim B')).toBeTruthy();
-  });
-
-  it('shows all three claims in reveal', async () => {
+describe('SoF reveal', () => {
+  it('shows both claims in reveal', async () => {
     const screen = render(<SofScreen />);
     await act(async () => {});
     await reachReveal(screen);
     expect(screen.queryByText('Claim A')).toBeTruthy();
     expect(screen.queryByText('Claim B')).toBeTruthy();
-    expect(screen.queryByText('Claim C')).toBeTruthy();
   });
 
-  it('shows explanations for all claims in reveal', async () => {
+  it('shows explanations for both claims in reveal', async () => {
     const screen = render(<SofScreen />);
     await act(async () => {});
     await reachReveal(screen);
     expect(screen.queryByText('Exp A')).toBeTruthy();
     expect(screen.queryByText('Exp B')).toBeTruthy();
-    expect(screen.queryByText('Exp C')).toBeTruthy();
   });
 
-  it('shows correct verdict when fake is picked', async () => {
-    const screen = render(<SofScreen />);
-    await act(async () => {});
-    await reachReveal(screen, 'Claim B');
-    expect(screen.queryByText('Correct')).toBeTruthy();
-  });
-
-  it('shows wrong verdict and still shows fake when non-fake is picked', async () => {
+  it('shows Correct when science claim is picked', async () => {
     const screen = render(<SofScreen />);
     await act(async () => {});
     await reachReveal(screen, 'Claim A');
+    expect(screen.queryByText('Correct')).toBeTruthy();
+  });
+
+  it('shows Incorrect when fiction claim is picked and science claim is still visible', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    await reachReveal(screen, 'Claim B');
     expect(screen.queryByText('Incorrect')).toBeTruthy();
-    expect(screen.queryByText('Claim B')).toBeTruthy();
+    expect(screen.queryByText('Claim A')).toBeTruthy();
   });
 });
 
@@ -257,28 +247,26 @@ describe('SoF reveal — fake claim only (§15.1)', () => {
 
 describe('SoF claim shuffle', () => {
   it('renders claims in the order returned by shuffleIndices', async () => {
-    // fiction is index 1 (Claim B); shuffle puts it first, so Claim B appears before Claim A
-    shuffleIndices.mockReturnValue([1, 0, 2]);
+    // fiction (Claim B, index 1) shuffled first, science (Claim A, index 0) second
+    shuffleIndices.mockReturnValue([1, 0]);
     const { getAllByText } = render(<SofScreen />);
     await act(async () => {});
-    const texts = getAllByText(/^Claim [ABC]$/).map(el => el.props.children as string);
+    const texts = getAllByText(/^Claim [AB]$/).map(el => el.props.children as string);
     expect(texts[0]).toBe('Claim B');
     expect(texts[1]).toBe('Claim A');
-    expect(texts[2]).toBe('Claim C');
   });
 
-  it('fiction can appear at any display position', async () => {
-    // shuffle puts fiction (index 1) as CLAIM 3
-    shuffleIndices.mockReturnValue([0, 2, 1]);
+  it('fiction can appear at either display position', async () => {
+    shuffleIndices.mockReturnValue([0, 1]);
     const { getAllByText } = render(<SofScreen />);
     await act(async () => {});
-    const claimNums = getAllByText(/^CLAIM [123]$/);
-    expect(claimNums).toHaveLength(3);
+    const claimNums = getAllByText(/^CLAIM [12]$/);
+    expect(claimNums).toHaveLength(2);
   });
 
   it('selecting a claim uses the original index for correctness check', async () => {
     // shuffle: fiction (Claim B, index 1) appears as CLAIM 1
-    shuffleIndices.mockReturnValue([1, 0, 2]);
+    shuffleIndices.mockReturnValue([1, 0]);
     const { getByText } = render(<SofScreen />);
     await act(async () => {});
     // Tap Claim B text (displayed as CLAIM 1)
@@ -286,5 +274,69 @@ describe('SoF claim shuffle', () => {
     await act(async () => {});
     // Lock In button should reflect display position 1
     expect(getByText('LOCK IN CLAIM 1')).toBeTruthy();
+  });
+});
+
+// ── 2-claim mechanic — pick the Science ───────────────────────────────────────
+
+describe('SoF 2-claim mechanic — pick the Science', () => {
+  const make2Q = (weirdAndTrue: boolean): SofItem => ({
+    topic: weirdAndTrue ? 'Weird Topic' : 'Standard Topic',
+    intro: 'Test intro',
+    weirdAndTrue,
+    claims: [
+      { text: 'Science Claim', isScience: true, explanation: 'Exp Science', source: null },
+      { text: 'Fiction Claim', isScience: false, explanation: 'Exp Fiction', source: null },
+    ],
+  });
+
+  beforeEach(() => {
+    useContent.mockReturnValue({
+      banks: { sof: [make2Q(false), make2Q(true)], lede: [], spread: [], wave: [], quip: [] },
+      isLoaded: true,
+    });
+  });
+
+  it('instruction label is "Tap the Science"', async () => {
+    const { getByText } = render(<SofScreen />);
+    await act(async () => {});
+    expect(getByText('Tap the Science')).toBeTruthy();
+  });
+
+  it('instruction subtitle is "One is real · one is fiction"', async () => {
+    const { getByText } = render(<SofScreen />);
+    await act(async () => {});
+    expect(getByText('One is real · one is fiction')).toBeTruthy();
+  });
+
+  it('shows Correct when science claim is picked', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    fireEvent.press(screen.getByText('Science Claim'));
+    await act(async () => {});
+    fireEvent.press(screen.getByText(/LOCK IN CLAIM/i));
+    await act(async () => {});
+    expect(screen.queryByText('Correct')).toBeTruthy();
+  });
+
+  it('shows Incorrect when fiction claim is picked', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    fireEvent.press(screen.getByText('Fiction Claim'));
+    await act(async () => {});
+    fireEvent.press(screen.getByText(/LOCK IN CLAIM/i));
+    await act(async () => {});
+    expect(screen.queryByText('Incorrect')).toBeTruthy();
+  });
+
+  it('shows both claims in reveal', async () => {
+    const screen = render(<SofScreen />);
+    await act(async () => {});
+    fireEvent.press(screen.getByText('Science Claim'));
+    await act(async () => {});
+    fireEvent.press(screen.getByText(/LOCK IN CLAIM/i));
+    await act(async () => {});
+    expect(screen.queryByText('Science Claim')).toBeTruthy();
+    expect(screen.queryByText('Fiction Claim')).toBeTruthy();
   });
 });

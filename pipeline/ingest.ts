@@ -1,5 +1,5 @@
 import { loadEnv, requireEnv, httpGet, today, writeJson, dataPath, sha256 } from './utils';
-import type { StoryCandidate, CandidatesFile, TheNewsAPIArticle, WikipediaOnThisDayEvent, WikipediaPage } from './types';
+import type { StoryCandidate, CandidatesFile, TheNewsAPIArticle } from './types';
 
 loadEnv();
 
@@ -61,44 +61,6 @@ async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
   });
 }
 
-function dateMonthDay(daysAgo: number): { mm: string; dd: string } {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return {
-    mm: String(d.getMonth() + 1).padStart(2, '0'),
-    dd: String(d.getDate()).padStart(2, '0'),
-  };
-}
-
-async function ingestWikipedia(mm: string, dd: string): Promise<StoryCandidate[]> {
-  const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${mm}/${dd}`;
-  const raw = JSON.parse(
-    await httpGet(url, { 'User-Agent': 'NoodleBowlPipeline/1.0 (rcsheng@gmail.com)' })
-  ) as { events?: WikipediaOnThisDayEvent[] };
-  const events = raw.events ?? [];
-
-  return events.slice(0, 20).map((e): StoryCandidate => {
-    const headline = `${e.year}: ${e.text}`;
-    const page: WikipediaPage | undefined = e.pages?.[0];
-    const summary = page?.extract ?? '';
-    const wikiUrl = page?.content_urls?.desktop?.page ?? 'https://en.wikipedia.org';
-    const { hasNumber, domain } = classify(headline, summary);
-    return {
-      id: sha256(wikiUrl + String(e.year)),
-      headline,
-      summary: summary.slice(0, 500),
-      url: wikiUrl,
-      source: 'Wikipedia',
-      ingestedAt: new Date().toISOString(),
-      hasNumber,
-      domain,
-      ingestSource: 'wikipedia',
-      tags: [],
-      sourceEvent: e,
-    };
-  });
-}
-
 async function main() {
   const daysArg = process.argv.find((a) => a.startsWith('--days='));
   const days = daysArg ? parseInt(daysArg.split('=')[1], 10) : 1;
@@ -117,19 +79,6 @@ async function main() {
     process.stdout.write(`${newsItems.length}\n`);
     allCandidates.push(...newsItems);
     if (i < days - 1) await sleep(250);
-  }
-
-  const seenDates = new Set<string>();
-  console.log(`Ingesting Wikipedia "On This Day" for ${label}...`);
-  for (let i = 0; i < days; i++) {
-    const { mm, dd } = dateMonthDay(i);
-    const key = `${mm}-${dd}`;
-    if (seenDates.has(key)) continue;
-    seenDates.add(key);
-    process.stdout.write(`  ${mm}/${dd}... `);
-    const wikiItems = await ingestWikipedia(mm, dd);
-    process.stdout.write(`${wikiItems.length}\n`);
-    allCandidates.push(...wikiItems);
   }
 
   const seen = new Set<string>();

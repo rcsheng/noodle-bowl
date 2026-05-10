@@ -9,7 +9,8 @@ Rules:
 - The explanation (2-3 sentences) gives context: why is this number surprising? What is a useful comparison or benchmark?
 - Set others to an empty array [].
 
-Return ONLY valid JSON. No markdown, no code blocks, no prose.
+If the story contains no specific extractable number, return {"skip": true} instead.
+Otherwise return ONLY valid JSON. No markdown, no code blocks, no prose.
 
 Schema:
 {

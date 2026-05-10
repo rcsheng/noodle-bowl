@@ -6,7 +6,7 @@ Ideas for future games. None of these are in scope for the base game (v6). Add t
 
 ## Game Ideas from News + History APIs
 
-These ideas emerged from the content pipeline API research (May 2026). All three rely on sources already wired into the pipeline: TheNewsAPI, Wikipedia "On This Day", and The Guardian.
+These ideas emerged from the content pipeline API research (May 2026). They rely on TheNewsAPI and hand-researched content already flowing through the pipeline.
 
 ---
 

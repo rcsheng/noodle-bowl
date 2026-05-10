@@ -45,12 +45,6 @@ function candidateEventDate(s: StoryCandidate): string | undefined {
       month: 'long', day: 'numeric', year: 'numeric',
     });
   }
-  if (s.sourceEvent) {
-    const ingested = new Date(s.ingestedAt);
-    return new Date(s.sourceEvent.year, ingested.getMonth(), ingested.getDate()).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
-    });
-  }
   return undefined;
 }
 
@@ -69,6 +63,7 @@ async function generateLede(client: Anthropic, s: StoryCandidate): Promise<LedeI
 async function generateSpread(client: Anthropic, s: StoryCandidate): Promise<SpreadItem | null> {
   try {
     const raw = await callClaude(client, SONNET, loadPrompt('spread') + storyContext(s));
+    if (raw && typeof raw === 'object' && 'skip' in raw) return null;
     const item = spreadItemSchema.parse(raw) as SpreadItem;
     return { ...item, eventDate: candidateEventDate(s) };
   } catch (e) {

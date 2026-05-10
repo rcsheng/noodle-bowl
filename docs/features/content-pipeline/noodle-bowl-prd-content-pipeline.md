@@ -71,18 +71,18 @@ A real news story involving a specific number. Players pick the closest estimate
 
 ### 3. Science or Fiction (`SofItem`)
 
-Three claims in a thematic cluster; two are real (cited), one is fabricated. Two flavors:
-- **Standard**: Two real science/research findings + one plausible-but-false claim in the same domain.
-- **Weird & True**: Two bizarre-but-real news stories + one fabricated story in the Onion/McSweeney's style.
+Two claims from a single news story: one real (cited), one fabricated. Player taps the Science (real) claim. Two flavors:
+- **Standard**: One real science/research finding + one plausible-but-false claim in the same domain.
+- **Weird & True**: One bizarre-but-real news story + one boring plausible fake in the same style.
 
 | Field | Description |
 |---|---|
-| `topic` | The thematic cluster label (e.g. "Space & Astronomy") — **this is the dominant 22pt headline in v6 UI** |
-| `intro` | One sentence framing the round — **generated but no longer rendered in v6 play phase**; keep for potential future use |
+| `topic` | The thematic label (e.g. "Space & Astronomy") — **dominant 22pt headline in v6 UI** |
+| `intro` | One sentence framing the round — generated but not rendered in v6 play phase; kept for future use |
 | `weirdAndTrue` | `true` for Weird & True flavor, `false` for standard |
-| `claims[3]` | Each has `text`, `isScience`, `explanation`, `source` (name + url, or null for the fabricated claim). Fiction claim is always at index 2 in the data array; the UI shuffles display order. |
+| `claims[2]` | Claim 0: real (`isScience: true`, source required). Claim 1: fabricated (`isScience: false`, `source: null`). UI shuffles display order. |
 
-**Best content:** Clusters of 3 thematically related claims. The fake claim must be adjacent enough to fool a reasonably informed player. Real claims must have citable peer-reviewed or mainstream-news sources.
+**Best content:** A real, specific, surprising news story. The fabricated claim must be adjacent enough to fool a reasonably informed player. The real claim must have a citable mainstream-news source.
 
 ### 4. The Quip (`QuipPrompt`) — Derivative
 
@@ -227,7 +227,7 @@ A daily cron (midnight UTC) fetches from TheNewsAPI and Wikipedia "On This Day",
       "ingestedAt": "2026-05-05T00:00:00Z",
       "hasNumber": true,
       "domain": "science",
-      "ingestSource": "thenewsapi | wikipedia | newsletter"
+      "ingestSource": "thenewsapi | scraped | researched"
     }
   ]
 }
@@ -240,7 +240,7 @@ A daily cron (midnight UTC) fetches from TheNewsAPI and Wikipedia "On This Day",
 **What it does:**
 - Scores each candidate: interestingness, Spread suitability (`hasNumber`), SoF suitability (science domain, citable source).
 - Groups SoF candidates into thematic clusters by domain.
-- Selects target set: 30 Lede, 30 Spread, 30 SoF clusters (2 real + 1 fabricated per cluster).
+- Selects target set: 30 Lede, 30 Spread, 60 SoF clusters (1 real + 1 fabricated per cluster).
 - Writes to `pipeline/selected/YYYY-MM-DD.json`.
 
 A quick Claude Haiku call (~$0.002 per 100 candidates) scores interestingness more reliably than regex alone.
@@ -255,7 +255,7 @@ A quick Claude Haiku call (~$0.002 per 100 candidates) scores interestingness mo
 |---|---|---|---|
 | Lede | `title + description` from API or newsletter | `LedeItem` JSON (3 completions, no panelist personas) | Sonnet |
 | Spread | `title + description` containing a specific number | `SpreadItem` JSON (`question`, `answer`, `unit`, `explanation`, `others: []`) | Sonnet |
-| SoF | Cluster of 2-3 real stories (Wikipedia summaries preferred) | `SofItem` JSON (with fabricated 3rd claim at index 2) | Sonnet |
+| SoF | One real news story | `SofItem` JSON (2 claims: real at index 0, fabricated at index 1; UI shuffles) | Sonnet |
 | Quip | Any Lede/SoF story | `QuipPrompt` JSON | Haiku |
 | Wave | Any Lede/SoF story | `WaveItem` JSON | Haiku |
 
@@ -311,25 +311,23 @@ Return JSON:
 ```
 
 ```
-User (SoF example — Wikipedia "On This Day" path):
-Real events (from Wikipedia):
-1. "{summary_1}" (source: Wikipedia, {year})
-2. "{summary_2}" (source: Wikipedia, {year})
+User (SoF example):
+Headline: "{title}"
+Context: "{description}"
+Source: {source_name} ({url})
+Published: {date}
 
-Topic cluster: {domain}
-
-Generate one SoF Standard item. Claims 0 and 1 are real (use summaries above as source material).
-Claim 2 is fabricated — plausible but false, in the same domain. It should fool a reasonably
-informed player. Set source to null for the fake claim.
+Generate one SoF Standard item. Claim 0 is REAL — one factual claim drawn from the story above,
+with source required. Claim 1 is FABRICATED — plausible but false, in the same domain. Set
+source to null for the fabricated claim.
 
 Return JSON:
 {
   "topic": "...",
-  "intro": "Three claims about {domain}. Two are real; one is fabricated.",
+  "intro": "One is real, one is fiction. Can you tell which is which?",
   "weirdAndTrue": false,
   "claims": [
-    {"text": "...", "isScience": true, "explanation": "...", "source": {"name": "Wikipedia", "url": "..."}},
-    {"text": "...", "isScience": true, "explanation": "...", "source": {"name": "Wikipedia", "url": "..."}},
+    {"text": "...", "isScience": true, "explanation": "...", "source": {"name": "...", "url": "..."}},
     {"text": "...", "isScience": false, "explanation": "...", "source": null}
   ]
 }

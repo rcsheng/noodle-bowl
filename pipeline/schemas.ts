@@ -29,14 +29,14 @@ const sofClaimSchema = z.object({
   text: z.string().min(10),
   isScience: z.boolean(),
   explanation: z.string().min(10),
-  source: z.object({ name: z.string(), url: z.string() }).nullable(),
+  source: z.object({ name: z.string(), url: z.string() }).nullish().transform(v => v ?? null),
 });
 
 export const sofItemSchema = z.object({
   topic: z.string().min(1),
   intro: z.string(),
   weirdAndTrue: z.boolean(),
-  claims: z.array(sofClaimSchema).length(3),
+  claims: z.array(sofClaimSchema).length(2),
   eventDate: z.string().optional(),
 });
 
