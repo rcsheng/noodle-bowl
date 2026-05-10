@@ -140,8 +140,8 @@ async function main() {
   const spreadItems = await runBatch('Spread', spreadStories, (s) => generateSpread(client, s));
   const sofItems = await runBatch('SoF', sofClusters, (c) => generateSof(client, c));
 
-  const quipSource = ledeStories.slice(0, 20);
-  const waveSource = ledeStories.slice(0, 20);
+  const quipSource = ledeStories;
+  const waveSource = ledeStories;
   const quipItems = await runBatch('Quip', quipSource, (s) => generateQuip(client, s));
   const waveItems = await runBatch('Wave', waveSource, (s) => generateWave(client, s));
 

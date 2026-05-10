@@ -2,9 +2,9 @@ import * as path from 'path';
 import { readJson, writeJson, today, dataPath, latestFile } from './utils';
 import type { CandidatesFile, SelectedFile, SofCluster, StoryCandidate } from './types';
 
-const TARGET_LEDE = 30;
-const TARGET_SPREAD = 30;
-const TARGET_SOF_CLUSTERS = 15;
+const BASE_LEDE = 30;
+const BASE_SPREAD = 30;
+const BASE_SOF_CLUSTERS = 15;
 const MIN_SUMMARY_LENGTH = 80;
 
 function score(c: StoryCandidate): number {
@@ -18,10 +18,18 @@ function score(c: StoryCandidate): number {
 }
 
 function main() {
+  const scaleArg = process.argv.find((a) => a.startsWith('--scale='));
+  const scale = scaleArg ? parseFloat(scaleArg.split('=')[1]) : 1;
+  if (isNaN(scale) || scale <= 0) throw new Error('--scale must be a positive number');
+
+  const TARGET_LEDE = Math.round(BASE_LEDE * scale);
+  const TARGET_SPREAD = Math.round(BASE_SPREAD * scale);
+  const TARGET_SOF_CLUSTERS = Math.round(BASE_SOF_CLUSTERS * scale);
+
   const filePath = latestFile(dataPath('candidates'), 'Run pipeline:ingest first.');
   console.log(`Reading candidates from ${path.basename(filePath)}`);
   const { candidates } = readJson<CandidatesFile>(filePath);
-  console.log(`  ${candidates.length} candidates`);
+  console.log(`  ${candidates.length} candidates  (scale=${scale}: targets lede=${TARGET_LEDE} spread=${TARGET_SPREAD} sof=${TARGET_SOF_CLUSTERS})`);
 
   const sorted = [...candidates].sort((a, b) => score(b) - score(a));
 

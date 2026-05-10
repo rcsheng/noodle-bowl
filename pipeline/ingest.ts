@@ -47,10 +47,16 @@ async function ingestTheNewsAPI(): Promise<StoryCandidate[]> {
   });
 }
 
-async function ingestWikipedia(): Promise<StoryCandidate[]> {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
+function dateMonthDay(daysAgo: number): { mm: string; dd: string } {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return {
+    mm: String(d.getMonth() + 1).padStart(2, '0'),
+    dd: String(d.getDate()).padStart(2, '0'),
+  };
+}
+
+async function ingestWikipedia(mm: string, dd: string): Promise<StoryCandidate[]> {
   const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${mm}/${dd}`;
   const raw = JSON.parse(
     await httpGet(url, { 'User-Agent': 'NoodleBowlPipeline/1.0 (rcsheng@gmail.com)' })
@@ -77,17 +83,33 @@ async function ingestWikipedia(): Promise<StoryCandidate[]> {
 }
 
 async function main() {
-  console.log('Ingesting from TheNewsAPI...');
+  const daysArg = process.argv.find((a) => a.startsWith('--days='));
+  const days = daysArg ? parseInt(daysArg.split('=')[1], 10) : 1;
+  if (isNaN(days) || days < 1) throw new Error('--days must be a positive integer');
+
+  const allCandidates: StoryCandidate[] = [];
+
+  console.log('Ingesting from TheNewsAPI (today only)...');
   const newsItems = await ingestTheNewsAPI();
   console.log(`  ${newsItems.length} items`);
+  allCandidates.push(...newsItems);
 
-  console.log('Ingesting from Wikipedia "On This Day"...');
-  const wikiItems = await ingestWikipedia();
-  console.log(`  ${wikiItems.length} items`);
+  const label = days === 1 ? 'today' : `${days} days`;
+  console.log(`Ingesting Wikipedia "On This Day" for ${label}...`);
+  const seenDates = new Set<string>();
+  for (let i = 0; i < days; i++) {
+    const { mm, dd } = dateMonthDay(i);
+    const key = `${mm}-${dd}`;
+    if (seenDates.has(key)) continue;
+    seenDates.add(key);
+    process.stdout.write(`  ${mm}/${dd}... `);
+    const wikiItems = await ingestWikipedia(mm, dd);
+    process.stdout.write(`${wikiItems.length}\n`);
+    allCandidates.push(...wikiItems);
+  }
 
-  const all = [...newsItems, ...wikiItems];
   const seen = new Set<string>();
-  const candidates = all.filter((c) => {
+  const candidates = allCandidates.filter((c) => {
     if (seen.has(c.id)) return false;
     seen.add(c.id);
     return true;
@@ -98,7 +120,8 @@ async function main() {
   writeJson(outPath, out);
 
   const withNumbers = candidates.filter((c) => c.hasNumber).length;
-  console.log(`\n✓ ${candidates.length} candidates (${withNumbers} with numbers) → ${outPath}`);
+  const bulkNote = days > 1 ? ` (${days}-day bulk)` : '';
+  console.log(`\n✓ ${candidates.length} candidates${bulkNote} (${withNumbers} with numbers) → ${outPath}`);
 }
 
 main().catch((err: Error) => {

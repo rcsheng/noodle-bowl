@@ -9,10 +9,13 @@
 ## Content pipeline (PRD §1)
 
 - [x] Fix `pipeline/publish.ts` — auto-deactivate active docs before publishing new version
-- [ ] First pipeline run — emulator dry run (see runbook below)
-- [ ] First pipeline run — production publish
+- [x] Add `--days=N` to `ingest.ts` for bulk historical Wikipedia ingestion
+- [x] Add `--scale=N` to `select.ts` to scale selection targets
+- [x] Remove hardcoded `slice(0, 20)` cap in `generate.ts` so quip/wave scale with lede
+- [ ] Bulk pipeline run — emulator dry run (see runbook below)
+- [ ] Bulk pipeline run — production publish (60-day bank)
 - [ ] Verify app reads live content (no bundled fallback triggered)
-- [ ] Verify second pipeline run correctly deactivates first version
+- [ ] Verify subsequent daily run correctly deactivates previous version
 
 ---
 
@@ -45,7 +48,7 @@
 
 ---
 
-## Pipeline first-run runbook
+## Pipeline runbook
 
 ### Prerequisites
 
@@ -57,67 +60,78 @@ ANTHROPIC_API_KEY=<your key>       # from console.anthropic.com
 FIREBASE_PROJECT_ID=noodle-bowl    # or leave unset — defaults to 'noodle-bowl'
 ```
 
-`FIREBASE_PROJECT_ID` defaults to `noodle-bowl` if unset. The pipeline reads `.env.local` from `process.cwd()`, so run all commands from the project root.
-
 For the production publish step you also need:
 ```
 GOOGLE_APPLICATION_CREDENTIALS=<path to service account JSON>
 ```
 
-### Dry run against emulator (recommended first)
+---
 
-Run these in order. Each step reads the output file from the previous step.
+### Bulk run (first time — 60-day bank)
+
+Do this once before launch to pre-fill the content bank.
 
 ```bash
-# 1. Start the Firebase emulator (separate terminal)
+# 1. Start the Firebase emulator for the dry run (separate terminal)
 npm run emulator
 
-# 2. Ingest news stories
-npm run pipeline:ingest
-# → writes pipeline/data/candidates/YYYY-MM-DD.json
+# 2. Bulk ingest — fetches today's news + Wikipedia "On This Day" for 60 dates
+npm run pipeline:ingest:bulk
+# → ~800–1000 unique candidates in pipeline/data/candidates/YYYY-MM-DD.json
 
-# 3. Select + score candidates
-npm run pipeline:select
-# → writes pipeline/data/selected/YYYY-MM-DD.json
+# 3. Bulk select — 2× targets: 60 lede, 60 spread, 30 SoF clusters
+npm run pipeline:select:bulk
+# → pipeline/data/selected/YYYY-MM-DD.json
 
-# 4. Generate game content via Claude API
+# 4. Generate — calls Claude API for each selected item
 npm run pipeline:generate
-# Takes ~2-3 minutes. Calls Sonnet + Haiku for each game type.
-# → writes pipeline/data/generated/YYYY-MM-DD.json
+# Takes ~15–20 minutes. Calls Sonnet (lede, spread, sof) + Haiku (quip, wave).
+# → pipeline/data/generated/YYYY-MM-DD.json
 
 # 5. Review output in terminal (human gate)
 npm run pipeline:review
-# Prints 5 random samples of each game type. Read through them.
-# If anything looks wrong, delete the generated file and rerun step 4.
+# Shows 5 random samples of each game type. Re-run step 4 if quality looks off.
 
-# 6. Publish to emulator
+# 6. Dry run — publish to emulator first
 npm run pipeline:publish:emulator
-# Deactivates any existing active versions, writes new ContentVersion.
-# Confirm 'y' at the prompt.
+# Confirm 'y'. Check http://localhost:4000 for contentVersions with active: true.
+
+# 7. Production publish
+npm run pipeline:publish
+# Target: PRODUCTION (project: noodle-bowl). Confirm 'y'.
 ```
 
-Verify in the emulator UI (http://localhost:4000) that a `contentVersions` document exists with `active: true`.
+**Expected output counts after bulk generate:**
+- lede: ~55–60 items
+- spread: ~50–60 items (depends on number candidates available)
+- sof: ~25–30 items
+- quip: ~55–60 items
+- wave: ~55–60 items
 
-### Production publish
+---
 
-After the emulator dry run passes:
+### Daily incremental run (ongoing)
+
+Run this daily (or as needed) to keep content fresh. Use the standard scripts — no bulk flags.
 
 ```bash
-npm run pipeline:publish
-# Target: PRODUCTION (project: noodle-bowl)
-# Confirm 'y' at the prompt.
+npm run pipeline:ingest      # today's news + today's Wikipedia "On This Day"
+npm run pipeline:select      # 30 lede, 30 spread, 15 SoF (daily targets)
+npm run pipeline:generate    # ~2–3 minutes
+npm run pipeline:review      # spot-check output
+npm run pipeline:publish     # deactivates previous version, publishes new one
 ```
 
-Requires `GOOGLE_APPLICATION_CREDENTIALS` pointing to a service account with Firestore write access.
+---
 
 ### Verifying the app reads live content
 
-After publishing:
+After any production publish:
 
 1. Run `npm run start:qa` (prod Firebase, QA collections)
-2. Launch app — open the Firestore console and check that `contentVersions` has exactly one `active: true` doc
-3. Force-quit and relaunch the app — content should load without errors
-4. Check `AsyncStorage` isn't serving the stale bundled fallback by confirming the `contentVersions` doc matches what you published (e.g., spot-check a Lede headline)
+2. Open the Firestore console — confirm `contentVersions` has exactly one `active: true` doc
+3. Launch app, play a game — content should reflect what was published (spot-check a headline)
+4. Force-quit and relaunch — content loads instantly from AsyncStorage cache
 
 ---
 

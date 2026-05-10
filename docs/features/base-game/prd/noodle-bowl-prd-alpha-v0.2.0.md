@@ -45,6 +45,19 @@ The pipeline produces a `ContentVersion` document in Firestore, which the app re
 ### What changed in this release
 
 - `pipeline/publish.ts` — Before writing the new `ContentVersion`, the pipeline now queries Firestore for any docs where `active: true` and patches them to `active: false`. Previously the operator had to manually deactivate old versions in the Firebase console.
+- `pipeline/ingest.ts` — Added `--days=N` flag. When N > 1, loops through N calendar dates and fetches Wikipedia "On This Day" for each unique MM/DD. TheNewsAPI is called once (free tier is current-only). Combined candidates are deduplicated.
+- `pipeline/select.ts` — Added `--scale=N` flag. Multiplies all selection targets by N: 30→30N lede, 30→30N spread, 15→15N SoF clusters.
+- `pipeline/generate.ts` — Removed the hardcoded `slice(0, 20)` cap on quip/wave source so they scale with lede automatically.
+
+### Bulk vs incremental mode
+
+| Mode | Commands | When to use |
+|---|---|---|
+| **Bulk** | `pipeline:ingest:bulk` + `pipeline:select:bulk` | First run — pre-fills 60-day bank |
+| **Incremental** | `pipeline:ingest` + `pipeline:select` | Daily run — refreshes with today's news |
+
+`pipeline:ingest:bulk` = `--days=60` (fetches 60 dates of Wikipedia)
+`pipeline:select:bulk` = `--scale=2` (2× targets: 60 lede, 60 spread, 30 SoF)
 
 ### Acceptance criteria
 
