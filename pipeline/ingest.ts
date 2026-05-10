@@ -1,5 +1,5 @@
 import { loadEnv, requireEnv, httpGet, today, writeJson, dataPath, sha256 } from './utils';
-import type { StoryCandidate, CandidatesFile } from './types';
+import type { StoryCandidate, CandidatesFile, TheNewsAPIArticle, WikipediaOnThisDayEvent, WikipediaPage } from './types';
 
 loadEnv();
 
@@ -40,7 +40,7 @@ async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
   const url = date
     ? `https://api.thenewsapi.com/v1/news/all?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50&published_on=${date}`
     : `https://api.thenewsapi.com/v1/news/top?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50`;
-  const raw = JSON.parse(await httpGet(url)) as { data?: Array<{ title: string; description: string; url: string; source: string }> };
+  const raw = JSON.parse(await httpGet(url)) as { data?: TheNewsAPIArticle[] };
   const articles = raw.data ?? [];
 
   return articles.map((a): StoryCandidate => {
@@ -55,6 +55,7 @@ async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
       hasNumber,
       domain,
       ingestSource: 'thenewsapi',
+      sourceArticle: a,
     };
   });
 }
@@ -72,13 +73,14 @@ async function ingestWikipedia(mm: string, dd: string): Promise<StoryCandidate[]
   const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${mm}/${dd}`;
   const raw = JSON.parse(
     await httpGet(url, { 'User-Agent': 'NoodleBowlPipeline/1.0 (rcsheng@gmail.com)' })
-  ) as { events?: Array<{ text: string; year: number; pages?: Array<{ extract: string; content_urls?: { desktop?: { page?: string } } }> }> };
+  ) as { events?: WikipediaOnThisDayEvent[] };
   const events = raw.events ?? [];
 
   return events.slice(0, 20).map((e): StoryCandidate => {
     const headline = `${e.year}: ${e.text}`;
-    const summary = e.pages?.[0]?.extract ?? '';
-    const wikiUrl = e.pages?.[0]?.content_urls?.desktop?.page ?? 'https://en.wikipedia.org';
+    const page: WikipediaPage | undefined = e.pages?.[0];
+    const summary = page?.extract ?? '';
+    const wikiUrl = page?.content_urls?.desktop?.page ?? 'https://en.wikipedia.org';
     const { hasNumber, domain } = classify(headline, summary);
     return {
       id: sha256(wikiUrl + String(e.year)),
@@ -90,6 +92,7 @@ async function ingestWikipedia(mm: string, dd: string): Promise<StoryCandidate[]
       hasNumber,
       domain,
       ingestSource: 'wikipedia',
+      sourceEvent: e,
     };
   });
 }

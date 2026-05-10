@@ -4,7 +4,7 @@
 // select.ts automatically merges these when present and boosts their Lede score.
 
 import { loadEnv, requireEnv, httpGet, today, writeJson, dataPath, sha256 } from './utils';
-import type { StoryCandidate, CandidatesFile } from './types';
+import type { StoryCandidate, CandidatesFile, TheNewsAPIArticle } from './types';
 
 loadEnv();
 
@@ -94,9 +94,7 @@ async function resolveViaNewsAPI(headline: string, weirdSource: string, token: s
   if (!terms) return null;
 
   const url = `https://api.thenewsapi.com/v1/news/all?api_token=${token}&search=${encodeURIComponent(terms)}&locale=us&limit=1`;
-  const raw = JSON.parse(await httpGet(url)) as {
-    data?: Array<{ title: string; description: string; url: string; source: string }>;
-  };
+  const raw = JSON.parse(await httpGet(url)) as { data?: TheNewsAPIArticle[] };
   const articles = raw.data ?? [];
   if (!articles.length) return null;
 
@@ -116,6 +114,7 @@ async function resolveViaNewsAPI(headline: string, weirdSource: string, token: s
     domain,
     ingestSource: 'thenewsapi',
     weirdSource,
+    sourceArticle: a,
   };
 }
 
