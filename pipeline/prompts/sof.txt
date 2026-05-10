@@ -8,7 +8,8 @@ Rules:
 - The topic is the short thematic label displayed as the main header in-game (e.g. "Space & Astronomy", "Animal Kingdom", "Climate Science", "Neuroscience").
 - The intro is a single sentence framing the round — kept for potential future use but not currently displayed.
 
-Return ONLY valid JSON. No markdown, no code blocks, no prose.
+If the stories don't contain enough factual detail to build a meaningful game item, return {"skip": true} instead.
+Otherwise return ONLY valid JSON. No markdown, no code blocks, no prose.
 
 Schema:
 {

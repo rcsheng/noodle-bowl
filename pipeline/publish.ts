@@ -168,6 +168,7 @@ function confirm(question: string): Promise<boolean> {
 
 async function main() {
   const emulator = process.argv.includes('--emulator');
+  const autoYes = process.argv.includes('--yes');
   const isProd = !emulator;
   const projectId = process.env.FIREBASE_PROJECT_ID ?? 'noodle-bowl';
 
@@ -179,7 +180,7 @@ async function main() {
   console.log(`  Source: ${path.basename(filePath)}`);
   console.log(`  Target: ${isProd ? `PRODUCTION (project: ${projectId})` : 'LOCAL EMULATOR'}`);
 
-  const ok = await confirm('\nPublish? [y/N] ');
+  const ok = autoYes || (await confirm('\nPublish? [y/N] '));
   if (!ok) {
     console.log('Cancelled.');
     return;

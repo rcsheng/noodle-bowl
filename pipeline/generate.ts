@@ -71,6 +71,7 @@ async function generateSof(client: Anthropic, cluster: SofCluster, weird: boolea
       SONNET,
       loadPrompt(weird ? 'sof-weird' : 'sof') + `Topic cluster: ${cluster.domain}\n${storiesText}`
     );
+    if (raw && typeof raw === 'object' && 'skip' in raw) return null;
     return sofItemSchema.parse(raw) as SofItem;
   } catch (e) {
     console.warn(`  [skip sof] ${cluster.domain}: ${(e as Error).message.slice(0, 80)}`);
