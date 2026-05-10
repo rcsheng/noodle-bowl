@@ -35,7 +35,7 @@ export function writeJson(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-export function httpGet(url: string, headers: Record<string, string> = {}): Promise<string> {
+export function httpGet(url: string, headers: Record<string, string> = {}, timeoutMs = 10_000): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers }, (res) => {
       let data = '';
@@ -48,6 +48,7 @@ export function httpGet(url: string, headers: Record<string, string> = {}): Prom
         }
       });
     });
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`Timeout after ${timeoutMs}ms: ${url}`)));
     req.on('error', reject);
   });
 }

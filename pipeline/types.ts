@@ -8,6 +8,7 @@ export interface StoryCandidate {
   hasNumber: boolean;
   domain: string;
   ingestSource: 'thenewsapi' | 'wikipedia' | 'newsletter';
+  weirdSource?: string; // set when discovered via a weird/offbeat news scraper
 }
 
 export interface SofCluster {

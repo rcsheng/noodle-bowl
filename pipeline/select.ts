@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as fs from 'fs';
 import { readJson, writeJson, today, dataPath, latestFile } from './utils';
 import type { CandidatesFile, SelectedFile, SofCluster, StoryCandidate } from './types';
 
@@ -15,6 +16,7 @@ function score(c: StoryCandidate): number {
   if (c.ingestSource === 'wikipedia') s += 2;
   if (c.summary.length > MIN_SUMMARY_LENGTH) s += 1;
   if (c.hasNumber) s += 1;
+  if (c.weirdSource) s += 5; // prioritize for Lede: scraped from a weird/offbeat news source
   return s;
 }
 
@@ -30,9 +32,26 @@ function main() {
   const filePath = latestFile(dataPath('candidates'), 'Run pipeline:ingest first.');
   console.log(`Reading candidates from ${path.basename(filePath)}`);
   const { candidates } = readJson<CandidatesFile>(filePath);
-  console.log(`  ${candidates.length} candidates  (scale=${scale}: targets lede=${TARGET_LEDE} spread=${TARGET_SPREAD} sof=${TARGET_SOF_CLUSTERS})`);
 
-  const sorted = [...candidates].sort((a, b) => score(b) - score(a));
+  // Merge weird candidates if pipeline:ingest:weird has been run
+  let allCandidates = candidates;
+  const weirdDir = dataPath('candidates-weird');
+  if (fs.existsSync(weirdDir) && fs.readdirSync(weirdDir).some((f) => f.endsWith('.json'))) {
+    try {
+      const weirdPath = latestFile(weirdDir, '');
+      const { candidates: weirdCandidates } = readJson<CandidatesFile>(weirdPath);
+      const seenIds = new Set(candidates.map((c) => c.id));
+      const uniqueWeird = weirdCandidates.filter((c) => !seenIds.has(c.id));
+      allCandidates = [...candidates, ...uniqueWeird];
+      console.log(`  + ${uniqueWeird.length} weird candidates (from ${path.basename(weirdPath)})`);
+    } catch {
+      // Weird candidates unavailable — no-op
+    }
+  }
+
+  console.log(`  ${allCandidates.length} total candidates  (scale=${scale}: targets lede=${TARGET_LEDE} spread=${TARGET_SPREAD} sof=${TARGET_SOF_CLUSTERS})`);
+
+  const sorted = [...allCandidates].sort((a, b) => score(b) - score(a));
 
   const lede = sorted.slice(0, TARGET_LEDE);
 

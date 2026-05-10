@@ -175,7 +175,7 @@ async function main() {
   const banks = readJson<ContentBanks>(filePath);
 
   console.log(`\nReady to publish:`);
-  console.log(`  lede: ${banks.lede.length}  spread: ${banks.spread.length}  sof: ${banks.sof.length}  quip: ${banks.quip.length}  wave: ${banks.wave.length}`);
+  console.log(`  lede: ${banks.lede.length}  spread: ${banks.spread.length}  sof: ${banks.sof.length}`);
   console.log(`  Source: ${path.basename(filePath)}`);
   console.log(`  Target: ${isProd ? `PRODUCTION (project: ${projectId})` : 'LOCAL EMULATOR'}`);
 

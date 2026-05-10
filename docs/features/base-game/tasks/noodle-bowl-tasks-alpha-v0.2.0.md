@@ -80,13 +80,18 @@ npm run pipeline:ingest:bulk
 # Uses 60 of your 100 daily TheNewsAPI requests — fine on the free tier.
 # → pipeline/data/candidates/YYYY-MM-DD.json
 
+# 2b. Weird ingest — scrapes offbeat headlines, resolves via Wikipedia + TheNewsAPI
+npm run pipeline:ingest:weird --newsapi
+# Uses up to 15 TheNewsAPI calls. Writes pipeline/data/candidates-weird/YYYY-MM-DD.json.
+# Recommended before select — gives Lede game more interesting source material.
+
 # 3. Bulk select — 2× targets: 60 lede, 60 spread, 30 SoF clusters
 npm run pipeline:select:bulk
 # → pipeline/data/selected/YYYY-MM-DD.json
 
 # 4. Generate — calls Claude API for each selected item
 npm run pipeline:generate
-# Takes ~15–20 minutes. Calls Sonnet (lede, spread, sof) + Haiku (quip, wave).
+# Takes ~15–20 minutes. Calls Sonnet (lede, spread, sof). Quip and wave are not yet generated.
 # → pipeline/data/generated/YYYY-MM-DD.json
 
 # 5. Review output in terminal (human gate)
@@ -103,11 +108,11 @@ npm run pipeline:publish
 ```
 
 **Expected output counts after bulk generate (`--scale=2`):**
-- lede: ~55–60 items → ~60 sessions
+- lede: ~35–50 items → ~40–50 sessions (quality gate skips dry headlines)
 - spread: ~50–60 items → ~60 sessions (fewer if low-number candidates)
 - sof: ~100–120 items → ~60 sessions (2 items consumed per session: 1 standard + 1 weird)
-- quip: ~55–60 items → ~60 sessions
-- wave: ~55–60 items → ~60 sessions
+- quip: not yet generated (empty — app falls back to bundled content)
+- wave: not yet generated (empty — app falls back to bundled content)
 
 ---
 
@@ -116,11 +121,15 @@ npm run pipeline:publish
 Run this daily (or as needed) to keep content fresh. Use the standard scripts — no bulk flags.
 
 ```bash
-npm run pipeline:ingest      # today's news + today's Wikipedia "On This Day"
-npm run pipeline:select      # 30 lede, 30 spread, 15 SoF (daily targets)
-npm run pipeline:generate    # ~2–3 minutes
-npm run pipeline:review      # spot-check output
-npm run pipeline:publish     # deactivates previous version, publishes new one
+npm run pipeline:ingest        # today's news + today's Wikipedia "On This Day"
+npm run pipeline:ingest:weird  # scrape weird/offbeat headlines → resolve via Wikipedia/TheNewsAPI
+                               # optional but recommended — boosts Lede quality
+                               # add --newsapi to also search TheNewsAPI (costs up to 15 API calls)
+npm run pipeline:select        # 30 lede, 30 spread, 15 SoF (daily targets)
+                               # automatically merges weird candidates if present; they sort first for Lede
+npm run pipeline:generate      # ~2–3 minutes
+npm run pipeline:review        # spot-check output
+npm run pipeline:publish       # deactivates previous version, publishes new one
 ```
 
 ---

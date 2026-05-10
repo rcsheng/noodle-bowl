@@ -3,15 +3,14 @@ import * as path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { loadEnv, requireEnv, readJson, writeJson, dataPath, extractJson, latestFile, today } from './utils';
 import type { SelectedFile, SofCluster, StoryCandidate } from './types';
-import { ledeItemSchema, spreadItemSchema, sofItemSchema, quipPromptSchema, waveItemSchema, contentBanksSchema } from './schemas';
-import type { LedeItem, SpreadItem, SofItem, QuipPrompt, WaveItem } from '../constants/data';
+import { ledeItemSchema, spreadItemSchema, sofItemSchema, contentBanksSchema } from './schemas';
+import type { LedeItem, SpreadItem, SofItem } from '../constants/data';
 
 loadEnv();
 
 const SONNET = 'claude-sonnet-4-6';
-const HAIKU = 'claude-haiku-4-5-20251001';
 
-const usage = { sonnetIn: 0, sonnetOut: 0, haikuIn: 0, haikuOut: 0 };
+const usage = { sonnetIn: 0, sonnetOut: 0 };
 
 function loadPrompt(name: string): string {
   return fs.readFileSync(path.join(__dirname, 'prompts', `${name}.txt`), 'utf-8');
@@ -29,13 +28,8 @@ async function callClaude(client: Anthropic, model: string, userContent: string)
     messages: [{ role: 'user', content: userContent }],
   });
 
-  if (model === HAIKU) {
-    usage.haikuIn += response.usage.input_tokens;
-    usage.haikuOut += response.usage.output_tokens;
-  } else {
-    usage.sonnetIn += response.usage.input_tokens;
-    usage.sonnetOut += response.usage.output_tokens;
-  }
+  usage.sonnetIn += response.usage.input_tokens;
+  usage.sonnetOut += response.usage.output_tokens;
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
   return extractJson(text);
@@ -48,6 +42,7 @@ function storyContext(s: StoryCandidate): string {
 async function generateLede(client: Anthropic, s: StoryCandidate): Promise<LedeItem | null> {
   try {
     const raw = await callClaude(client, SONNET, loadPrompt('lede') + storyContext(s));
+    if (raw && typeof raw === 'object' && 'skip' in raw) return null;
     return ledeItemSchema.parse(raw) as LedeItem;
   } catch (e) {
     console.warn(`  [skip lede] ${s.headline.slice(0, 60)}: ${(e as Error).message.slice(0, 80)}`);
@@ -83,26 +78,6 @@ async function generateSof(client: Anthropic, cluster: SofCluster, weird: boolea
   }
 }
 
-async function generateQuip(client: Anthropic, s: StoryCandidate): Promise<QuipPrompt | null> {
-  try {
-    const raw = await callClaude(client, HAIKU, loadPrompt('quip') + storyContext(s));
-    return quipPromptSchema.parse(raw) as QuipPrompt;
-  } catch (e) {
-    console.warn(`  [skip quip] ${s.headline.slice(0, 60)}: ${(e as Error).message.slice(0, 80)}`);
-    return null;
-  }
-}
-
-async function generateWave(client: Anthropic, s: StoryCandidate): Promise<WaveItem | null> {
-  try {
-    const raw = await callClaude(client, HAIKU, loadPrompt('wave') + storyContext(s));
-    return waveItemSchema.parse(raw) as WaveItem;
-  } catch (e) {
-    console.warn(`  [skip wave] ${s.headline.slice(0, 60)}: ${(e as Error).message.slice(0, 80)}`);
-    return null;
-  }
-}
-
 async function runBatch<T>(
   label: string,
   items: unknown[],
@@ -120,12 +95,10 @@ async function runBatch<T>(
 }
 
 function logCosts() {
-  // Pricing as of 2025: Sonnet $3/$15 per MTok, Haiku $0.25/$1.25 per MTok
+  // Pricing as of 2025: Sonnet $3/$15 per MTok
   const sonnetCost = (usage.sonnetIn * 3 + usage.sonnetOut * 15) / 1_000_000;
-  const haikuCost = (usage.haikuIn * 0.25 + usage.haikuOut * 1.25) / 1_000_000;
-  const total = sonnetCost + haikuCost;
-  console.log(`\nTokens: Sonnet ${usage.sonnetIn}in/${usage.sonnetOut}out, Haiku ${usage.haikuIn}in/${usage.haikuOut}out`);
-  console.log(`Estimated cost: ~$${total.toFixed(3)} (Sonnet $${sonnetCost.toFixed(3)} + Haiku $${haikuCost.toFixed(3)})`);
+  console.log(`\nTokens: Sonnet ${usage.sonnetIn}in/${usage.sonnetOut}out`);
+  console.log(`Estimated cost: ~$${sonnetCost.toFixed(3)}`);
 }
 
 async function main() {
@@ -141,19 +114,15 @@ async function main() {
   // Alternate weird/standard so the bank is ~50/50 weirdAndTrue across clusters
   const sofItems = await runBatch('SoF', sofClusters, (c, i) => generateSof(client, c, i % 2 === 1));
 
-  const quipSource = ledeStories;
-  const waveSource = ledeStories;
-  const quipItems = await runBatch('Quip', quipSource, (s) => generateQuip(client, s));
-  const waveItems = await runBatch('Wave', waveSource, (s) => generateWave(client, s));
-
-  const banks = { lede: ledeItems, spread: spreadItems, sof: sofItems, quip: quipItems, wave: waveItems };
+  // quip and wave are not yet generated — published as empty arrays so app reads [] not undefined
+  const banks = { lede: ledeItems, spread: spreadItems, sof: sofItems, quip: [], wave: [] };
   contentBanksSchema.parse(banks);
 
   const outPath = dataPath('generated', `${today()}.json`);
   writeJson(outPath, banks);
 
   console.log(`\n✓ Generated banks → ${outPath}`);
-  console.log(`  lede: ${ledeItems.length}  spread: ${spreadItems.length}  sof: ${sofItems.length}  quip: ${quipItems.length}  wave: ${waveItems.length}`);
+  console.log(`  lede: ${ledeItems.length}  spread: ${spreadItems.length}  sof: ${sofItems.length}`);
 
   if (ledeItems.length < 10) console.warn(`  WARNING: only ${ledeItems.length} Lede items`);
   if (spreadItems.length < 10) console.warn(`  WARNING: only ${spreadItems.length} Spread items`);
