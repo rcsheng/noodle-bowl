@@ -2,6 +2,7 @@
 
 **PRD ref:** `noodle-bowl-prd-alpha-v0.2.0.md`
 **Last updated:** 2026-05-10
+**Note:** Absorbs all open alpha-v0.1.2 items — no standalone v0.1.2 build was ever cut.
 
 ---
 
@@ -26,8 +27,9 @@
 
 ## Cross-cutting quality (PRD §3)
 
-- [ ] Run code-reviewer agent over `pipeline/publish.ts` changes
+- [ ] Run code-reviewer agent — all changes since alpha-v0.1.1 (deep link routing + pipeline fix)
 - [ ] Run security-reviewer agent
+- [ ] Update `README.md` — add `seed:emulator`, `seed:prod`, `start:dev`, `start:qa` to quick-start _(carried from v0.1.2)_
 - [ ] `npm test` — all passing
 - [ ] `npx tsc --noEmit` — clean
 

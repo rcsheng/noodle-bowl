@@ -1,5 +1,7 @@
 # Noodle Bowl — Task List alpha-v0.1.2
 
+> **Archived — absorbed into alpha-v0.2.0.** No standalone build was cut for this version.
+
 **PRD ref:** `noodle-bowl-prd-alpha-v0.1.2.md`
 **Last updated:** 2026-05-09
 **Deep links verified:** ✓ challenge + help links open correctly in TestFlight build (2026-05-09)

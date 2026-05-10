@@ -1,5 +1,9 @@
 # Production Release Readiness — Alpha v0.1.2
 
+> **Archived — not shipped as a standalone release.**
+> The deep link routing fix and AASA infrastructure were merged to `main` but no EAS build was ever cut.
+> All open items were absorbed into alpha-v0.2.0.
+
 Deep link routing fix: `/c/:token` and `/h/:token` redirect screens, AASA infrastructure, cross-cutting quality pass.
 
 ---

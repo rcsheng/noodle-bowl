@@ -1,6 +1,8 @@
 # Noodle Bowl — PRD alpha-v0.1.2
 
-**Status:** In progress
+> **Archived — absorbed into alpha-v0.2.0.** No standalone build was cut for this version.
+
+**Status:** Archived
 **Last updated:** 2026-05-09
 **What's new:** Deep link routing fix, AASA setup, cross-cutting quality pass
 

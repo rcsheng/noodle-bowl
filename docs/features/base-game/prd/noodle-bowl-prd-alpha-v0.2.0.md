@@ -8,12 +8,15 @@
 
 ## Overview
 
-alpha-v0.2.0 is the first release to ship AI-generated content through the content pipeline instead of static seed data. It also closes the remaining gaps needed to submit to the App Store (public distribution).
+alpha-v0.2.0 absorbs all open alpha-v0.1.2 work (deep link routing fix, AASA infrastructure — both already on `main`) and is the first release to ship AI-generated content through the content pipeline. It also closes the remaining gaps needed to submit to the App Store (public distribution).
 
-Two parallel tracks:
+No standalone v0.1.2 build was ever cut, so v0.2.0 is the next build.
+
+Three parallel tracks:
 
 | Track | Goal |
 |---|---|
+| **v0.1.2 carry-forward** | Deep link routing (`app/c/` + `app/h/`), AASA — code on `main`, never shipped in a build |
 | **Content** | Run the pipeline end-to-end; publish first production `ContentVersion` to Firestore |
 | **App Store** | Complete the App Store Connect listing, privacy policy, and first public submission |
 
@@ -106,10 +109,11 @@ Before submitting to App Store (not TestFlight), bump `version` in `app.json` to
 
 ## 3. Cross-cutting
 
+- [ ] **Code review** — all changes since alpha-v0.1.1 (deep link routing + pipeline fix)
+- [ ] **Security review** — security-reviewer agent
+- [ ] **README update** — add `seed:emulator`, `seed:prod`, `start:dev`, `start:qa` to the quick-start section _(carried from v0.1.2)_
 - [ ] `npm test` — all passing
 - [ ] `npx tsc --noEmit` — clean
-- [ ] Code review (code-reviewer agent) over pipeline/publish.ts changes
-- [ ] Security review (security-reviewer agent)
 
 ---
 
