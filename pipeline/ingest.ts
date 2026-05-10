@@ -25,9 +25,21 @@ function classify(headline: string, summary: string): { hasNumber: boolean; doma
   return { hasNumber, domain: 'general' };
 }
 
-async function ingestTheNewsAPI(): Promise<StoryCandidate[]> {
+// Returns YYYY-MM-DD for a date N days ago
+function isoDate(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split('T')[0];
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
   const token = requireEnv('THENEWSAPI_TOKEN');
-  const url = `https://api.thenewsapi.com/v1/news/top?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50`;
+  // /top ranks by importance and only works for today; /all supports published_on for historical dates
+  const url = date
+    ? `https://api.thenewsapi.com/v1/news/all?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50&published_on=${date}`
+    : `https://api.thenewsapi.com/v1/news/top?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50`;
   const raw = JSON.parse(await httpGet(url)) as { data?: Array<{ title: string; description: string; url: string; source: string }> };
   const articles = raw.data ?? [];
 
@@ -89,14 +101,21 @@ async function main() {
 
   const allCandidates: StoryCandidate[] = [];
 
-  console.log('Ingesting from TheNewsAPI (today only)...');
-  const newsItems = await ingestTheNewsAPI();
-  console.log(`  ${newsItems.length} items`);
-  allCandidates.push(...newsItems);
-
   const label = days === 1 ? 'today' : `${days} days`;
-  console.log(`Ingesting Wikipedia "On This Day" for ${label}...`);
+  // NOTE: bulk runs make N TheNewsAPI calls. Check your plan's daily request limit before running
+  // --days=60 (free tier is typically 3 req/day; paid plans support this comfortably).
+  console.log(`Ingesting from TheNewsAPI for ${label}...`);
+  for (let i = 0; i < days; i++) {
+    const date = isoDate(i);
+    process.stdout.write(`  ${date}... `);
+    const newsItems = await ingestTheNewsAPI(date);
+    process.stdout.write(`${newsItems.length}\n`);
+    allCandidates.push(...newsItems);
+    if (i < days - 1) await sleep(250);
+  }
+
   const seenDates = new Set<string>();
+  console.log(`Ingesting Wikipedia "On This Day" for ${label}...`);
   for (let i = 0; i < days; i++) {
     const { mm, dd } = dateMonthDay(i);
     const key = `${mm}-${dd}`;
