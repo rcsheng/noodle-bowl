@@ -75,18 +75,13 @@ Do this once before launch to pre-fill the content bank.
 # 1. Start the Firebase emulator for the dry run (separate terminal)
 npm run emulator
 
-# 2. Bulk ingest — fetches news + Wikipedia "On This Day" for 60 dates
+# 2. Bulk ingest — fetches news + Wikipedia "On This Day" for 60 dates, then scrapes oddities
 npm run pipeline:ingest:bulk
-# Uses 60 of your 100 daily TheNewsAPI requests — fine on the free tier.
-# → pipeline/data/candidates/YYYY-MM-DD.json
+# Uses ~75 of your 100 daily TheNewsAPI requests (60 news + up to 15 oddities).
+# → pipeline/data/candidates/YYYY-MM-DD.json + YYYY-MM-DD-weird.json
 
-# 2b. Weird ingest — scrapes offbeat headlines, resolves via Wikipedia + TheNewsAPI
-npm run pipeline:ingest:weird --newsapi
-# Uses up to 15 TheNewsAPI calls. Writes pipeline/data/candidates-weird/YYYY-MM-DD.json.
-# Recommended before select — gives Lede game more interesting source material.
-
-# 3. Bulk select — 2× targets: 60 lede, 60 spread, 30 SoF clusters
-npm run pipeline:select:bulk
+# 3. Bulk select — 2× targets: 60 lede, 60 spread, 120 SoF clusters
+npm run pipeline:select -- --scale=2
 # → pipeline/data/selected/YYYY-MM-DD.json
 
 # 4. Generate — calls Claude API for each selected item
@@ -121,12 +116,9 @@ npm run pipeline:publish
 Run this daily (or as needed) to keep content fresh. Use the standard scripts — no bulk flags.
 
 ```bash
-npm run pipeline:ingest        # today's news + today's Wikipedia "On This Day"
-npm run pipeline:ingest:weird  # scrape weird/offbeat headlines → resolve via Wikipedia/TheNewsAPI
-                               # optional but recommended — boosts Lede quality
-                               # add --newsapi to also search TheNewsAPI (costs up to 15 API calls)
-npm run pipeline:select        # 30 lede, 30 spread, 15 SoF (daily targets)
-                               # automatically merges weird candidates if present; they sort first for Lede
+npm run pipeline:ingest        # today's news + Wikipedia "On This Day" + oddities scrape
+npm run pipeline:select        # 30 lede, 30 spread, 60 SoF (daily targets)
+                               # automatically merges weird candidates; they sort first for Lede
 npm run pipeline:generate      # ~2–3 minutes
 npm run pipeline:review        # spot-check output
 npm run pipeline:publish       # deactivates previous version, publishes new one
