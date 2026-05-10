@@ -340,12 +340,15 @@ export default function LedeScreen() {
           </View>
         )}
 
-        {/* Reveal: explanation only */}
+        {/* Reveal: explanation + attribution */}
         {phase === 'reveal' && (
           <View testID="lede-reveal-box" style={styles.infoBox}>
             <Text style={styles.infoText}>{question.explanation}</Text>
             {question.eventDate && (
               <Text style={styles.eventDate}>{question.eventDate}</Text>
+            )}
+            {question.sourceHint && (
+              <Text style={styles.eventDate}>{question.sourceHint}</Text>
             )}
           </View>
         )}
