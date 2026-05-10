@@ -62,9 +62,9 @@ function main() {
     group.push(c);
     byDomain.set(c.domain, group);
   }
-  // Round-robin across domains so SoF clusters are spread across topics.
-  // Previous approach exhausted one domain first, producing homogeneous clusters.
-  const domainList = Array.from(byDomain.entries()).filter(([, s]) => s.length >= 2);
+  // Round-robin across domains for topic variety. Each cluster is one story;
+  // generate.ts extracts two real claims from it so all three claims stay coherent.
+  const domainList = Array.from(byDomain.entries()).filter(([, s]) => s.length >= 1);
   const domainIdx = new Map(domainList.map(([d]) => [d, 0]));
   const sofClusters: SofCluster[] = [];
   let madeProgress = true;
@@ -73,9 +73,9 @@ function main() {
     for (const [domain, stories] of domainList) {
       if (sofClusters.length >= TARGET_SOF_CLUSTERS) break;
       const i = domainIdx.get(domain)!;
-      if (i + 1 < stories.length) {
-        sofClusters.push({ domain, stories: stories.slice(i, i + 3) });
-        domainIdx.set(domain, i + 2);
+      if (i < stories.length) {
+        sofClusters.push({ domain, stories: [stories[i]] });
+        domainIdx.set(domain, i + 1);
         madeProgress = true;
       }
     }

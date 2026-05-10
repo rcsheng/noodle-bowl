@@ -1,14 +1,14 @@
-Generate a "Weird But True" Science or Fiction game item from the real stories below.
+Generate a "Weird But True" Science or Fiction game item from the real story below.
 
 Rules:
-- Claims 0 and 1 are REAL: base them directly on the provided stories. They should sound surprising, counterintuitive, or hard to believe — that's the point. Each needs a source with name and URL.
+- Claims 0 and 1 are REAL: extract two distinct surprising facts from the single provided story. They should sound counterintuitive or hard to believe — that's the point. Each needs a source with the story's publication name and URL.
 - Claim 2 is FABRICATED: it should sound like a perfectly boring, unremarkable fact — plausible and forgettable. Set source to null.
 - The player's job is to find the real claim that sounds too strange to be true. The fake claim should be the boring red herring.
 - All three claim texts should be roughly the same length and written in the same style.
 - The topic is the short thematic label displayed as the main header in-game (e.g. "Strange But Real", "Weird Science", "Against All Odds").
 - The intro is a single sentence framing the round — kept for potential future use but not currently displayed.
 
-If the stories don't contain enough detail to build a meaningful game item, return {"skip": true} instead.
+If the story doesn't contain enough detail for two distinct surprising real claims, return {"skip": true} instead.
 Otherwise return ONLY valid JSON. No markdown, no code blocks, no prose.
 
 Schema:
@@ -23,4 +23,4 @@ Schema:
   ]
 }
 
-Real stories:
+Real story:

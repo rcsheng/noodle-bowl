@@ -79,14 +79,12 @@ async function generateSpread(client: Anthropic, s: StoryCandidate): Promise<Spr
 
 async function generateSof(client: Anthropic, cluster: SofCluster, weird: boolean): Promise<SofItem | null> {
   try {
-    const storiesText = cluster.stories
-      .slice(0, 2)
-      .map((s, i) => `${i + 1}. "${s.headline}" — ${s.summary} (source: ${s.source}, url: ${s.url})`)
-      .join('\n');
+    const s = cluster.stories[0];
+    const storyText = `"${s.headline}" — ${s.summary} (source: ${s.source}, url: ${s.url})`;
     const raw = await callClaude(
       client,
       SONNET,
-      loadPrompt(weird ? 'sof-weird' : 'sof') + `Topic cluster: ${cluster.domain}\n${storiesText}`
+      loadPrompt(weird ? 'sof-weird' : 'sof') + `Topic: ${cluster.domain}\n${storyText}`
     );
     if (raw && typeof raw === 'object' && 'skip' in raw) return null;
     const item = sofItemSchema.parse(raw) as SofItem;
