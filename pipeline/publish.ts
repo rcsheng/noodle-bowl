@@ -52,18 +52,78 @@ async function getIdToken(isProd: boolean): Promise<string> {
   return tokenResult.token;
 }
 
+async function firestoreQuery(
+  token: string,
+  projectId: string,
+  isProd: boolean,
+  collectionId: string,
+  fieldPath: string,
+  value: FirestoreValue
+): Promise<string[]> {
+  const body = JSON.stringify({
+    structuredQuery: {
+      from: [{ collectionId }],
+      where: { fieldFilter: { field: { fieldPath }, op: 'EQUAL', value } },
+    },
+  });
+  const urlPath = `/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: isProd ? 'firestore.googleapis.com' : 'localhost',
+      port: isProd ? 443 : 8080,
+      path: urlPath,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const transport = isProd ? https : http;
+    const prefix = `projects/${projectId}/databases/(default)/documents/`;
+    const req = transport.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => (data += chunk));
+      res.on('end', () => {
+        try {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            const results = JSON.parse(data) as Array<{ document?: { name: string } }>;
+            resolve(
+              results
+                .filter((r) => r.document?.name?.startsWith(prefix))
+                .map((r) => r.document!.name.slice(prefix.length))
+            );
+          } else {
+            reject(new Error(`Firestore runQuery HTTP ${res.statusCode}: ${data.slice(0, 300)}`));
+          }
+        } catch (e) {
+          reject(new Error(`Firestore runQuery: failed to parse response — ${String(e)}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 async function firestorePatch(
   token: string,
   projectId: string,
   isProd: boolean,
   docPath: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  fieldMask?: string[]
 ): Promise<void> {
   const fields: Record<string, FirestoreValue> = {};
   for (const [k, v] of Object.entries(data)) fields[k] = toFirestoreValue(v);
 
   const body = JSON.stringify({ fields });
-  const urlPath = `/v1/projects/${projectId}/databases/(default)/documents/${docPath}`;
+  const maskQuery = fieldMask
+    ? `?${fieldMask.map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`).join('&')}`
+    : '';
+  const urlPath = `/v1/projects/${projectId}/databases/(default)/documents/${docPath}${maskQuery}`;
 
   return new Promise((resolve, reject) => {
     const options = {
@@ -126,6 +186,15 @@ async function main() {
   }
 
   const token = await getIdToken(isProd);
+
+  // Find existing active versions before writing the new one.
+  const activeDocs = await firestoreQuery(token, projectId, isProd, 'contentVersions', 'active', {
+    booleanValue: true,
+  });
+
+  // Write the new version first so there is never a window with zero active docs.
+  // During the brief overlap while old versions are being deactivated, the app may
+  // read either version — both are valid content, so this is safe.
   const docId = `v${Date.now()}`;
   const doc: Record<string, unknown> = {
     id: docId,
@@ -135,8 +204,17 @@ async function main() {
   };
 
   await firestorePatch(token, projectId, isProd, `contentVersions/${docId}`, doc);
-  console.log(`\n✓ Published ContentVersion '${docId}'`);
-  console.log(`  Set active: true — deactivate the previous version in the Firebase console if needed.`);
+  console.log(`\n✓ Published ContentVersion '${docId}' (active: true)`);
+
+  if (activeDocs.length > 0) {
+    console.log(`Deactivating ${activeDocs.length} previous version(s)...`);
+    await Promise.all(
+      activeDocs.map((docPath) =>
+        firestorePatch(token, projectId, isProd, docPath, { active: false }, ['active'])
+      )
+    );
+    console.log(`✓ Done`);
+  }
 }
 
 main().catch((err: Error) => {

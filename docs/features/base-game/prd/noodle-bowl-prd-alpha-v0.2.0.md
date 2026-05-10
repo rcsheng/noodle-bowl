@@ -1,0 +1,123 @@
+# Noodle Bowl — PRD alpha-v0.2.0
+
+**Status:** In progress
+**Last updated:** 2026-05-10
+**What's new:** Live content pipeline — first production content batch, App Store prep
+
+---
+
+## Overview
+
+alpha-v0.2.0 is the first release to ship AI-generated content through the content pipeline instead of static seed data. It also closes the remaining gaps needed to submit to the App Store (public distribution).
+
+Two parallel tracks:
+
+| Track | Goal |
+|---|---|
+| **Content** | Run the pipeline end-to-end; publish first production `ContentVersion` to Firestore |
+| **App Store** | Complete the App Store Connect listing, privacy policy, and first public submission |
+
+No new games in this release.
+
+---
+
+## 1. Content Pipeline
+
+### Background
+
+A five-stage CLI pipeline lives in `pipeline/`. It was written and code-reviewed but never run end-to-end. The `publish` step had a bug (it never deactivated previous active docs), which is now fixed.
+
+The pipeline produces a `ContentVersion` document in Firestore, which the app reads via `ContentProvider` (stale-while-revalidate). Once a `ContentVersion` is live, the bundled `constants/data.ts` fallback is never reached in normal operation.
+
+### Stages
+
+| Stage | Command | Input | Output |
+|---|---|---|---|
+| Ingest | `npm run pipeline:ingest` | TheNewsAPI + Wikipedia | `pipeline/data/candidates/YYYY-MM-DD.json` |
+| Select | `npm run pipeline:select` | latest candidates file | `pipeline/data/selected/YYYY-MM-DD.json` |
+| Generate | `npm run pipeline:generate` | latest selected file | `pipeline/data/generated/YYYY-MM-DD.json` |
+| Review | `npm run pipeline:review` | latest generated file | terminal output (human review) |
+| Publish | `npm run pipeline:publish` | latest generated file | `contentVersions/{docId}` in Firestore |
+
+### What changed in this release
+
+- `pipeline/publish.ts` — Before writing the new `ContentVersion`, the pipeline now queries Firestore for any docs where `active: true` and patches them to `active: false`. Previously the operator had to manually deactivate old versions in the Firebase console.
+
+### Acceptance criteria
+
+- [ ] Pipeline runs end-to-end without errors against the emulator (dry run)
+- [ ] Pipeline runs end-to-end against production Firestore
+- [ ] After publish, exactly one `contentVersions` doc has `active: true`
+- [ ] App reads live content on a fresh install (no bundled fallback triggered)
+- [ ] Subsequent publish correctly deactivates the previous version
+
+---
+
+## 2. App Store Preparation
+
+### What needs to be done outside the app
+
+#### 2a. Privacy policy
+
+A public privacy policy URL is required by Apple before App Store Review will approve the app.
+
+Minimum content:
+- What data is collected (anonymous auth UID, email if upgraded, gameplay stats in Firestore)
+- How data is used (personalized stats, no third-party sale)
+- Contact info for privacy requests
+
+Host at a stable public URL (e.g. `https://noodlebowl.app/privacy`).
+
+#### 2b. App Store Connect listing
+
+In App Store Connect → My Apps → Noodle Bowl → App Store tab:
+
+| Field | Notes |
+|---|---|
+| Name | Noodle Bowl |
+| Subtitle | ≤ 30 chars — e.g. "Daily news brain games" |
+| Description | ≤ 4000 chars |
+| Keywords | ≤ 100 chars total, comma-separated |
+| Support URL | `https://noodlebowl.app` |
+| Privacy Policy URL | from §2a above |
+| Category | Primary: Games → Trivia; Secondary: News |
+| Age rating | questionnaire — expected result: 4+ |
+| Screenshots | at least iPhone 6.9" (required) + iPad 13" if iPad-eligible |
+
+#### 2c. Screenshots
+
+Required: at least one iPhone 6.9" (iPhone 16 Pro Max) screenshot per supported locale.
+
+Capture on Simulator (iPhone 16 Pro Max) or real device. Suggested screens: home, Lede game, Spread game, result/reveal, profile/stats.
+
+#### 2d. `app.json` version bump
+
+Before submitting to App Store (not TestFlight), bump `version` in `app.json` to `1.0.0` if still at `1.0.0`, and confirm `ios.buildNumber` policy in `eas.json`.
+
+### Acceptance criteria
+
+- [ ] Privacy policy is live at a public URL
+- [ ] All required App Store Connect fields are filled in
+- [ ] Screenshots uploaded for at least iPhone 6.9"
+- [ ] App Store Connect status moves to "Ready for Review" before submission
+- [ ] `app.json` version is correct for public release
+
+---
+
+## 3. Cross-cutting
+
+- [ ] `npm test` — all passing
+- [ ] `npx tsc --noEmit` — clean
+- [ ] Code review (code-reviewer agent) over pipeline/publish.ts changes
+- [ ] Security review (security-reviewer agent)
+
+---
+
+## Out of scope (carried forward)
+
+- Garbage-collect orphaned `received_help` interactions
+- Animated entry/exit on Help Result Card and Challenge Reply Card
+- Persist `homeCardDismissed` to Firestore across devices
+- Shield-fill animation
+- Architecture docs
+- Push notifications (permanently deferred)
