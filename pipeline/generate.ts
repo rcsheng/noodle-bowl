@@ -154,9 +154,9 @@ async function main() {
   console.log(`\n✓ Generated banks → ${outPath}`);
   console.log(`  lede: ${ledeItems.length}  spread: ${spreadItems.length}  sof: ${sofItems.length}  quip: ${quipItems.length}  wave: ${waveItems.length}`);
 
-  if (ledeItems.length < 10) console.warn(`  WARNING: only ${ledeItems.length} Lede items (target 30)`);
-  if (spreadItems.length < 10) console.warn(`  WARNING: only ${spreadItems.length} Spread items (target 30)`);
-  if (sofItems.length < 5) console.warn(`  WARNING: only ${sofItems.length} SoF items (target 15)`);
+  if (ledeItems.length < 10) console.warn(`  WARNING: only ${ledeItems.length} Lede items`);
+  if (spreadItems.length < 10) console.warn(`  WARNING: only ${spreadItems.length} Spread items`);
+  if (sofItems.length < 10) console.warn(`  WARNING: only ${sofItems.length} SoF items (~${Math.floor(sofItems.length / 2)} sessions)`);
 
   logCosts();
 }

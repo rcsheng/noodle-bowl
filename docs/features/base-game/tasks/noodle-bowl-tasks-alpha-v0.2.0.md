@@ -101,12 +101,12 @@ npm run pipeline:publish
 # Target: PRODUCTION (project: noodle-bowl). Confirm 'y'.
 ```
 
-**Expected output counts after bulk generate:**
-- lede: ~55–60 items
-- spread: ~50–60 items (depends on number candidates available)
-- sof: ~25–30 items
-- quip: ~55–60 items
-- wave: ~55–60 items
+**Expected output counts after bulk generate (`--scale=2`):**
+- lede: ~55–60 items → ~60 sessions
+- spread: ~50–60 items → ~60 sessions (fewer if low-number candidates)
+- sof: ~100–120 items → ~60 sessions (2 items consumed per session: 1 standard + 1 weird)
+- quip: ~55–60 items → ~60 sessions
+- wave: ~55–60 items → ~60 sessions
 
 ---
 

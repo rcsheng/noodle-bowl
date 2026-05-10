@@ -57,7 +57,9 @@ The pipeline produces a `ContentVersion` document in Firestore, which the app re
 | **Incremental** | `pipeline:ingest` + `pipeline:select` | Daily run — refreshes with today's news |
 
 `pipeline:ingest:bulk` = `--days=60` (fetches 60 dates of Wikipedia)
-`pipeline:select:bulk` = `--scale=2` (2× targets: 60 lede, 60 spread, 30 SoF)
+`pipeline:select:bulk` = `--scale=2` (2× targets: 60 lede, 60 spread, 120 SoF)
+
+SoF needs 2× as many items as other games because each session consumes 2 items (one standard, one weird/wacky). `BASE_SOF_CLUSTERS=60` accounts for this: at scale=1, 60 items → ~30 sessions; at scale=2, 120 items → ~60 sessions.
 
 ### Acceptance criteria
 

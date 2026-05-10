@@ -4,7 +4,8 @@ import type { CandidatesFile, SelectedFile, SofCluster, StoryCandidate } from '.
 
 const BASE_LEDE = 30;
 const BASE_SPREAD = 30;
-const BASE_SOF_CLUSTERS = 15;
+// SoF uses 2 items per session (standard + weird), so 2× base needed for equal session count
+const BASE_SOF_CLUSTERS = 60;
 const MIN_SUMMARY_LENGTH = 80;
 
 function score(c: StoryCandidate): number {
@@ -43,12 +44,14 @@ function main() {
     group.push(c);
     byDomain.set(c.domain, group);
   }
+  // Slide through each domain's stories in windows of 2 to produce multiple clusters.
+  // Each cluster feeds one SofItem; the previous one-per-domain approach capped output at ~7.
   const sofClusters: SofCluster[] = [];
-  for (const [domain, stories] of byDomain) {
-    if (stories.length >= 2) {
-      sofClusters.push({ domain, stories: stories.slice(0, 3) });
+  outer: for (const [domain, stories] of byDomain) {
+    for (let i = 0; i + 1 < stories.length; i += 2) {
+      sofClusters.push({ domain, stories: stories.slice(i, i + 3) });
+      if (sofClusters.length >= TARGET_SOF_CLUSTERS) break outer;
     }
-    if (sofClusters.length >= TARGET_SOF_CLUSTERS) break;
   }
 
   const out: SelectedFile = { date: today(), lede, spread, sofClusters };
@@ -56,9 +59,12 @@ function main() {
   writeJson(outPath, out);
 
   console.log(`\nSelected:`);
-  console.log(`  Lede:         ${lede.length}`);
-  console.log(`  Spread:       ${spread.length}`);
-  console.log(`  SoF clusters: ${sofClusters.length}`);
+  console.log(`  Lede:         ${lede.length} (target ${TARGET_LEDE})`);
+  console.log(`  Spread:       ${spread.length} (target ${TARGET_SPREAD})`);
+  console.log(`  SoF clusters: ${sofClusters.length} (target ${TARGET_SOF_CLUSTERS} → ~${Math.floor(sofClusters.length / 2)} sessions)`);
+  if (sofClusters.length < TARGET_SOF_CLUSTERS) {
+    console.warn(`  WARNING: SoF short of target — add more days with --days=N or run pipeline:ingest:bulk`);
+  }
   console.log(`✓ Written to ${outPath}`);
 }
 
