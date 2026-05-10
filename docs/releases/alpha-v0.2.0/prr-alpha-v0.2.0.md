@@ -30,6 +30,8 @@ Live content pipeline + App Store submission.
 
 - [ ] Emulator dry run complete (all 5 stages pass)
 - [ ] Production publish complete — one `contentVersions` doc with `active: true`
+- [ ] `contentPacks/{date}` written alongside `contentVersions` on publish
+- [ ] Local `pipeline/data/history.db` has a row for the published date
 - [ ] App reads live content on fresh install (no fallback triggered)
 
 ---
@@ -56,6 +58,7 @@ Run against **production Firebase with QA collections** using `npm run start:qa`
 | 12.2 | Play Lede game to result screen | Question and answer match a real news story (not bundled test data) |
 | 12.3 | Force-quit and relaunch | Content loads instantly from AsyncStorage cache |
 | 12.4 | Run `pipeline:publish` again with new content | Old version deactivated, new version active; app picks up new content on next cold launch |
+| 12.5 | Check `pipeline/data/history.db` exists after publish | File present; `pipeline:recover -- --date=YYYY-MM-DD --emulator --yes` completes without error |
 
 ### Regression
 
@@ -90,7 +93,9 @@ Step details for Blocks 0–11: `docs/releases/alpha-v0.1.2/prr-alpha-v0.1.2.md`
 - [ ] Production Firebase project is the target (not emulator)
 - [ ] `.env.local` — `EXPO_PUBLIC_COLLECTION_PREFIX` absent or unset for prod build
 - [ ] Production `contentVersions` has exactly one doc with `active: true`
-- [ ] Firestore security rules deployed (no changes in this release — verify current)
+- [ ] `contentPacks` collection has a doc for the published date
+- [ ] Firestore security rules deployed (`contentPacks` read rule added for authenticated users)
+- [ ] Local `pipeline/data/history.db` backed up or confirmed written
 - [ ] Cloud Functions deployed (no changes in this release — verify current)
 - [ ] AASA file live: `https://noodlebowl.app/.well-known/apple-app-site-association`
 

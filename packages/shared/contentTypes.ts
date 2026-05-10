@@ -14,3 +14,12 @@ export interface ContentVersion {
   createdAt: string;
   banks: ContentBanks;
 }
+
+export interface ContentPackMeta {
+  date: string;        // YYYY-MM-DD — primary identifier for the pack
+  versionId: string;   // Firestore contentVersions ID
+  publishedAt: string; // ISO timestamp
+  ledeCount: number;
+  spreadCount: number;
+  sofCount: number;
+}

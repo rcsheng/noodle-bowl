@@ -28,7 +28,10 @@ npm run pipeline:ingest:researched   # optional: parse hand-researched .md files
 npm run pipeline:select              # select candidates for each game
 npm run pipeline:generate            # call Claude to generate game content (~2–3 min)
 npm run pipeline:review              # spot-check 5 random samples per game type
-npm run pipeline:publish             # publish to Firestore (deactivates previous version)
+npm run pipeline:publish             # publish to Firestore + local history.db
+
+# Emergency recovery
+npm run pipeline:recover -- --date=YYYY-MM-DD   # republish a past date from local history
 ```
 
 ### First-time bulk run (60-day bank)
@@ -121,16 +124,29 @@ looks off — there is no automatic retry.
 
 ### publish
 
-Reads the latest generated file and writes a new `contentVersions` document to Firestore,
-then marks all previous versions inactive.
+Reads the latest generated file and writes to Firestore + local history:
+
+1. Writes `contentVersions/{versionId}` with `active: true`.
+2. Writes `contentPacks/{date}` — date-keyed pack for future historical content packs.
+3. Appends a row to `pipeline/data/history.db` (SQLite).
+4. Marks previous `contentVersions` docs `active: false`.
 
 **Flags:**
 
 | Flag | Description |
 |---|---|
 | `--emulator` | Publish to the local Firebase emulator instead of production |
+| `--yes` | Skip the confirmation prompt (for automated runs) |
 
 **Requires:** `GOOGLE_APPLICATION_CREDENTIALS` for production.
+
+### recover
+
+Republishes a specific date's content from local history to Firestore. Use when Firestore content is accidentally deleted or a bad publish needs to be rolled back.
+
+```bash
+npm run pipeline:recover -- --date=2026-05-10 [--emulator] [--yes]
+```
 
 ## Data directory
 
@@ -144,8 +160,9 @@ pipeline/data/
 │   └── *.md                        # source markdown tables for ingest-researched.ts
 ├── selected/
 │   └── YYYY-MM-DD.json
-└── generated/
-    └── YYYY-MM-DD.json
+├── generated/
+│   └── YYYY-MM-DD.json
+└── history.db                      # SQLite: content_packs + pipeline_runs tables
 ```
 
 Each stage reads the **most recently modified** file from its input directory,

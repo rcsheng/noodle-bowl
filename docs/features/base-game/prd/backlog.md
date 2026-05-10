@@ -56,6 +56,35 @@ These ideas emerged from the content pipeline API research (May 2026). They rely
 
 ---
 
+## Historical Content Packs
+
+Infrastructure for selling past daily content as purchasable packs. The pipeline-side foundation (local SQLite DB + `contentPacks/{date}` Firestore writes) is already implemented. What remains is the app-side unlock and delivery system.
+
+### Deferred app-side work
+
+**Pack catalog**
+- A `contentPackCatalog` Firestore collection (or aggregated query over `contentPacks`) that the app can list — one doc per available date with metadata: `{ date, ledeCount, spreadCount, sofCount, publishedAt, price, isFree }`.
+- Home or Explore tab entry point showing browsable past packs.
+
+**Entitlements**
+- `users/{uid}/unlockedPacks: string[]` in Firestore — list of dates the user has purchased.
+- Firestore rules: user can read own entitlements; write only via Cloud Function (purchase flow).
+
+**Pack content delivery**
+- App fetches `contentPacks/{date}` (already written by publish.ts) when a user opens a historical pack.
+- `ContentContext` needs a second fetch path: `getPackContent(date)` → reads `contentPacks/{date}`, caches in AsyncStorage under a date-keyed key.
+- Gate: if `date` not in `unlockedPacks` and not today's free pack, show paywall.
+
+**Purchase / unlock flow**
+- In-app purchase (StoreKit / Google Play Billing) or one-time code redemption.
+- On success, Cloud Function writes date to `users/{uid}/unlockedPacks` and returns the pack content (or the app re-fetches).
+
+**Shared types needed**
+- `PackCatalogEntry` — what the catalog list displays per row.
+- `UnlockStatus` — `'free' | 'unlocked' | 'locked'` derived from today's date + user entitlements.
+
+---
+
 ## Other Ideas (Not API-Dependent)
 
 ### The Correction

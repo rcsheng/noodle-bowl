@@ -31,7 +31,8 @@
     "pipeline:generate": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/generate.ts",
     "pipeline:review": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/review.ts",
     "pipeline:publish": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts",
-    "pipeline:publish:emulator": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --emulator"
+    "pipeline:publish:emulator": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --emulator",
+    "pipeline:recover": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/recover.ts"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
@@ -75,9 +76,11 @@
     "@expo/ngrok": "^4.1.3",
     "@firebase/rules-unit-testing": "^4.0.1",
     "@testing-library/react-native": "^13.3.3",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "29.5.14",
     "@types/node": "^25.6.0",
     "@types/react": "~19.1.0",
+    "better-sqlite3": "^12.9.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "eslint": "^9.25.0",

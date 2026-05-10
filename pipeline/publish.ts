@@ -3,6 +3,7 @@ import * as http from 'http';
 import * as path from 'path';
 import * as readline from 'readline';
 import { loadEnv, readJson, dataPath, latestFile } from './utils';
+import { writeContentPack, writePipelineRun } from './db';
 import type { LedeItem, SpreadItem, SofItem, QuipPrompt, WaveItem } from '../constants/data';
 
 loadEnv();
@@ -173,6 +174,7 @@ async function main() {
   const projectId = process.env.FIREBASE_PROJECT_ID ?? 'noodle-bowl';
 
   const filePath = latestFile(dataPath('generated'), 'Run pipeline:generate first.');
+  const date = path.basename(filePath, '.json'); // YYYY-MM-DD
   const banks = readJson<ContentBanks>(filePath);
 
   console.log(`\nReady to publish:`);
@@ -206,6 +208,35 @@ async function main() {
 
   await firestorePatch(token, projectId, isProd, `contentVersions/${docId}`, doc);
   console.log(`\n✓ Published ContentVersion '${docId}' (active: true)`);
+
+  // Write contentPacks/{date} — historical pack delivery for future content pack feature
+  const publishedAt = new Date().toISOString();
+  const packDoc: Record<string, unknown> = {
+    date,
+    versionId: docId,
+    publishedAt,
+    ledeCount: banks.lede.length,
+    spreadCount: banks.spread.length,
+    sofCount: banks.sof.length,
+    banks,
+  };
+  await firestorePatch(token, projectId, isProd, `contentPacks/${date}`, packDoc);
+  console.log(`✓ Published ContentPack '${date}'`);
+
+  // Write to local SQLite history
+  writeContentPack({
+    date,
+    versionId: docId,
+    publishedAt,
+    ledeCount: banks.lede.length,
+    spreadCount: banks.spread.length,
+    sofCount: banks.sof.length,
+    ledeJson: JSON.stringify(banks.lede),
+    spreadJson: JSON.stringify(banks.spread),
+    sofJson: JSON.stringify(banks.sof),
+  });
+  writePipelineRun(date, 'publish', 'ok', `lede:${banks.lede.length} spread:${banks.spread.length} sof:${banks.sof.length} → ${docId}`);
+  console.log(`✓ Saved to local history (pipeline/data/history.db)`);
 
   if (activeDocs.length > 0) {
     console.log(`Deactivating ${activeDocs.length} previous version(s)...`);

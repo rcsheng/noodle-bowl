@@ -367,11 +367,24 @@ At weekly batches: **~$0.72/month**. Within G2 goal.
 
 **What it does:**
 - Reads the reviewed `pipeline/generated/YYYY-MM-DD.json`.
-- Writes a new `contentVersions` doc to Firestore with `active: true`.
-- Marks the previous active version `active: false` in the same transaction.
+- Writes a new `contentVersions/{versionId}` doc to Firestore with `active: true`.
+- Writes `contentPacks/{date}` to Firestore — keyed by date for future historical pack delivery.
+- Appends a row to the local SQLite history DB at `pipeline/data/history.db`.
+- Marks the previous active `contentVersions` doc `active: false`.
 - Prints the new `versionId` for the commit log.
 
-**Safety:** Requires explicit confirmation prompt before touching production. Supports `--emulator` flag for dry-run.
+**Safety:** Requires explicit confirmation prompt before touching production. Pass `--yes` to skip (for automated runs). Supports `--emulator` flag for dry-run.
+
+### Step 5b: Recover (emergency)
+
+**Trigger:** Manual (`npm run pipeline:recover -- --date=YYYY-MM-DD`).
+
+**What it does:**
+- Reads the specified date's content from `pipeline/data/history.db`.
+- Republishes it to `contentVersions` (new doc, `active: true`) and overwrites `contentPacks/{date}`.
+- Use when a bad publish needs to be rolled back or Firestore content is accidentally deleted.
+
+**Flags:** `--date=YYYY-MM-DD` (required), `--emulator`, `--yes`.
 
 ---
 
