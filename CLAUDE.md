@@ -124,14 +124,16 @@ docs/
 │   │   ├── design/        # (empty — active designs go here)
 │   │   └── research/
 │   └── content-pipeline/
-├── releases/              # one folder per release build; each PRR embeds its smoke test steps
-│   ├── alpha-v0.1.0/      # prr-alpha-v0.1.0.md
-│   └── alpha-v0.1.1/      # prr-alpha-v0.1.1.md (Q2 redesign)
-├── archive/               # mirrors features/ + smoke-test/ structure
+├── releases/              # active release PRRs only (one folder per in-flight or upcoming release)
+│   └── alpha-v0.1.2/      # prr-alpha-v0.1.2.md
+├── archive/               # all historical docs — mirrors active structure
 │   ├── features/base-game/
-│   │   ├── prd/           # v1–v5 PRDs
-│   │   ├── tasks/         # tasks-v5
+│   │   ├── prd/           # v1–v6 PRDs
+│   │   ├── tasks/         # tasks-v5, tasks-v6
 │   │   └── design/        # 2026.5.2_redesign specs
+│   ├── releases/          # completed release PRRs
+│   │   ├── alpha-v0.1.0/  # prr-alpha-v0.1.0.md
+│   │   └── alpha-v0.1.1/  # prr-alpha-v0.1.1.md
 │   └── smoke-test/        # smoke-test-plan.md (superseded; steps now in PRRs)
 ├── templates/             # prr-template.md
 ├── README.md
