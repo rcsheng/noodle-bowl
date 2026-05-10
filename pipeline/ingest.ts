@@ -55,6 +55,7 @@ async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
       hasNumber,
       domain,
       ingestSource: 'thenewsapi',
+      tags: [],
       sourceArticle: a,
     };
   });
@@ -92,6 +93,7 @@ async function ingestWikipedia(mm: string, dd: string): Promise<StoryCandidate[]
       hasNumber,
       domain,
       ingestSource: 'wikipedia',
+      tags: [],
       sourceEvent: e,
     };
   });

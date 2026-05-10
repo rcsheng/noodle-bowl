@@ -59,7 +59,7 @@ export interface StoryCandidate {
   hasNumber: boolean;
   domain: string;
   ingestSource: 'thenewsapi' | 'wikipedia' | 'newsletter';
-  weirdSource?: string; // set when discovered via a weird/offbeat news scraper
+  tags: string[];                          // pipeline/editorial signals e.g. "weird", "breaking", "historical"
   sourceArticle?: TheNewsAPIArticle;       // full raw TheNewsAPI response; absent for wikipedia candidates
   sourceEvent?: WikipediaOnThisDayEvent;   // full raw Wikipedia On This Day event; absent for thenewsapi candidates
 }

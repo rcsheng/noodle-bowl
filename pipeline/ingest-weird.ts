@@ -1,6 +1,6 @@
 // Scrapes "weird/offbeat" story headlines from curated aggregator pages,
 // then resolves each to a real news article via TheNewsAPI keyword search.
-// Outputs CandidatesFile to pipeline/data/candidates-weird/YYYY-MM-DD.json.
+// Outputs CandidatesFile to pipeline/data/candidates/YYYY-MM-DD-weird.json.
 // select.ts automatically merges these when present and boosts their Lede score.
 
 import { loadEnv, requireEnv, httpGet, today, writeJson, dataPath, sha256 } from './utils';
@@ -80,16 +80,16 @@ function extractHTMLHeadlines(html: string, limit = 15): string[] {
 
 // --- Source scrapers ---
 
-type ScrapedHeadline = { headline: string; weirdSource: string };
+type ScrapedHeadline = { headline: string; scrapedFrom: string };
 
-async function fetchHTMLSource(url: string, weirdSource: string, limit = 15): Promise<ScrapedHeadline[]> {
+async function fetchHTMLSource(url: string, scrapedFrom: string, limit = 15): Promise<ScrapedHeadline[]> {
   const html = await httpGet(url, SCRAPER_UA);
-  return extractHTMLHeadlines(html, limit).map((headline) => ({ headline, weirdSource }));
+  return extractHTMLHeadlines(html, limit).map((headline) => ({ headline, scrapedFrom }));
 }
 
 // --- TheNewsAPI resolver ---
 
-async function resolveViaNewsAPI(headline: string, weirdSource: string, token: string): Promise<StoryCandidate | null> {
+async function resolveViaNewsAPI(headline: string, token: string): Promise<StoryCandidate | null> {
   const terms = extractKeyTerms(headline);
   if (!terms) return null;
 
@@ -113,7 +113,7 @@ async function resolveViaNewsAPI(headline: string, weirdSource: string, token: s
     hasNumber,
     domain,
     ingestSource: 'thenewsapi',
-    weirdSource,
+    tags: ['weird'],
     sourceArticle: a,
   };
 }
@@ -160,12 +160,12 @@ async function main() {
   let apiCalls = 0;
 
   for (let i = 0; i < allHeadlines.length; i++) {
-    const { headline, weirdSource } = allHeadlines[i];
+    const { headline } = allHeadlines[i];
     process.stdout.write(`  [${i + 1}/${allHeadlines.length}] ${headline.slice(0, 50).padEnd(50)} `);
 
     let candidate: StoryCandidate | null = null;
     try {
-      candidate = await resolveViaNewsAPI(headline, weirdSource, token);
+      candidate = await resolveViaNewsAPI(headline, token);
       apiCalls++;
     } catch (e) {
       console.log(`err (${(e as Error).message.slice(0, 50)})`);
@@ -186,7 +186,7 @@ async function main() {
   console.log(`\n${candidates.length} resolved from ${allHeadlines.length} scraped (${apiCalls} API calls used)`);
 
   const out: CandidatesFile = { date: today(), candidates };
-  const outPath = dataPath('candidates-weird', `${today()}.json`);
+  const outPath = dataPath('candidates', `${today()}-weird.json`);
   writeJson(outPath, out);
   console.log(`✓ Written to ${outPath}`);
 }

@@ -16,7 +16,7 @@ function score(c: StoryCandidate): number {
   if (c.ingestSource === 'wikipedia') s += 2;
   if (c.summary.length > MIN_SUMMARY_LENGTH) s += 1;
   if (c.hasNumber) s += 1;
-  if (c.weirdSource) s += 5; // prioritize for Lede: scraped from a weird/offbeat news source
+  if (c.tags.includes('weird')) s += 5;
   return s;
 }
 
@@ -33,12 +33,11 @@ function main() {
   console.log(`Reading candidates from ${path.basename(filePath)}`);
   const { candidates } = readJson<CandidatesFile>(filePath);
 
-  // Merge weird candidates if pipeline:ingest:weird has been run
+  // Merge weird candidates if pipeline:ingest:weird has been run today
   let allCandidates = candidates;
-  const weirdDir = dataPath('candidates-weird');
-  if (fs.existsSync(weirdDir) && fs.readdirSync(weirdDir).some((f) => f.endsWith('.json'))) {
+  const weirdPath = filePath.replace(/\.json$/, '-weird.json');
+  if (fs.existsSync(weirdPath)) {
     try {
-      const weirdPath = latestFile(weirdDir, '');
       const { candidates: weirdCandidates } = readJson<CandidatesFile>(weirdPath);
       const seenIds = new Set(candidates.map((c) => c.id));
       const uniqueWeird = weirdCandidates.filter((c) => !seenIds.has(c.id));
