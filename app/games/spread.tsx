@@ -1,4 +1,4 @@
-import { copyToClipboard, pickFromBank } from '@/constants/utils';
+import { copyToClipboard, formatAttribution, pickFromBank } from '@/constants/utils';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -352,11 +352,10 @@ export default function SpreadScreen() {
             {/* Explanation */}
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>{question.explanation}</Text>
-              {question.eventDate && (
-                <Text style={styles.eventDate}>{question.eventDate}</Text>
-              )}
-              {question.sourceHint && (
-                <Text style={styles.eventDate}>Source: {question.sourceHint}</Text>
+              {formatAttribution(question.sourceHint, question.eventDate) && (
+                <Text style={styles.eventDate} numberOfLines={1}>
+                  {formatAttribution(question.sourceHint, question.eventDate)}
+                </Text>
               )}
             </View>
 

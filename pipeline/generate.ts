@@ -42,7 +42,7 @@ function storyContext(s: StoryCandidate): string {
 function candidateEventDate(s: StoryCandidate): string | undefined {
   if (s.sourceArticle?.published_at) {
     return new Date(s.sourceArticle.published_at).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
+      month: 'long', year: 'numeric',
     });
   }
   return undefined;
@@ -53,7 +53,7 @@ async function generateLede(client: Anthropic, s: StoryCandidate): Promise<LedeI
     const raw = await callClaude(client, SONNET, loadPrompt('lede') + storyContext(s));
     if (raw && typeof raw === 'object' && 'skip' in raw) return null;
     const item = ledeItemSchema.parse(raw) as LedeItem;
-    return { ...item, eventDate: candidateEventDate(s) };
+    return { ...item, sourceHint: s.source, eventDate: candidateEventDate(s) };
   } catch (e) {
     console.warn(`  [skip lede] ${s.headline.slice(0, 60)}: ${(e as Error).message.slice(0, 80)}`);
     return null;

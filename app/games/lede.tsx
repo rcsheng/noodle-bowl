@@ -19,7 +19,7 @@ import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { calculatePoints, copyToClipboard, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { calculatePoints, copyToClipboard, formatAttribution, pickFromBank, shuffleIndices } from '@/constants/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
@@ -344,11 +344,10 @@ export default function LedeScreen() {
         {phase === 'reveal' && (
           <View testID="lede-reveal-box" style={styles.infoBox}>
             <Text style={styles.infoText}>{question.explanation}</Text>
-            {question.eventDate && (
-              <Text style={styles.eventDate}>{question.eventDate}</Text>
-            )}
-            {question.sourceHint && (
-              <Text style={styles.eventDate}>{question.sourceHint}</Text>
+            {formatAttribution(question.sourceHint, question.eventDate) && (
+              <Text style={styles.eventDate} numberOfLines={1}>
+                {formatAttribution(question.sourceHint, question.eventDate)}
+              </Text>
             )}
           </View>
         )}

@@ -78,6 +78,16 @@ export function pickFromBank<T>(bank: T[], seen: number[]): { idx: number; item:
   return { idx, item: bank[idx], newSeen: [...effective, idx] };
 }
 
+// Combines source + date into "Source Name, Month Year" format.
+// Strips legacy year suffix from Claude-generated sourceHints ("ABC News, 2025" → "ABC News").
+// Strips day from full dates ("May 21, 2025" → "May 2025").
+export function formatAttribution(sourceHint?: string, eventDate?: string): string | undefined {
+  const source = sourceHint?.replace(/,\s*\d{4}$/, '').trim();
+  const monthYear = eventDate?.replace(/\s+\d+,/, '');
+  if (source && monthYear) return `${source}, ${monthYear}`;
+  return source ?? monthYear;
+}
+
 export function scoreSpread(guess: number, answer: number): { correct: boolean; points: number; deviation: number } {
   const deviation = Math.abs((guess - answer) / answer) * 100;
   let points = 0;

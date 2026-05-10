@@ -1,4 +1,4 @@
-import { copyToClipboard, shuffleIndices } from '@/constants/utils';
+import { copyToClipboard, formatAttribution, shuffleIndices } from '@/constants/utils';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -333,8 +333,10 @@ export default function SofScreen() {
                         <Text style={styles.sourceLink}>Source: {claim.source.name} ↗</Text>
                       </TouchableOpacity>
                     )}
-                    {isScienceClaim && question.eventDate && (
-                      <Text style={styles.eventDate}>{question.eventDate}</Text>
+                    {isScienceClaim && formatAttribution(undefined, question.eventDate) && (
+                      <Text style={styles.eventDate} numberOfLines={1}>
+                        {formatAttribution(undefined, question.eventDate)}
+                      </Text>
                     )}
                   </View>
                 </View>

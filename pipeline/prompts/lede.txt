@@ -25,7 +25,7 @@ Return ONLY valid JSON. No markdown, no code blocks, no prose.
 Schema (when suitable):
 {
   "partialHeadline": "<headline text ending with ___, where the blank is the ambiguous part>",
-  "sourceHint": "<Publication Name, Year>",
+  "sourceHint": "<Publication Name>",
   "panelists": [
     {"name": "", "role": "", "completion": "<funny wrong completion>", "pitch": "", "isCorrect": false},
     {"name": "", "role": "", "completion": "<real correct completion>", "pitch": "", "isCorrect": true},
