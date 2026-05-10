@@ -13,14 +13,16 @@ export const ledeItemSchema = z.object({
   sourceHint: z.string().min(1),
   panelists: z.array(ledePanelistSchema).length(3),
   explanation: z.string().min(20),
+  eventDate: z.string().optional(),
 });
 
 export const spreadItemSchema = z.object({
   question: z.string().min(10),
   answer: z.number(),
-  unit: z.string().min(1),
+  unit: z.string(),
   others: z.array(z.number()),
   explanation: z.string().min(20),
+  eventDate: z.string().optional(),
 });
 
 const sofClaimSchema = z.object({
@@ -35,6 +37,7 @@ export const sofItemSchema = z.object({
   intro: z.string(),
   weirdAndTrue: z.boolean(),
   claims: z.array(sofClaimSchema).length(3),
+  eventDate: z.string().optional(),
 });
 
 export const quipPromptSchema = z.object({

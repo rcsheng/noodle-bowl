@@ -344,6 +344,9 @@ export default function LedeScreen() {
         {phase === 'reveal' && (
           <View testID="lede-reveal-box" style={styles.infoBox}>
             <Text style={styles.infoText}>{question.explanation}</Text>
+            {question.eventDate && (
+              <Text style={styles.eventDate}>{question.eventDate}</Text>
+            )}
           </View>
         )}
 
@@ -673,6 +676,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: C.ink,
     lineHeight: 20,
+  },
+  eventDate: {
+    fontFamily: F.mono,
+    fontSize: 11,
+    color: C.muted,
+    marginTop: 8,
   },
   primaryBtn: {
     backgroundColor: C.ink,

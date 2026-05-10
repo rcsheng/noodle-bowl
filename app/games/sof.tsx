@@ -402,6 +402,10 @@ export default function SofScreen() {
               </Text>
             </View>
 
+            {question.eventDate && (
+              <Text style={styles.eventDate}>{question.eventDate}</Text>
+            )}
+
             {isChallengeMode ? (
               <>
                 {challengeComparison && (
@@ -710,6 +714,13 @@ const styles = StyleSheet.create({
     color: C.ink,
     lineHeight: 20,
     marginBottom: 8,
+  },
+  eventDate: {
+    fontFamily: F.mono,
+    fontSize: 11,
+    color: C.muted,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   sourceLink: {
     fontFamily: F.mono,

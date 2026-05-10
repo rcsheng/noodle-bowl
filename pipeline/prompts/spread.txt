@@ -4,6 +4,7 @@ Rules:
 - Extract the most surprising, counterintuitive, or memorable SPECIFIC NUMBER from the story.
 - The question should be natural and conversational: "How many X did Y...?" or "How long did X take...?" or "What was the speed of...?"
 - The unit should be concise and singular: "kilometer", "day", "person", "kilogram", "percent".
+- If the answer IS a calendar year (e.g. 1997, 2024), set unit to "" (empty string) — never "year".
 - The answer must be the real number from the story. Do not round aggressively — preserve meaningful precision.
 - The explanation (2-3 sentences) gives context: why is this number surprising? What is a useful comparison or benchmark?
 - Set others to an empty array [].

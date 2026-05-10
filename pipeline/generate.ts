@@ -39,11 +39,27 @@ function storyContext(s: StoryCandidate): string {
   return `Headline: "${s.headline}"\nContext: "${s.summary}"\nSource: ${s.source}`;
 }
 
+function candidateEventDate(s: StoryCandidate): string | undefined {
+  if (s.sourceArticle?.published_at) {
+    return new Date(s.sourceArticle.published_at).toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric',
+    });
+  }
+  if (s.sourceEvent) {
+    const ingested = new Date(s.ingestedAt);
+    return new Date(s.sourceEvent.year, ingested.getMonth(), ingested.getDate()).toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric',
+    });
+  }
+  return undefined;
+}
+
 async function generateLede(client: Anthropic, s: StoryCandidate): Promise<LedeItem | null> {
   try {
     const raw = await callClaude(client, SONNET, loadPrompt('lede') + storyContext(s));
     if (raw && typeof raw === 'object' && 'skip' in raw) return null;
-    return ledeItemSchema.parse(raw) as LedeItem;
+    const item = ledeItemSchema.parse(raw) as LedeItem;
+    return { ...item, eventDate: candidateEventDate(s) };
   } catch (e) {
     console.warn(`  [skip lede] ${s.headline.slice(0, 60)}: ${(e as Error).message.slice(0, 80)}`);
     return null;
@@ -53,7 +69,8 @@ async function generateLede(client: Anthropic, s: StoryCandidate): Promise<LedeI
 async function generateSpread(client: Anthropic, s: StoryCandidate): Promise<SpreadItem | null> {
   try {
     const raw = await callClaude(client, SONNET, loadPrompt('spread') + storyContext(s));
-    return spreadItemSchema.parse(raw) as SpreadItem;
+    const item = spreadItemSchema.parse(raw) as SpreadItem;
+    return { ...item, eventDate: candidateEventDate(s) };
   } catch (e) {
     console.warn(`  [skip spread] ${s.headline.slice(0, 60)}: ${(e as Error).message.slice(0, 80)}`);
     return null;
@@ -72,7 +89,8 @@ async function generateSof(client: Anthropic, cluster: SofCluster, weird: boolea
       loadPrompt(weird ? 'sof-weird' : 'sof') + `Topic cluster: ${cluster.domain}\n${storiesText}`
     );
     if (raw && typeof raw === 'object' && 'skip' in raw) return null;
-    return sofItemSchema.parse(raw) as SofItem;
+    const item = sofItemSchema.parse(raw) as SofItem;
+    return { ...item, eventDate: candidateEventDate(cluster.stories[0]) };
   } catch (e) {
     console.warn(`  [skip sof] ${cluster.domain}: ${(e as Error).message.slice(0, 80)}`);
     return null;

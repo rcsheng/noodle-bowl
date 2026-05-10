@@ -262,7 +262,7 @@ export default function SpreadScreen() {
                   >
                     <View style={[styles.choiceBar, isSelected && styles.choiceBarSelected]} />
                     <Text style={[styles.choiceText, isSelected && styles.choiceTextSelected]}>
-                      {choice.toLocaleString()} {question.unit}
+                      {choice.toLocaleString()}
                     </Text>
                     <Text style={[styles.choiceLetter, isSelected && styles.choiceLetterSelected]}>
                       {CHOICE_LETTERS[i]}
@@ -324,7 +324,7 @@ export default function SpreadScreen() {
                       styles.choiceText,
                       (isCorrect || wasPicked) && styles.choiceTextSelected,
                     ]}>
-                      {choice.toLocaleString()} {question.unit}
+                      {choice.toLocaleString()}
                     </Text>
                     <Text style={[
                       styles.choiceIndicator,
@@ -352,6 +352,9 @@ export default function SpreadScreen() {
             {/* Explanation */}
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>{question.explanation}</Text>
+              {question.eventDate && (
+                <Text style={styles.eventDate}>{question.eventDate}</Text>
+              )}
             </View>
 
             {isChallengeMode ? (
@@ -441,7 +444,7 @@ export default function SpreadScreen() {
         correct={revealData?.correct ?? false}
         predictLabel="Which option do you think they'll pick?"
         predictOptions={question ? choices.map(c => ({
-          label: `${c.toLocaleString()} ${question.unit}`,
+          label: `${c.toLocaleString()}`,
           value: String(c),
         })) : []}
         buildChallengeUrl={async (friendName, prediction) => {
@@ -700,6 +703,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: C.ink,
     lineHeight: 20,
+  },
+  eventDate: {
+    fontFamily: F.mono,
+    fontSize: 11,
+    color: C.muted,
+    marginTop: 8,
   },
   primaryBtn: {
     backgroundColor: C.ink,

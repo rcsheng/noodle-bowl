@@ -26,6 +26,7 @@ export interface SpreadItem {
   unit: string;
   others: number[];
   explanation: string;
+  eventDate?: string;
 }
 
 export interface LedePanelist {
@@ -41,6 +42,7 @@ export interface LedeItem {
   sourceHint: string;
   panelists: LedePanelist[];
   explanation: string;
+  eventDate?: string;
 }
 
 export interface WaveItem {
@@ -63,6 +65,7 @@ export interface SofItem {
   intro: string;
   weirdAndTrue: boolean;
   claims: SofClaim[];
+  eventDate?: string;
 }
 
 export type GameId = 'quip' | 'spread' | 'lede' | 'wave' | 'sof';
