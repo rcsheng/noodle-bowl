@@ -102,8 +102,8 @@ async function main() {
   const allCandidates: StoryCandidate[] = [];
 
   const label = days === 1 ? 'today' : `${days} days`;
-  // NOTE: bulk runs make N TheNewsAPI calls. Check your plan's daily request limit before running
-  // --days=60 (free tier is typically 3 req/day; paid plans support this comfortably).
+  // NOTE: bulk runs make N TheNewsAPI calls against the daily request limit (free tier: 100/day).
+  // --days=60 uses 60 calls, leaving 40 for the rest of the day.
   console.log(`Ingesting from TheNewsAPI for ${label}...`);
   for (let i = 0; i < days; i++) {
     const date = isoDate(i);

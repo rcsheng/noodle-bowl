@@ -75,9 +75,10 @@ Do this once before launch to pre-fill the content bank.
 # 1. Start the Firebase emulator for the dry run (separate terminal)
 npm run emulator
 
-# 2. Bulk ingest — fetches today's news + Wikipedia "On This Day" for 60 dates
+# 2. Bulk ingest — fetches news + Wikipedia "On This Day" for 60 dates
 npm run pipeline:ingest:bulk
-# → ~800–1000 unique candidates in pipeline/data/candidates/YYYY-MM-DD.json
+# Uses 60 of your 100 daily TheNewsAPI requests — fine on the free tier.
+# → pipeline/data/candidates/YYYY-MM-DD.json
 
 # 3. Bulk select — 2× targets: 60 lede, 60 spread, 30 SoF clusters
 npm run pipeline:select:bulk
