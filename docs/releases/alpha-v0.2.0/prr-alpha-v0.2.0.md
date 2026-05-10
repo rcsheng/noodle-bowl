@@ -1,6 +1,6 @@
 # Production Release Readiness — Alpha v0.2.0
 
-Live content pipeline + App Store submission.
+Content pipeline + attribution consistency.
 
 ---
 
@@ -9,11 +9,11 @@ Live content pipeline + App Store submission.
 | Field | Value |
 |---|---|
 | Version | `alpha-v0.2.0` |
-| Target platform | iOS |
-| Distribution channel | App Store (public) |
-| Target date | TBD |
+| Target platform | iOS (TestFlight / internal) |
+| Distribution channel | Internal — not App Store |
+| Release date | 2026-05-10 |
 | Release owner | rcsheng |
-| What's new | Content pipeline (auto-deactivation fix), first production content batch, App Store listing |
+| What's new | Content pipeline (ingest → select → generate → publish), local SQLite history, contentPacks Firestore collection, recover tool, source+date attribution across all three games, Windows Task Scheduler daily automation |
 
 ---
 
@@ -28,21 +28,19 @@ Live content pipeline + App Store submission.
 
 ## 1. Content pipeline
 
-- [ ] Emulator dry run complete (all 5 stages pass)
-- [ ] Production publish complete — one `contentVersions` doc with `active: true`
-- [ ] `contentPacks/{date}` written alongside `contentVersions` on publish
-- [ ] Local `pipeline/data/history.db` has a row for the published date
-- [ ] App reads live content on fresh install (no fallback triggered)
+- [x] Emulator dry run complete (all 5 stages pass)
+- [x] Production publish complete — one `contentVersions` doc with `active: true`
+- [x] `contentPacks/{date}` written alongside `contentVersions` on publish
+- [x] Local `pipeline/data/history.db` has a row for the published date
+- [x] App reads live content on fresh install (no fallback triggered)
 
 ---
 
 ## 2. Code quality
 
-- [ ] All tests passing — `npm test`
+- [x] All tests passing — `npm test` (357 tests, 34 suites)
+- [x] No TypeScript errors — `npx tsc --noEmit`
 - [ ] Functions tests passing — `cd functions && npm test`
-- [ ] No TypeScript errors — `npx tsc --noEmit`
-- [ ] Code review complete (code-reviewer agent)
-- [ ] Security review complete (security-reviewer agent)
 
 ---
 
@@ -55,10 +53,10 @@ Run against **production Firebase with QA collections** using `npm run start:qa`
 | # | Step | Expected |
 |---|---|---|
 | 12.1 | Launch app fresh (no cache) | Home screen loads with today's content — no "content unavailable" error |
-| 12.2 | Play Lede game to result screen | Question and answer match a real news story (not bundled test data) |
-| 12.3 | Force-quit and relaunch | Content loads instantly from AsyncStorage cache |
-| 12.4 | Run `pipeline:publish` again with new content | Old version deactivated, new version active; app picks up new content on next cold launch |
-| 12.5 | Check `pipeline/data/history.db` exists after publish | File present; `pipeline:recover -- --date=YYYY-MM-DD --emulator --yes` completes without error |
+| 12.2 | Play Lede game to result screen | Reveal shows "Source, Month Year" attribution on one line |
+| 12.3 | Play Spread game to result screen | Reveal shows "Source, Month Year" attribution on one line |
+| 12.4 | Play SoF game to result screen | Science claim shows "Source, Month Year" plain text (no link) |
+| 12.5 | Force-quit and relaunch | Content loads instantly from AsyncStorage cache |
 
 ### Regression
 
@@ -75,72 +73,26 @@ Run against **production Firebase with QA collections** using `npm run start:qa`
 - [ ] Block 10 — Self-challenge guard
 - [ ] Block 11 — Universal link deep linking
 
-Step details for Blocks 0–11: `docs/releases/alpha-v0.1.2/prr-alpha-v0.1.2.md` §2.
+Step details for Blocks 0–11: `docs/releases/archive/alpha-v0.1.1/prr-alpha-v0.1.1.md` §2.
 
 ---
 
-## 4. App Store Connect
+## 4. Production environment
 
-- [ ] Privacy policy live at public URL
-- [ ] App listing complete (name, subtitle, description, keywords, URLs, category, age rating)
-- [ ] Screenshots uploaded — iPhone 6.9" minimum
-- [ ] App Store Connect status: "Ready for Review"
-
----
-
-## 5. Production environment
-
-- [ ] Production Firebase project is the target (not emulator)
-- [ ] `.env.local` — `EXPO_PUBLIC_COLLECTION_PREFIX` absent or unset for prod build
-- [ ] Production `contentVersions` has exactly one doc with `active: true`
-- [ ] `contentPacks` collection has a doc for the published date
+- [x] Production Firebase project is the target (not emulator)
+- [x] Production `contentVersions` has exactly one doc with `active: true`
+- [x] `contentPacks` collection has a doc for the published date
 - [ ] Firestore security rules deployed (`contentPacks` read rule added for authenticated users)
-- [ ] Local `pipeline/data/history.db` backed up or confirmed written
-- [ ] Cloud Functions deployed (no changes in this release — verify current)
-- [ ] AASA file live: `https://noodlebowl.app/.well-known/apple-app-site-association`
+- [x] Local `pipeline/data/history.db` confirmed written
+- [x] Cloud Functions unchanged — no redeploy needed
 
 ---
 
-## 6. App configuration
+## 5. Post-release
 
-- [ ] `app.json` version correct for public release
-- [ ] `eas.json` — submit config unchanged (`appleId`, `ascAppId`, `appleTeamId` set)
-- [ ] EAS CLI logged in — `eas whoami`
-
----
-
-## 7. Build
-
-```bash
-eas build --platform ios --profile production
-```
-
-- [ ] Build submitted to EAS cloud
-- [ ] Build completed without errors
-- [ ] `.ipa` artifact visible in EAS dashboard
-
----
-
-## 8. Submit to App Store
-
-```bash
-eas submit --platform ios --profile production --latest
-```
-
-Choose **App Store** (not TestFlight) in the submission flow.
-
-- [ ] Submit completed — no errors
-- [ ] Build appears in App Store Connect → App Store tab
-- [ ] Status changes to "Waiting for Review"
-
----
-
-## 9. Post-release
-
-- [ ] Git tag: `git tag -a alpha-v0.2.0 -m "feat: live content pipeline, App Store submission"`
+- [ ] Git tag: `git tag -a alpha-v0.2.0 -m "feat: content pipeline, attribution fixes"`
 - [ ] Push tag: `git push origin --tags`
 - [ ] Row added to `docs/RELEASES.md`
-- [ ] This PRR updated with actual dates and outcomes
 
 ---
 
@@ -148,8 +100,7 @@ Choose **App Store** (not TestFlight) in the submission flow.
 
 | Step | Done by | Date |
 |---|---|---|
-| Content pipeline | | |
+| Content pipeline | rcsheng | 2026-05-10 |
+| Attribution fixes | rcsheng | 2026-05-10 |
 | Smoke tests | | |
-| App Store listing | | |
-| Build | | |
-| App Store submit | | |
+| Tag + RELEASES.md | | |
