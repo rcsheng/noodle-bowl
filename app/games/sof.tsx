@@ -2,7 +2,6 @@ import { copyToClipboard, formatAttribution, shuffleIndices } from '@/constants/
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Linking,
   Modal,
   ScrollView,
   Share,
@@ -325,17 +324,9 @@ export default function SofScreen() {
                   <Text style={styles.claimText}>{claim.text}</Text>
                   <View style={styles.revealSection}>
                     <Text style={styles.explanationText}>{claim.explanation}</Text>
-                    {claim.source && (
-                      <TouchableOpacity
-                        onPress={() => claim.source && Linking.openURL(claim.source.url)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.sourceLink}>Source: {claim.source.name} ↗</Text>
-                      </TouchableOpacity>
-                    )}
-                    {isScienceClaim && formatAttribution(undefined, question.eventDate) && (
+                    {formatAttribution(claim.source?.name, isScienceClaim ? question.eventDate : undefined) && (
                       <Text style={styles.eventDate} numberOfLines={1}>
-                        {formatAttribution(undefined, question.eventDate)}
+                        {formatAttribution(claim.source?.name, isScienceClaim ? question.eventDate : undefined)}
                       </Text>
                     )}
                   </View>
@@ -720,15 +711,7 @@ const styles = StyleSheet.create({
     fontFamily: F.mono,
     fontSize: 11,
     color: C.muted,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  sourceLink: {
-    fontFamily: F.mono,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    color: C.accent,
-    textDecorationLine: 'underline',
+    marginTop: 8,
   },
   primaryBtn: {
     backgroundColor: C.ink,
