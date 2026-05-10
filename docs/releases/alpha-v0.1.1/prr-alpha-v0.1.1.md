@@ -40,11 +40,11 @@ EXPO_PUBLIC_COLLECTION_PREFIX=qa_
 
 ## 1. Code quality
 
-- [ ] All tests passing — `npm test` (353 tests, 34 suites at branch cut)
-- [ ] Functions tests passing — `cd functions && npm test`
-- [ ] No TypeScript errors — `npx tsc --noEmit`
-- [ ] Code review complete (code-reviewer agent)
-- [ ] Security review complete (security-reviewer agent)
+- [x] All tests passing — `npm test` (353 tests, 34 suites at branch cut)
+- [x] Functions tests passing — `cd functions && npm test` (61 tests, 5 suites)
+- [x] No TypeScript errors — `npx tsc --noEmit` (4 errors fixed: lede style, firebase RN import, 2 test types)
+- [ ] Code review complete (code-reviewer agent) — deferred to alpha-v0.1.2
+- [ ] Security review complete (security-reviewer agent) — deferred to alpha-v0.1.2
 
 ---
 
@@ -231,13 +231,13 @@ These cover auth, challenge/help flows, content resilience, stats, and edge case
 
 ## 3. Production environment
 
-- [ ] Production Firebase project is the target (not emulator)
-- [ ] `.env.local` — `EXPO_PUBLIC_COLLECTION_PREFIX` removed or unset
-- [ ] `.env.local` — `EXPO_PUBLIC_ENABLE_SLURP` absent or `false`
-- [ ] Production Firestore has at least one active `contentVersions` doc — `npm run seed:prod`
-- [ ] Firestore security rules deployed — `firebase deploy --only firestore:rules`
-- [ ] Cloud Functions deployed — `firebase deploy --only functions`
-- [ ] Functions build is clean — `cd functions && npm run build`
+- [x] Production Firebase project is the target (not emulator)
+- [x] `.env.local` — `EXPO_PUBLIC_COLLECTION_PREFIX` removed or unset
+- [x] `.env.local` — `EXPO_PUBLIC_ENABLE_SLURP` absent or `false`
+- [x] Production Firestore has at least one active `contentVersions` doc
+- [x] Firestore security rules deployed — no changes since last deploy
+- [x] Cloud Functions deployed — no changes since last deploy (all 6 functions live)
+- [x] Functions build is clean — `cd functions && npm run build`
 
 > **Infra note:** if `challengeCreate` was redeployed from scratch, re-grant the IAM binding:
 > ```bash
@@ -248,9 +248,9 @@ These cover auth, challenge/help flows, content resilience, stats, and edge case
 
 ## 4. App configuration
 
-- [ ] `app.json` version bumped to `1.0.1` (or matching EAS auto-increment)
-- [ ] `eas.json` — `appleId` and `ascAppId` filled in
-- [ ] EAS CLI logged in — `eas whoami`
+- [x] `app.json` version `1.0.0` — EAS auto-increments build number (`appVersionSource: remote`)
+- [x] `eas.json` — `appleId`, `ascAppId`, `appleTeamId` all set
+- [x] EAS CLI logged in
 
 ---
 
@@ -260,9 +260,9 @@ These cover auth, challenge/help flows, content resilience, stats, and edge case
 eas build --platform ios --profile production
 ```
 
-- [ ] Build submitted to EAS cloud
-- [ ] Build completed without errors (https://expo.dev/accounts/rcsheng/projects/noodle-bowl/builds)
-- [ ] `.ipa` artifact visible in dashboard
+- [x] Build submitted to EAS cloud
+- [x] Build completed without errors
+- [x] `.ipa` artifact visible in dashboard
 
 ---
 
@@ -272,25 +272,24 @@ eas build --platform ios --profile production
 eas submit --platform ios --profile production --latest
 ```
 
-- [ ] Submit completed — no errors
-- [ ] Build appears in App Store Connect → TestFlight
-- [ ] Status changes to "Ready to Test"
+- [x] Submit completed — no errors
+- [x] Build appears in App Store Connect → TestFlight
+- [x] Status changes to "Ready to Test"
 
 ---
 
 ## 7. TestFlight tester management
 
-- [ ] Internal testers notified
-- [ ] Invite emails sent / TestFlight links distributed
+- [x] Internal testers notified
 
 ---
 
 ## 8. Post-release
 
-- [ ] Git tag created — `git tag -a alpha-v0.1.1 -m "Q2 UI redesign: compact home, Lede headline-first, Spread multiple-choice, SoF segmented toggle"`
-- [ ] Tag pushed — `git push origin --tags`
-- [ ] Row added to `docs/RELEASES.md`
-- [ ] This PRR doc updated with actual dates and outcomes
+- [x] Git tag created — `git tag -a alpha-v0.1.1 -m "Q2 UI redesign: compact home, Lede headline-first, Spread multiple-choice, SoF segmented toggle"` (tagged at be362ca)
+- [x] Tag pushed — `git push origin --tags`
+- [x] Row added to `docs/RELEASES.md`
+- [x] This PRR doc updated with actual dates and outcomes
 
 ---
 
@@ -298,7 +297,7 @@ eas submit --platform ios --profile production --latest
 
 | Step | Done by | Date |
 |---|---|---|
-| Smoke tests | | |
-| Build | | |
-| TestFlight submit | | |
-| Testers notified | | |
+| Smoke tests | rcsheng | 2026-05-09 |
+| Build | rcsheng | 2026-05-09 |
+| TestFlight submit | rcsheng | 2026-05-09 |
+| Testers notified | rcsheng | 2026-05-09 |
