@@ -333,6 +333,9 @@ export default function SofScreen() {
                         <Text style={styles.sourceLink}>Source: {claim.source.name} ↗</Text>
                       </TouchableOpacity>
                     )}
+                    {isScienceClaim && question.eventDate && (
+                      <Text style={styles.eventDate}>{question.eventDate}</Text>
+                    )}
                   </View>
                 </View>
               );
@@ -401,10 +404,6 @@ export default function SofScreen() {
                 {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
               </Text>
             </View>
-
-            {question.eventDate && (
-              <Text style={styles.eventDate}>{question.eventDate}</Text>
-            )}
 
             {isChallengeMode ? (
               <>

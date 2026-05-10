@@ -26,6 +26,7 @@ export interface SpreadItem {
   unit: string;
   others: number[];
   explanation: string;
+  sourceHint?: string;
   eventDate?: string;
 }
 

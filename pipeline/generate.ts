@@ -65,7 +65,7 @@ async function generateSpread(client: Anthropic, s: StoryCandidate): Promise<Spr
     const raw = await callClaude(client, SONNET, loadPrompt('spread') + storyContext(s));
     if (raw && typeof raw === 'object' && 'skip' in raw) return null;
     const item = spreadItemSchema.parse(raw) as SpreadItem;
-    return { ...item, eventDate: candidateEventDate(s) };
+    return { ...item, sourceHint: s.source, eventDate: candidateEventDate(s) };
   } catch (e) {
     console.warn(`  [skip spread] ${s.headline.slice(0, 60)}: ${(e as Error).message.slice(0, 80)}`);
     return null;

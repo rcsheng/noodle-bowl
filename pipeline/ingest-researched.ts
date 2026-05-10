@@ -46,9 +46,21 @@ function stripCitations(text: string): string {
     .trim();
 }
 
+const MONTH_MAP: Record<string, string> = {
+  jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+  jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+};
+
 function parseIsoDate(dateStr: string): string | undefined {
-  const match = dateStr.match(/(\d{4}-\d{2}-\d{2})/);
-  return match ? new Date(match[1]).toISOString() : undefined;
+  const full = dateStr.match(/(\d{4}-\d{2}-\d{2})/);
+  if (full) return new Date(full[1]).toISOString();
+  // "Jul 2025" or "July 2025" → YYYY-MM-01
+  const monthYear = dateStr.match(/([A-Za-z]{3})[a-z]*\.?\s+(\d{4})/);
+  if (monthYear) {
+    const mm = MONTH_MAP[monthYear[1].toLowerCase()];
+    if (mm) return new Date(`${monthYear[2]}-${mm}-01`).toISOString();
+  }
+  return undefined;
 }
 
 type ColIdx = { segment: number; quoted: number; outlet: number; url: number; date: number };

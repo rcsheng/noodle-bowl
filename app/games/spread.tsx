@@ -355,6 +355,9 @@ export default function SpreadScreen() {
               {question.eventDate && (
                 <Text style={styles.eventDate}>{question.eventDate}</Text>
               )}
+              {question.sourceHint && (
+                <Text style={styles.eventDate}>Source: {question.sourceHint}</Text>
+              )}
             </View>
 
             {isChallengeMode ? (
