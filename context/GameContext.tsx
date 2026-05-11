@@ -22,6 +22,7 @@ interface GameContextType {
   addFriendInteraction: (interaction: Omit<FriendInteraction, 'id' | 'date'>) => void;
   removeFriendInteraction: (id: string) => void;
   dismissHelpCard: (token: string) => void;
+  setAskerAnswer: (token: string, askerAnswer: string) => void;
   dismissStreakSavedBanner: () => void;
 }
 
@@ -190,6 +191,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAnonymous, uid, state.friendInteractions]);
 
+  const setAskerAnswer = useCallback((token: string, askerAnswer: string) => {
+    dispatch({ type: 'SET_ASKER_ANSWER', token, askerAnswer });
+    if (!isAnonymous && uid) {
+      const target = state.friendInteractions.find(
+        i => i.token === token && i.type === 'received_help',
+      );
+      if (target) {
+        setDoc(
+          doc(db, 'users', uid, 'friendInteractions', target.id),
+          { ...target, askerAnswer },
+        ).catch(() => {});
+      }
+    }
+  }, [isAnonymous, uid, state.friendInteractions]);
+
   const dismissStreakSavedBanner = useCallback(() => {
     dispatch({ type: 'DISMISS_STREAK_SAVED_BANNER' });
   }, []);
@@ -275,7 +291,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [uid]);
 
   return (
-    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard, dismissStreakSavedBanner }}>
+    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard, setAskerAnswer, dismissStreakSavedBanner }}>
       {children}
     </GameContext.Provider>
   );

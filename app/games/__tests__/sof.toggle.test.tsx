@@ -130,6 +130,32 @@ describe('SoF mode toggle', () => {
   });
 });
 
+// ── hint mode: lock-in records asker answer ───────────────────────────────────
+
+describe('SoF hint mode — lock-in', () => {
+  let setAskerAnswer: jest.Mock;
+
+  beforeEach(() => {
+    setAskerAnswer = jest.fn();
+    useGame.mockReturnValue({ ...defaultGameState(), setAskerAnswer });
+    useLocalSearchParams.mockReturnValue({
+      hintQuestionIndex: '0',
+      friendHint: '2',
+      hintToken: 'HINT_TOK',
+    });
+  });
+
+  it('calls setAskerAnswer with token and 1-based claim after lock-in', async () => {
+    const { getByText } = render(<SofScreen />);
+    await act(async () => {});
+    fireEvent.press(getByText('Claim A')); // originalIdx=0 → 1-based "1"
+    await act(async () => {});
+    fireEvent.press(getByText(/LOCK IN CLAIM/i));
+    await act(async () => {});
+    expect(setAskerAnswer).toHaveBeenCalledWith('HINT_TOK', '1');
+  });
+});
+
 // ── friend hint rendering ─────────────────────────────────────────────────────
 
 describe('SoF friend hint', () => {

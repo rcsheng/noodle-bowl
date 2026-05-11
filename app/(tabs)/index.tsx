@@ -179,6 +179,9 @@ export default function HubScreen() {
                 banks,
               );
               const isGameCompleted = state.stats[interaction.gameId].lastPlayed === today;
+              const askerEval = interaction.askerAnswer
+                ? evaluateHelperAnswer(interaction.gameId, interaction.questionIndex, interaction.askerAnswer, banks)
+                : null;
               return (
                 <HelpResultCard
                   key={interaction.id}
@@ -190,11 +193,13 @@ export default function HubScreen() {
                   correct={evaluation.correct}
                   onDismiss={() => dismissHelpCard(interaction.token!)}
                   isGameCompleted={isGameCompleted}
+                  askerAnswerLabel={askerEval?.label}
                   onPlay={isGameCompleted ? undefined : () => router.push({
                     pathname: `/games/${interaction.gameId}` as any,
                     params: {
                       hintQuestionIndex: String(interaction.questionIndex),
                       friendHint: interaction.friendAnswer ?? '',
+                      hintToken: interaction.token ?? '',
                     },
                   })}
                 />

@@ -119,6 +119,31 @@ describe('Lede headline pill', () => {
   });
 });
 
+// ── hint mode: lock-in records asker answer ───────────────────────────────────
+
+describe('Lede hint mode — lock-in', () => {
+  let setAskerAnswer: jest.Mock;
+
+  beforeEach(() => {
+    setAskerAnswer = jest.fn();
+    useGame.mockReturnValue({ ...defaultGameState(), setAskerAnswer });
+    useLocalSearchParams.mockReturnValue({
+      hintQuestionIndex: '0',
+      friendHint: '1',
+      hintToken: 'HINT_TOK',
+    });
+  });
+
+  it('calls setAskerAnswer with token and selected index after lock-in', async () => {
+    const { getByText } = await renderAndWait();
+    fireEvent.press(getByText('funding AI models')); // select panelist 0
+    await act(async () => {});
+    fireEvent.press(getByText(/Lock In/i));
+    await act(async () => {});
+    expect(setAskerAnswer).toHaveBeenCalledWith('HINT_TOK', '0');
+  });
+});
+
 // ── friend hint rendering ─────────────────────────────────────────────────────
 
 describe('Lede friend hint', () => {

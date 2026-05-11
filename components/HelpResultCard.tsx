@@ -13,6 +13,7 @@ interface Props {
   onDismiss: () => void;
   isGameCompleted?: boolean;
   onPlay?: () => void;
+  askerAnswerLabel?: string;
 }
 
 export function HelpResultCard({
@@ -25,6 +26,7 @@ export function HelpResultCard({
   onDismiss,
   isGameCompleted,
   onPlay,
+  askerAnswerLabel,
 }: Props) {
   return (
     <View style={styles.card} testID="help-result-card">
@@ -65,10 +67,21 @@ export function HelpResultCard({
         </View>
       )}
 
+      {!!askerAnswerLabel && (
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Your pick</Text>
+          <Text style={styles.rowValue}>{askerAnswerLabel}</Text>
+        </View>
+      )}
+
       {correct !== null && (
         <Text style={[styles.tag, correct ? styles.tagCorrect : styles.tagWrong]}>
           {correct ? '✓ Correct' : '✗ Wrong'}
         </Text>
+      )}
+
+      {isGameCompleted && (
+        <Text style={styles.playedToday}>Played today</Text>
       )}
 
       {!isGameCompleted && !!onPlay && (
@@ -198,5 +211,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.ink,
+  },
+  playedToday: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginTop: 14,
   },
 });

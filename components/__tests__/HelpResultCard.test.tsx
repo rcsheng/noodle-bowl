@@ -61,6 +61,42 @@ describe('HelpResultCard', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  describe('Played today state', () => {
+    test('shows "Played today" label when isGameCompleted=true', () => {
+      const { getByText } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={true} />,
+      );
+      expect(getByText(/played today/i)).toBeTruthy();
+    });
+
+    test('does not show "Played today" label when isGameCompleted=false', () => {
+      const { queryByText } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={false} onPlay={jest.fn()} />,
+      );
+      expect(queryByText(/played today/i)).toBeNull();
+    });
+
+    test('does not show "Played today" label by default (backward compat)', () => {
+      const { queryByText } = render(<HelpResultCard {...baseProps} />);
+      expect(queryByText(/played today/i)).toBeNull();
+    });
+  });
+
+  describe('Your pick row', () => {
+    test('shows "Your pick" row when askerAnswerLabel is provided', () => {
+      const { getByText } = render(
+        <HelpResultCard {...baseProps} askerAnswerLabel="sharing client data" />,
+      );
+      expect(getByText('Your pick')).toBeTruthy();
+      expect(getByText('sharing client data')).toBeTruthy();
+    });
+
+    test('does not show "Your pick" row when askerAnswerLabel is absent', () => {
+      const { queryByText } = render(<HelpResultCard {...baseProps} />);
+      expect(queryByText('Your pick')).toBeNull();
+    });
+  });
+
   describe('Play button', () => {
     test('shows Play button when isGameCompleted=false and onPlay is provided', () => {
       const { getByTestId } = render(

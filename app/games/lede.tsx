@@ -51,7 +51,7 @@ interface RevealData {
 
 export default function LedeScreen() {
   const { user, isAnonymous } = useAuth();
-  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer } = useGame();
   const { banks, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
@@ -64,6 +64,7 @@ export default function LedeScreen() {
     helpAskerName,
     hintQuestionIndex,
     friendHint,
+    hintToken,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -73,6 +74,7 @@ export default function LedeScreen() {
     helpAskerName?: string;
     hintQuestionIndex?: string;
     friendHint?: string;
+    hintToken?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
@@ -178,6 +180,10 @@ export default function LedeScreen() {
       } catch {
         // ignore
       }
+    }
+
+    if (isHintMode && hintToken) {
+      setAskerAnswer(hintToken, String(selected));
     }
   };
 

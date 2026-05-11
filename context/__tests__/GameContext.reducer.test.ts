@@ -606,6 +606,44 @@ describe('reducer: DISMISS_HELP_CARD', () => {
 });
 
 // ---------------------------------------------------------------------------
+// SET_ASKER_ANSWER
+// ---------------------------------------------------------------------------
+describe('reducer: SET_ASKER_ANSWER', () => {
+  const makeReceivedHelp = (id: string, token: string): FriendInteraction => ({
+    id,
+    type: 'received_help',
+    friendName: 'Alice',
+    gameId: 'lede',
+    questionIndex: 0,
+    date: '2026-05-11',
+    shieldEarned: false,
+    token,
+    friendAnswer: '1',
+  });
+
+  test('sets askerAnswer on the matching received_help interaction', () => {
+    const state = makeState({ friendInteractions: [makeReceivedHelp('1', 'TOK')] });
+    const next = reducer(state, { type: 'SET_ASKER_ANSWER', token: 'TOK', askerAnswer: '0' } as Action);
+    expect(next.friendInteractions[0].askerAnswer).toBe('0');
+  });
+
+  test('leaves other interactions unchanged', () => {
+    const a = makeReceivedHelp('1', 'TOK1');
+    const b = makeReceivedHelp('2', 'TOK2');
+    const state = makeState({ friendInteractions: [a, b] });
+    const next = reducer(state, { type: 'SET_ASKER_ANSWER', token: 'TOK1', askerAnswer: '2' } as Action);
+    expect(next.friendInteractions[0].askerAnswer).toBe('2');
+    expect(next.friendInteractions[1].askerAnswer).toBeUndefined();
+  });
+
+  test('no-op when token does not match', () => {
+    const state = makeState({ friendInteractions: [makeReceivedHelp('1', 'TOK')] });
+    const next = reducer(state, { type: 'SET_ASKER_ANSWER', token: 'NOPE', askerAnswer: '1' } as Action);
+    expect(next.friendInteractions[0].askerAnswer).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // REMOVE_FRIEND_INTERACTION
 // ---------------------------------------------------------------------------
 describe('reducer: REMOVE_FRIEND_INTERACTION', () => {

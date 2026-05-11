@@ -11,6 +11,7 @@ export interface FriendInteraction {
   token?: string;
   senderPrediction?: string;
   friendAnswer?: string;
+  askerAnswer?: string;
   bonusPointsEarned?: number;
   homeCardDismissed?: boolean;
 }
@@ -86,6 +87,7 @@ export type Action =
   | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] }
   | { type: 'REMOVE_FRIEND_INTERACTION'; id: string }
   | { type: 'DISMISS_HELP_CARD'; token: string }
+  | { type: 'SET_ASKER_ANSWER'; token: string; askerAnswer: string }
   | { type: 'MERGE_FROM_SERVER'; serverStats: AppState['stats']; serverSeen?: Partial<AppState['seen']> };
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -203,6 +205,15 @@ export function reducer(state: AppState, action: Action): AppState {
         friendInteractions: state.friendInteractions.map(i =>
           i.token === action.token && (i.type === 'received_help' || i.type === 'challenge_accepted')
             ? { ...i, homeCardDismissed: true }
+            : i,
+        ),
+      };
+    case 'SET_ASKER_ANSWER':
+      return {
+        ...state,
+        friendInteractions: state.friendInteractions.map(i =>
+          i.token === action.token && i.type === 'received_help'
+            ? { ...i, askerAnswer: action.askerAnswer }
             : i,
         ),
       };
