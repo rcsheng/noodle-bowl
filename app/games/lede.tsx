@@ -51,7 +51,7 @@ interface RevealData {
 export default function LedeScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
-  const { banks } = useContent();
+  const { banks, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const {
@@ -92,7 +92,7 @@ export default function LedeScreen() {
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded || started.current) return;
+    if (!isLoaded || contentLoading || started.current) return;
     started.current = true;
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
@@ -115,7 +115,7 @@ export default function LedeScreen() {
       setQuestionIdx(idx);
       setOrder(shuffleIndices(item.panelists.length));
     }
-  }, [isLoaded]);
+  }, [isLoaded, contentLoading]);
 
   const handleLockIn = async () => {
     if (selected === null || !question) return;

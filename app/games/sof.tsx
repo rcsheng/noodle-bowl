@@ -60,7 +60,7 @@ function pickFromSof(
 export default function SofScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
-  const { banks } = useContent();
+  const { banks, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -104,7 +104,7 @@ export default function SofScreen() {
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded || started.current) return;
+    if (!isLoaded || contentLoading || started.current) return;
     started.current = true;
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
@@ -127,7 +127,7 @@ export default function SofScreen() {
       setStandardSlot({ item: stdItem, idx: stdIdx, claimOrder: shuffleIndices(stdItem.claims.length) });
       setWeirdSlot({ item: wrdItem, idx: wrdIdx, claimOrder: shuffleIndices(wrdItem.claims.length) });
     }
-  }, [isLoaded]);
+  }, [isLoaded, contentLoading]);
 
   const handleLockIn = async () => {
     if (!question || selectedClaim === null) return;

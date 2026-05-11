@@ -45,7 +45,7 @@ interface RevealData {
 export default function SpreadScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
-  const { banks } = useContent();
+  const { banks, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -94,7 +94,7 @@ export default function SpreadScreen() {
   };
 
   useEffect(() => {
-    if (!isLoaded || started.current) return;
+    if (!isLoaded || contentLoading || started.current) return;
     started.current = true;
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
@@ -117,7 +117,7 @@ export default function SpreadScreen() {
       setQuestionIdx(idx);
       loadQuestion(item);
     }
-  }, [isLoaded]);
+  }, [isLoaded, contentLoading]);
 
   const handleLockIn = () => {
     if (!question || selected === null) return;
