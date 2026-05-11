@@ -13,7 +13,7 @@ Content pipeline + attribution consistency.
 | Distribution channel | Internal — not App Store |
 | Release date | 2026-05-10 |
 | Release owner | rcsheng |
-| What's new | Content pipeline (ingest → select → generate → publish), local SQLite history, contentPacks Firestore collection, recover tool, source+date attribution across all three games, Windows Task Scheduler daily automation |
+| What's new | Content pipeline (ingest → select → generate → publish), local SQLite history, contentPacks Firestore collection, recover tool, source+date attribution across all three games, Windows Task Scheduler daily automation, content freshness fix (stale-cache cold start) |
 
 ---
 
@@ -56,7 +56,8 @@ Run against **production Firebase with QA collections** using `npm run start:qa`
 | 12.2 | Play Lede game to result screen | Reveal shows "Source, Month Year" attribution on one line |
 | 12.3 | Play Spread game to result screen | Reveal shows "Source, Month Year" attribution on one line |
 | 12.4 | Play SoF game to result screen | Science claim shows "Source, Month Year" plain text (no link) |
-| 12.5 | Force-quit and relaunch | Content loads instantly from AsyncStorage cache |
+| 12.5 | Force-quit and relaunch same day | Content loads instantly from AsyncStorage cache |
+| 12.6 | Cold start next day (after pipeline runs) | App waits for Firestore; today's questions appear (not yesterday's) |
 
 ### Regression
 
