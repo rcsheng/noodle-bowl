@@ -32,7 +32,8 @@
     "pipeline:review": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/review.ts",
     "pipeline:publish": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts",
     "pipeline:publish:emulator": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --emulator",
-    "pipeline:recover": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/recover.ts"
+    "pipeline:recover": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/recover.ts",
+    "pipeline:status": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/status.ts"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
