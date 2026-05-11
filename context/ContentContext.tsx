@@ -15,6 +15,14 @@ interface ContentContextValue {
 
 const ContentContext = createContext<ContentContextValue | null>(null);
 
+function isCachedToday(version: ContentVersion): boolean {
+  const d = new Date(version.createdAt);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+}
+
 export function ContentProvider({ children }: { children: React.ReactNode }) {
   const fallback = getFallback();
   const [version, setVersion] = useState<ContentVersion>(fallback);
@@ -26,17 +34,19 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function load() {
-      // Fast start: serve cached version immediately. Cache is local-only and
-      // safe to read regardless of auth state.
       const cached = await getCached();
+
       if (cached && !cancelled) {
         setVersion(cached);
-        setIsLoading(false);
+        // Only mark loaded immediately if the cache is already from today —
+        // otherwise keep isLoading=true so game screens wait for Firestore to
+        // deliver today's content before picking questions.
+        if (isCachedToday(cached)) {
+          setIsLoading(false);
+        }
       }
 
-      // Firestore read requires auth (rules: request.auth != null). Skip
-      // background refresh until AuthContext has a user — otherwise we burn
-      // a permission-denied error every cold start.
+      // Firestore read requires auth. Skip until a user is present.
       if (authLoading || !isAuthed) {
         if (!cached && !cancelled) setIsLoading(false);
         return;
