@@ -51,6 +51,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /contentPacks/{date} {
+      // Any authenticated user can read historical content packs
+      allow read: if request.auth != null;
+      // Only pipeline / Admin SDK can write (client writes denied)
+      allow write: if false;
+    }
+
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
 
