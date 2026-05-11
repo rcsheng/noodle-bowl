@@ -1,4 +1,5 @@
 import { copyToClipboard, formatAttribution, shuffleIndices } from '@/constants/utils';
+import { isFriendHintMatch } from '@/lib/friendHint';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -72,6 +73,8 @@ export default function SofScreen() {
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
+    hintQuestionIndex,
+    friendHint,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -79,9 +82,12 @@ export default function SofScreen() {
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
+    hintQuestionIndex?: string;
+    friendHint?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
+  const isHintMode = !!hintQuestionIndex && !helpTokenParam && !challengeToken;
 
   type Slot = { item: SofItem; idx: number; claimOrder: number[] };
   const [standardSlot, setStandardSlot] = useState<Slot | null>(null);
@@ -115,6 +121,13 @@ export default function SofScreen() {
       setWeirdMode(item.weirdAndTrue);
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
+      const item = banks.sof[idx];
+      if (!item) { router.replace('/'); return; }
+      const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
+      if (item.weirdAndTrue) setWeirdSlot(slot); else setStandardSlot(slot);
+      setWeirdMode(item.weirdAndTrue);
+    } else if (isHintMode && hintQuestionIndex !== undefined) {
+      const idx = parseInt(hintQuestionIndex, 10);
       const item = banks.sof[idx];
       if (!item) { router.replace('/'); return; }
       const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
@@ -262,7 +275,7 @@ export default function SofScreen() {
         </TouchableOpacity>
 
         {/* Mode toggle — segmented control */}
-        {!isChallengeMode && !isHelpMode && phase === 'play' && (
+        {!isChallengeMode && !isHelpMode && !isHintMode && phase === 'play' && (
           <>
           <Text style={styles.modeLabel}>Select mode</Text>
           <View style={styles.modeToggle}>
@@ -334,10 +347,11 @@ export default function SofScreen() {
               );
             }
 
+            const isHinted = isFriendHintMatch('sof', originalIdx, friendHint);
             return (
               <TouchableOpacity
                 key={originalIdx}
-                style={[styles.claimCard, selected && styles.claimCardSelected]}
+                style={[styles.claimCard, selected && styles.claimCardSelected, isHinted && !selected && styles.claimCardHinted]}
                 onPress={() => setSelectedClaim(originalIdx)}
                 activeOpacity={0.85}
               >
@@ -346,6 +360,11 @@ export default function SofScreen() {
                     CLAIM {displayIdx + 1}
                   </Text>
                   {selected && <Text style={styles.myPickLabel}>← MY PICK</Text>}
+                  {isHinted && !selected && (
+                    <Text testID={`claim-friend-hint-${originalIdx}`} style={styles.friendHintLabel}>
+                      friend's pick
+                    </Text>
+                  )}
                 </View>
                 <Text style={[styles.claimText, selected && styles.claimTextSelected]}>
                   {claim.text}
@@ -369,7 +388,7 @@ export default function SofScreen() {
               </Text>
             </TouchableOpacity>
 
-            {!isChallengeMode && !isHelpMode && (
+            {!isChallengeMode && !isHelpMode && !isHintMode && (
               <TouchableOpacity
                 style={styles.helpLink}
                 onPress={() => requireAuth(handleOpenHelp)}
@@ -640,6 +659,10 @@ const styles = StyleSheet.create({
     backgroundColor: C.accent,
     borderColor: C.accent,
   },
+  claimCardHinted: {
+    backgroundColor: C.paperDark,
+    borderColor: C.accent,
+  },
   claimHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -681,6 +704,13 @@ const styles = StyleSheet.create({
     fontFamily: F.frauncesItalic,
     fontSize: 12,
     color: C.onDarkDim,
+  },
+  friendHintLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: C.accent,
   },
   claimText: {
     fontFamily: F.fraunces,

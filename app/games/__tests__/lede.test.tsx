@@ -119,6 +119,36 @@ describe('Lede headline pill', () => {
   });
 });
 
+// ── friend hint rendering ─────────────────────────────────────────────────────
+
+describe('Lede friend hint', () => {
+  it('shows a hint indicator on the hinted panelist option', async () => {
+    useLocalSearchParams.mockReturnValue({
+      hintQuestionIndex: '0',
+      friendHint: '1', // friend picked panelist index 1 (Bob)
+    });
+    const { getByTestId } = await renderAndWait();
+    expect(getByTestId('choice-friend-hint-1')).toBeTruthy();
+  });
+
+  it('does not show a hint indicator on the wrong option', async () => {
+    useLocalSearchParams.mockReturnValue({
+      hintQuestionIndex: '0',
+      friendHint: '1',
+    });
+    const { queryByTestId } = await renderAndWait();
+    expect(queryByTestId('choice-friend-hint-0')).toBeNull();
+    expect(queryByTestId('choice-friend-hint-2')).toBeNull();
+  });
+
+  it('shows no hint indicator when friendHint is absent', async () => {
+    useLocalSearchParams.mockReturnValue({});
+    const { queryByTestId } = await renderAndWait();
+    expect(queryByTestId('choice-friend-hint-0')).toBeNull();
+    expect(queryByTestId('choice-friend-hint-1')).toBeNull();
+  });
+});
+
 // ── combined reveal box ───────────────────────────────────────────────────────
 
 describe('Lede reveal box', () => {

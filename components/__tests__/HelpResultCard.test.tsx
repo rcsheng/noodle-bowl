@@ -60,4 +60,41 @@ describe('HelpResultCard', () => {
     fireEvent.press(getByTestId('help-result-dismiss-btn'));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
+
+  describe('Play button', () => {
+    test('shows Play button when isGameCompleted=false and onPlay is provided', () => {
+      const { getByTestId } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={false} onPlay={jest.fn()} />,
+      );
+      expect(getByTestId('help-result-play-btn')).toBeTruthy();
+    });
+
+    test('calls onPlay when Play button is pressed', () => {
+      const onPlay = jest.fn();
+      const { getByTestId } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={false} onPlay={onPlay} />,
+      );
+      fireEvent.press(getByTestId('help-result-play-btn'));
+      expect(onPlay).toHaveBeenCalledTimes(1);
+    });
+
+    test('hides Play button when isGameCompleted=true', () => {
+      const { queryByTestId } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={true} onPlay={jest.fn()} />,
+      );
+      expect(queryByTestId('help-result-play-btn')).toBeNull();
+    });
+
+    test('hides Play button when onPlay is not provided', () => {
+      const { queryByTestId } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={false} />,
+      );
+      expect(queryByTestId('help-result-play-btn')).toBeNull();
+    });
+
+    test('hides Play button when neither prop is set (backward-compat default)', () => {
+      const { queryByTestId } = render(<HelpResultCard {...baseProps} />);
+      expect(queryByTestId('help-result-play-btn')).toBeNull();
+    });
+  });
 });

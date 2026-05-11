@@ -11,6 +11,8 @@ interface Props {
   correctLabel: string | null;
   correct: boolean | null;
   onDismiss: () => void;
+  isGameCompleted?: boolean;
+  onPlay?: () => void;
 }
 
 export function HelpResultCard({
@@ -21,6 +23,8 @@ export function HelpResultCard({
   correctLabel,
   correct,
   onDismiss,
+  isGameCompleted,
+  onPlay,
 }: Props) {
   return (
     <View style={styles.card} testID="help-result-card">
@@ -65,6 +69,17 @@ export function HelpResultCard({
         <Text style={[styles.tag, correct ? styles.tagCorrect : styles.tagWrong]}>
           {correct ? '✓ Correct' : '✗ Wrong'}
         </Text>
+      )}
+
+      {!isGameCompleted && !!onPlay && (
+        <TouchableOpacity
+          testID="help-result-play-btn"
+          style={styles.playBtn}
+          onPress={onPlay}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.playBtnText}>Try this question →</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -168,5 +183,20 @@ const styles = StyleSheet.create({
   },
   tagWrong: {
     color: C.accent,
+  },
+  playBtn: {
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: C.ink,
+    alignSelf: 'flex-start',
+  },
+  playBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.ink,
   },
 });

@@ -130,6 +130,49 @@ describe('SoF mode toggle', () => {
   });
 });
 
+// ── friend hint rendering ─────────────────────────────────────────────────────
+
+describe('SoF friend hint', () => {
+  it('shows a hint indicator on the hinted claim', async () => {
+    useLocalSearchParams.mockReturnValue({
+      hintQuestionIndex: '0',
+      friendHint: '2', // friend picked claim 2 (1-based) → index 1
+    });
+    const { getByTestId } = render(<SofScreen />);
+    await act(async () => {});
+    expect(getByTestId('claim-friend-hint-1')).toBeTruthy();
+  });
+
+  it('does not show a hint indicator on the wrong claim', async () => {
+    useLocalSearchParams.mockReturnValue({
+      hintQuestionIndex: '0',
+      friendHint: '2',
+    });
+    const { queryByTestId } = render(<SofScreen />);
+    await act(async () => {});
+    expect(queryByTestId('claim-friend-hint-0')).toBeNull();
+  });
+
+  it('shows no hint indicator when friendHint is absent', async () => {
+    useLocalSearchParams.mockReturnValue({});
+    const { queryByTestId } = render(<SofScreen />);
+    await act(async () => {});
+    expect(queryByTestId('claim-friend-hint-0')).toBeNull();
+    expect(queryByTestId('claim-friend-hint-1')).toBeNull();
+  });
+
+  it('mode toggle is hidden in hint mode', async () => {
+    useLocalSearchParams.mockReturnValue({
+      hintQuestionIndex: '0',
+      friendHint: '1',
+    });
+    const { queryByTestId } = render(<SofScreen />);
+    await act(async () => {});
+    expect(queryByTestId('sof-mode-standard')).toBeNull();
+    expect(queryByTestId('sof-mode-weird')).toBeNull();
+  });
+});
+
 // ── wager removed ──────────────────────────────────────────────────────────
 
 describe('SoF wager removed', () => {

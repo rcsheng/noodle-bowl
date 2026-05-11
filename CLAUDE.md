@@ -109,6 +109,8 @@ React Native Expo app — daily brain-game with 5 games (Lede, Spread, SoF, Wave
 - `functions/src/` — Cloud Functions (challengeCreate/Get/Respond, helpCreate/Get/Respond)
 - `components/masthead/` — CompactMasthead (used on all game screens)
 
+**Help hint params:** `hintQuestionIndex` + `friendHint` — passed when the asker taps "Try this question →" on the home card. Distinct from the helper flow (`helpToken`/`helpQuestionIndex`): no API submission, just loads the specific question and highlights the friend's answer. Handled in `lede.tsx` and `sof.tsx`; `isFriendHintMatch` in `lib/friendHint.ts` maps hint strings to option indices.
+
 **Auth pattern:** anonymous by default → `linkWithCredential` upgrades to email/password preserving UID.
 
 **Content pattern:** `ContentProvider` → stale-while-revalidate (AsyncStorage cache + Firestore background refresh). Fallback to bundled `constants/data.ts` if both fail. If the cached version is from a previous day, `isLoading` stays `true` until Firestore delivers today's content — so game screens always see fresh questions on the first open of the day.

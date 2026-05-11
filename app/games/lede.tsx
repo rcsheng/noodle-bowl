@@ -20,6 +20,7 @@ import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { calculatePoints, copyToClipboard, formatAttribution, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { isFriendHintMatch } from '@/lib/friendHint';
 import { useAuth } from '@/context/AuthContext';
 import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
@@ -61,6 +62,8 @@ export default function LedeScreen() {
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
+    hintQuestionIndex,
+    friendHint,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -68,9 +71,12 @@ export default function LedeScreen() {
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
+    hintQuestionIndex?: string;
+    friendHint?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
+  const isHintMode = !!hintQuestionIndex && !helpTokenParam && !challengeToken;
 
   const [question, setQuestion] = useState<LedeItem | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -103,6 +109,13 @@ export default function LedeScreen() {
       setOrder(shuffleIndices(item.panelists.length));
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
+      const item = banks.lede[idx];
+      if (!item) { router.replace('/'); return; }
+      setQuestion(item);
+      setQuestionIdx(idx);
+      setOrder(shuffleIndices(item.panelists.length));
+    } else if (isHintMode && hintQuestionIndex !== undefined) {
+      const idx = parseInt(hintQuestionIndex, 10);
       const item = banks.lede[idx];
       if (!item) { router.replace('/'); return; }
       setQuestion(item);
@@ -305,18 +318,24 @@ export default function LedeScreen() {
               );
             }
 
+            const isHinted = isFriendHintMatch('lede', originalIdx, friendHint);
             return (
               <TouchableOpacity
                 key={originalIdx}
-                style={[styles.choiceRow, isSelected && styles.choiceRowSelected]}
+                style={[styles.choiceRow, isSelected && styles.choiceRowSelected, isHinted && !isSelected && styles.choiceRowHinted]}
                 onPress={() => setSelected(originalIdx)}
                 activeOpacity={0.85}
               >
-                <View style={[styles.choiceBar, isSelected && styles.choiceBarSelected]} />
+                <View style={[styles.choiceBar, isSelected && styles.choiceBarSelected, isHinted && !isSelected && styles.choiceBarHinted]} />
                 <View style={styles.choiceBody}>
                   <Text style={[styles.choiceText, isSelected && styles.choiceTextSelected]}>
                     {panelist.completion}
                   </Text>
+                  {isHinted && (
+                    <Text testID={`choice-friend-hint-${originalIdx}`} style={styles.friendHintLabel}>
+                      friend's pick
+                    </Text>
+                  )}
                 </View>
                 <Text style={[styles.choiceLetter, isSelected && styles.choiceLetterSelected]}>
                   {letter}
@@ -366,7 +385,7 @@ export default function LedeScreen() {
               </Text>
             </TouchableOpacity>
 
-            {!isChallengeMode && !isHelpMode && (
+            {!isChallengeMode && !isHelpMode && !isHintMode && (
               <TouchableOpacity
                 style={styles.helpLink}
                 onPress={() => requireAuth(handleOpenHelp)}
@@ -621,12 +640,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
+  choiceRowHinted: {
+    backgroundColor: C.paperDark,
+  },
   choiceBar: {
     width: 4,
     alignSelf: 'stretch',
     backgroundColor: C.paperDarker,
   },
   choiceBarSelected: {
+    backgroundColor: C.accent,
+  },
+  choiceBarHinted: {
     backgroundColor: C.accent,
   },
   choiceBarOnColor: {
@@ -655,6 +680,14 @@ const styles = StyleSheet.create({
   },
   choiceLetterSelected: {
     color: C.onDarkDim,
+  },
+  friendHintLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: C.accent,
+    marginTop: 4,
   },
   choiceIndicator: {
     fontFamily: F.monoBold,

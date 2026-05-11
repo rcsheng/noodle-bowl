@@ -137,6 +137,23 @@ After any production publish:
 
 ---
 
+## Help card — play with friend's hint (2026-05-11)
+
+Feature: when a friend answers a help request and the asker hasn't played that game yet,
+the home card shows a "Try this question →" button. Tapping launches the game pre-loaded to
+that specific question with the friend's answer subtly highlighted on the matching option.
+Already-played state shows the card as informational only (no button).
+
+- [x] `lib/friendHint.ts` — `isFriendHintMatch(gameId, optionIndex, friendHint)` utility
+- [x] `HelpResultCard` — `isGameCompleted` + `onPlay` props; "Try this question →" button
+- [x] `app/(tabs)/index.tsx` — compute `isGameCompleted`, pass `onPlay` with `hintQuestionIndex` + `friendHint` params
+- [x] `app/games/lede.tsx` — read `hintQuestionIndex`/`friendHint`; highlight hinted panelist option
+- [x] `app/games/sof.tsx` — read `hintQuestionIndex`/`friendHint`; highlight hinted claim; hide mode toggle
+- [x] Tests — 15 new tests across `friendHint`, `HelpResultCard`, `lede`, `sof` (all passing)
+- [ ] Smoke test on device — tap Play from home card, confirm hint visible on correct option
+
+---
+
 ## Deferred (not in this release)
 
 - [ ] [P2] Garbage-collect orphaned `received_help` interactions after N days
