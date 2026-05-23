@@ -90,7 +90,7 @@ export type Action =
   | { type: 'REMOVE_FRIEND_INTERACTION'; id: string }
   | { type: 'DISMISS_HELP_CARD'; token: string }
   | { type: 'SET_ASKER_ANSWER'; token: string; askerAnswer: string }
-  | { type: 'MERGE_FROM_SERVER'; serverStats: AppState['stats']; serverSeen?: Partial<AppState['seen']> };
+  | { type: 'MERGE_FROM_SERVER'; serverStats: AppState['stats']; serverSeen?: Partial<AppState['seen']>; serverSeenWeek?: string };
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -233,24 +233,32 @@ export function reducer(state: AppState, action: Action): AppState {
         ),
       };
     case 'MERGE_FROM_SERVER': {
-      const { serverStats, serverSeen = {} } = action;
+      const { serverStats, serverSeen = {}, serverSeenWeek } = action;
       const serverDate = serverStats.lastPlayedDate;
       const localDate = state.stats.lastPlayedDate;
       const serverWins = serverDate !== null && (localDate === null || serverDate >= localDate);
       const baseStats = serverWins ? serverStats : state.stats;
-      const mergedStats = {
+      const mergedStats: AppState['stats'] = {
         ...baseStats,
         streakShieldsAvailable: Math.max(
           serverStats.streakShieldsAvailable ?? 0,
           state.stats.streakShieldsAvailable ?? 0,
         ),
+        // showStreakCelebration is a transient session flag — never restore from server,
+        // even if old Firestore data has it set to true.
+        showStreakCelebration: false,
       };
       const mergedSeen = { ...state.seen };
-      (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
-        const local = state.seen[g] ?? [];
-        const remote = serverSeen[g] ?? [];
-        mergedSeen[g] = [...new Set([...local, ...remote])];
-      });
+      // Only apply server seen if it was written for the same week as the local seenWeek.
+      // If serverSeenWeek is absent (old Firestore data) or mismatches, the indices
+      // index into a different content bank — discarding them prevents false exhaustion.
+      if (serverSeenWeek !== undefined && serverSeenWeek === state.seenWeek) {
+        (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
+          const local = state.seen[g] ?? [];
+          const remote = serverSeen[g] ?? [];
+          mergedSeen[g] = [...new Set([...local, ...remote])];
+        });
+      }
       return { ...state, stats: mergedStats, seen: mergedSeen };
     }
     default:

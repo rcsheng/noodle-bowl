@@ -31,19 +31,25 @@ describe('seenRepo.writeSeen', () => {
   });
 
   test('calls setDoc with path users/{uid}/meta/seen and merge', async () => {
-    await writeSeen('uid1', sampleSeen);
+    await writeSeen('uid1', sampleSeen, '2026-W20');
     expect(mockDoc).toHaveBeenCalledWith({}, 'users', 'uid1', 'meta', 'seen');
     expect(mockSetDoc).toHaveBeenCalledWith(
       'docRef',
-      { ...sampleSeen, updatedAt: 'SERVER_TS' },
+      { ...sampleSeen, seenWeek: '2026-W20', updatedAt: 'SERVER_TS' },
       { merge: true },
     );
   });
 
   test('uses serverTimestamp for updatedAt', async () => {
-    await writeSeen('uid1', sampleSeen);
+    await writeSeen('uid1', sampleSeen, '2026-W20');
     const payload = mockSetDoc.mock.calls[0][1];
     expect(payload.updatedAt).toBe('SERVER_TS');
+  });
+
+  test('writes seenWeek alongside seen arrays', async () => {
+    await writeSeen('uid1', sampleSeen, '2026-W21');
+    const payload = mockSetDoc.mock.calls[0][1];
+    expect(payload.seenWeek).toBe('2026-W21');
   });
 });
 
@@ -59,14 +65,23 @@ describe('seenRepo.readSeen', () => {
     expect(result).toBeNull();
   });
 
-  test('returns seen without updatedAt when document exists', async () => {
+  test('returns { seen, seenWeek } when document exists', async () => {
     mockGetDoc.mockResolvedValue({
       exists: () => true,
-      data: () => ({ ...sampleSeen, updatedAt: { seconds: 123, nanoseconds: 0 } }),
+      data: () => ({ ...sampleSeen, seenWeek: '2026-W20', updatedAt: { seconds: 123, nanoseconds: 0 } }),
     });
     const result = await readSeen('uid1');
-    expect(result).toEqual(sampleSeen);
+    expect(result).toEqual({ seen: sampleSeen, seenWeek: '2026-W20' });
     expect(result).not.toHaveProperty('updatedAt');
+  });
+
+  test('seenWeek defaults to empty string for legacy docs without the field', async () => {
+    mockGetDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ ...sampleSeen, updatedAt: 'ts' }),
+    });
+    const result = await readSeen('uid1');
+    expect(result?.seenWeek).toBe('');
   });
 
   test('calls getDoc with path users/{uid}/meta/seen', async () => {
@@ -78,10 +93,10 @@ describe('seenRepo.readSeen', () => {
   test('returns partial seen with missing keys defaulting to empty arrays', async () => {
     mockGetDoc.mockResolvedValue({
       exists: () => true,
-      data: () => ({ lede: [1, 2], updatedAt: 'ts' }),
+      data: () => ({ lede: [1, 2], seenWeek: '2026-W20', updatedAt: 'ts' }),
     });
     const result = await readSeen('uid1');
-    expect(result).toEqual({
+    expect(result?.seen).toEqual({
       lede: [1, 2],
       spread: [],
       sof: [],

@@ -19,7 +19,7 @@ import { C, F } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
-import { getWeekDateRange } from '@/lib/contentWeek';
+import { computeActiveWeek, getWeekDateRange } from '@/lib/contentWeek';
 import { useGame } from '@/context/GameContext';
 import { db } from '@/lib/firebase';
 import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
@@ -191,9 +191,7 @@ export default function HubScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>
-            {contentWeek
-              ? `This Week's Bowl · ${getWeekDateRange(contentWeek)}`
-              : `Today's Bowl · ${getSectionDate()}`}
+            {`This Week's Bowl · ${getWeekDateRange(contentWeek || computeActiveWeek())}`}
           </Text>
           <View style={styles.sectionLine} />
         </View>

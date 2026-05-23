@@ -402,7 +402,10 @@ describe('reducer: DISMISS_STREAK_SAVED_BANNER', () => {
 // MERGE_FROM_SERVER — covers seen sync from users/{uid}/meta/seen
 // ---------------------------------------------------------------------------
 describe('reducer: MERGE_FROM_SERVER (seen sync)', () => {
-  test('unions local and remote seen per game', () => {
+  // seenWeek in makeState() defaults to '' (initialState.seenWeek).
+  // Pass serverSeenWeek: '' to match and enable the merge.
+
+  test('unions local and remote seen per game when weeks match', () => {
     const state = makeState({
       seen: { ...initialState.seen, lede: [0, 1], spread: [5] },
     });
@@ -410,18 +413,20 @@ describe('reducer: MERGE_FROM_SERVER (seen sync)', () => {
       type: 'MERGE_FROM_SERVER',
       serverStats: state.stats,
       serverSeen: { lede: [1, 2, 3], sof: [7] },
+      serverSeenWeek: '',
     });
     expect(next.seen.lede.sort()).toEqual([0, 1, 2, 3]);
     expect(next.seen.spread).toEqual([5]);
     expect(next.seen.sof).toEqual([7]);
   });
 
-  test('result equals remote when local seen is empty', () => {
+  test('result equals remote when local seen is empty and weeks match', () => {
     const state = makeState();
     const next = reducer(state, {
       type: 'MERGE_FROM_SERVER',
       serverStats: state.stats,
       serverSeen: { lede: [10, 11], wave: [4] },
+      serverSeenWeek: '',
     });
     expect(next.seen.lede).toEqual([10, 11]);
     expect(next.seen.wave).toEqual([4]);
@@ -441,8 +446,33 @@ describe('reducer: MERGE_FROM_SERVER (seen sync)', () => {
       type: 'MERGE_FROM_SERVER',
       serverStats: state.stats,
       serverSeen: { lede: [2, 3, 4] },
+      serverSeenWeek: '',
     });
     expect(next.seen.lede.sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  test('skips seen merge when serverSeenWeek is absent (legacy data)', () => {
+    const state = makeState({ seen: { ...initialState.seen, lede: [0] } });
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: state.stats,
+      serverSeen: { lede: [1, 2, 3] },
+      // serverSeenWeek intentionally absent
+    });
+    // Local seen preserved unchanged — stale server data discarded
+    expect(next.seen.lede).toEqual([0]);
+  });
+
+  test('skips seen merge when serverSeenWeek mismatches local seenWeek', () => {
+    const state = { ...makeState(), seenWeek: '2026-W20' };
+    const next = reducer(state, {
+      type: 'MERGE_FROM_SERVER',
+      serverStats: state.stats,
+      serverSeen: { spread: [0, 1, 2, 3, 4] },
+      serverSeenWeek: '2026-W19', // stale week
+    });
+    // spread stays empty — old indices rejected
+    expect(next.seen.spread).toEqual([]);
   });
 
   test('server stats win when server lastPlayedDate is newer', () => {

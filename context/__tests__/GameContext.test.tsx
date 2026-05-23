@@ -221,7 +221,7 @@ describe('GameContext Firestore persistence', () => {
       shieldEarned: true,
     };
     await AsyncStorage.setItem(
-      'daily_state_v11',
+      'daily_state_v12',
       JSON.stringify({
         ownerUid: 'user1',
         stats: {},
@@ -254,7 +254,7 @@ describe('GameContext Firestore persistence', () => {
   test('discards cache whose ownerUid does not match the current user', async () => {
     // Cache was written by user1 (e.g. a previous session or another account).
     await AsyncStorage.setItem(
-      'daily_state_v11',
+      'daily_state_v12',
       JSON.stringify({
         ownerUid: 'user1',
         stats: {
@@ -298,7 +298,7 @@ describe('GameContext Firestore persistence', () => {
   test('discards untagged legacy cache (no ownerUid field)', async () => {
     // Pre-uid-tagging cache shape — must not be loaded for any user.
     await AsyncStorage.setItem(
-      'daily_state_v11',
+      'daily_state_v12',
       JSON.stringify({
         stats: { dailyStreak: 2 },
         seen: {},
@@ -343,7 +343,7 @@ describe('GameContext Firestore persistence', () => {
     };
     // Same id in BOTH local and server — should not trigger setDoc for this one.
     await AsyncStorage.setItem(
-      'daily_state_v11',
+      'daily_state_v12',
       JSON.stringify({ ownerUid: 'user1', stats: {}, seen: {}, friendInteractions: [sharedInteraction] }),
     );
     getDocs.mockResolvedValue({ docs: [{ data: () => sharedInteraction }] });

@@ -11,7 +11,7 @@ export function StreakCelebrationModal() {
     <Modal visible={showStreakCelebration} transparent animationType="fade">
       <TouchableOpacity style={styles.overlay} onPress={dismissStreakCelebration} activeOpacity={1}>
         <View style={styles.card}>
-          <View style={styles.innerBorder} />
+          <View style={styles.innerBorder} pointerEvents="none" />
           <Text style={styles.kicker}>Daily Streak</Text>
           <Text style={styles.streakNumber}>{dailyStreak}</Text>
           <Text style={styles.days}>day{dailyStreak !== 1 ? 's' : ''} in a row</Text>

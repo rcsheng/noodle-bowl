@@ -13,7 +13,7 @@ export function BankExhaustedModal({ visible, gameName, onDismiss }: BankExhaust
     <Modal visible={visible} transparent animationType="fade">
       <TouchableOpacity style={styles.overlay} onPress={onDismiss} activeOpacity={1}>
         <View style={styles.card}>
-          <View style={styles.innerBorder} />
+          <View style={styles.innerBorder} pointerEvents="none" />
           <Text style={styles.kicker}>All done today</Text>
           <Text style={styles.gameName}>{gameName}</Text>
           <Text style={styles.message}>

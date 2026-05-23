@@ -106,12 +106,14 @@ describe('reducer: MERGE_FROM_SERVER', () => {
     expect(next.stats.streakShieldsAvailable).toBe(3);
   });
 
-  test('seen arrays merge as deduplicated union per game', () => {
+  test('seen arrays merge as deduplicated union per game when weeks match', () => {
+    // initialState.seenWeek is '' — pass serverSeenWeek: '' to enable the merge
     const state = { ...initialState, seen: { ...initialState.seen, lede: [0, 1, 2] } };
     const next = reducer(state, {
       type: 'MERGE_FROM_SERVER',
       serverStats: serverStatsNewer,
       serverSeen: { lede: [1, 2, 3, 4] },
+      serverSeenWeek: '',
     });
     expect(next.seen.lede).toEqual([0, 1, 2, 3, 4]);
   });
@@ -122,6 +124,7 @@ describe('reducer: MERGE_FROM_SERVER', () => {
       type: 'MERGE_FROM_SERVER',
       serverStats: serverStatsNewer,
       serverSeen: { spread: [6, 7, 8] },
+      serverSeenWeek: '',
     });
     expect(next.seen.spread).toEqual([5, 6, 7, 8]);
   });
@@ -213,7 +216,8 @@ describe('GameContext: sign-in merge', () => {
   test('merges server seen into local state when readSeen returns data', async () => {
     const serverSeen = { lede: [9, 10], spread: [], sof: [], quip: [], wave: [] };
     mockReadStats.mockResolvedValue({ ...initialState.stats, lastPlayedDate: '2026-04-27' });
-    mockReadSeen.mockResolvedValue(serverSeen);
+    // readSeen now returns { seen, seenWeek }; seenWeek must match state.seenWeek ('' for initialState)
+    mockReadSeen.mockResolvedValue({ seen: serverSeen, seenWeek: '' });
     useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
 
     const { result } = renderHook(() => useGame(), { wrapper });

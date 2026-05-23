@@ -30,7 +30,7 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | null>(null);
 
-const STORAGE_KEY = 'daily_state_v11';
+const STORAGE_KEY = 'daily_state_v12';
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -94,18 +94,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded || isAnonymous || !uid) return;
-    scheduleWrite('seen', state.seen, (s) => writeSeen(uid, s), 1500);
-  }, [state.seen, isLoaded, isAnonymous, uid]);
+    const seenWeek = state.seenWeek;
+    scheduleWrite('seen', state.seen, (s) => writeSeen(uid, s, seenWeek), 1500);
+  }, [state.seen, state.seenWeek, isLoaded, isAnonymous, uid]);
 
   useEffect(() => {
     if (!isLoaded || isAnonymous || !uid) return;
     Promise.all([readStats(uid).catch(() => null), readSeen(uid).catch(() => null)])
-      .then(([serverStats, serverSeen]) => {
-        if (serverStats || serverSeen) {
+      .then(([serverStats, seenResult]) => {
+        if (serverStats || seenResult) {
           dispatch({
             type: 'MERGE_FROM_SERVER',
             serverStats: serverStats ?? state.stats,
-            serverSeen: serverSeen ?? undefined,
+            serverSeen: seenResult?.seen ?? undefined,
+            serverSeenWeek: seenResult?.seenWeek,
           });
         }
       })

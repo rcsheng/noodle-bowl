@@ -218,16 +218,28 @@ async function main() {
     return;
   }
 
-  // Merge banks: accumulate new items into whatever is already in the week doc
+  // Merge banks: accumulate new items into whatever is already in the week doc,
+  // deduplicating by a stable content key so re-runs never produce duplicate questions.
   const existingBanks: ContentBanks = existingDoc
     ? (existingDoc.banks as ContentBanks)
     : { lede: [], spread: [], sof: [], quip: [], wave: [] };
+
+  function dedupBy<T>(arr: T[], keyFn: (item: T) => string): T[] {
+    const seen = new Set<string>();
+    return arr.filter(item => {
+      const k = keyFn(item);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }
+
   const mergedBanks: ContentBanks = {
-    lede: [...existingBanks.lede, ...banks.lede],
-    spread: [...existingBanks.spread, ...banks.spread],
-    sof: [...existingBanks.sof, ...banks.sof],
-    quip: [...existingBanks.quip, ...banks.quip],
-    wave: [...existingBanks.wave, ...banks.wave],
+    lede:   dedupBy([...existingBanks.lede,   ...banks.lede],   x => x.partialHeadline),
+    spread: dedupBy([...existingBanks.spread, ...banks.spread], x => x.question),
+    sof:    dedupBy([...existingBanks.sof,    ...banks.sof],    x => x.topic),
+    quip:   dedupBy([...existingBanks.quip,   ...banks.quip],   x => x.setup),
+    wave:   dedupBy([...existingBanks.wave,   ...banks.wave],   x => x.story),
   };
 
   const publishedDates = [...existingPublishedDates, date];

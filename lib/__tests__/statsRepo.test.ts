@@ -28,11 +28,21 @@ describe('statsRepo.writeStats', () => {
   test('calls setDoc with correct Firestore path users/{uid}/meta/stats', async () => {
     await writeStats('uid1', sampleStats);
     expect(mockDoc).toHaveBeenCalledWith({}, 'users', 'uid1', 'meta', 'stats');
+    // showStreakCelebration is a transient flag — must NOT be written to Firestore
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { showStreakCelebration: _omitted, ...persistable } = sampleStats;
     expect(mockSetDoc).toHaveBeenCalledWith(
       'docRef',
-      { ...sampleStats, updatedAt: 'SERVER_TS' },
+      { ...persistable, updatedAt: 'SERVER_TS' },
       { merge: true },
     );
+  });
+
+  test('does not write showStreakCelebration to Firestore', async () => {
+    const statsWithFlag = { ...sampleStats, showStreakCelebration: true };
+    await writeStats('uid1', statsWithFlag);
+    const payload = mockSetDoc.mock.calls[0][1];
+    expect(payload).not.toHaveProperty('showStreakCelebration');
   });
 
   test('uses serverTimestamp for updatedAt', async () => {
