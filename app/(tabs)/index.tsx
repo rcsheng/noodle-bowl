@@ -35,8 +35,8 @@ function getSectionDate(): string {
 export default function HubScreen() {
   const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner } = useGame();
   const { banks, contentWeek, reload } = useContent();
-  const { streakShieldUsedToday, streakSavedBannerSeen } = state.stats;
-  const showStreakSavedBanner = streakShieldUsedToday && !streakSavedBannerSeen;
+  const { streakShieldUsedThisWeek, streakSavedBannerSeen } = state.stats;
+  const showStreakSavedBanner = streakShieldUsedThisWeek && !streakSavedBannerSeen;
   const today = getTodayISODate();
 
   const candidateHelpResults = state.friendInteractions.filter(

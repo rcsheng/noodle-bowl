@@ -47,7 +47,7 @@ export default function StatsScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.streakBlock}>
-              <Text style={styles.streakValue}>{totalWeeksPlayed}</Text>
+              <Text style={styles.streakValue}>{Number.isFinite(totalWeeksPlayed) && totalWeeksPlayed > 0 ? totalWeeksPlayed : '—'}</Text>
               <Text style={styles.streakLabel}>Weeks Played</Text>
             </View>
             <View style={styles.statDivider} />

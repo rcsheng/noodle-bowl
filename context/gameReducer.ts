@@ -165,22 +165,24 @@ export function reducer(state: AppState, action: Action): AppState {
       // Idempotent: only update once per week.
       if (stats.lastPlayedWeek === weekId) return state;
       const prevWeek = getPreviousWeek(weekId);
-      let newWeeklyStreak = stats.weeklyStreak;
-      let newShields = stats.streakShieldsAvailable;
+      // Guard against undefined fields left by old Firestore schema versions that
+      // MERGE_FROM_SERVER may have spread into state before this field existed.
+      let newWeeklyStreak = stats.weeklyStreak ?? 0;
+      let newShields = stats.streakShieldsAvailable ?? 0;
       let newShieldUsedThisWeek = false;
       let newBannerSeen = stats.streakSavedBannerSeen;
       let showStreakCelebration = false;
       if (stats.lastPlayedWeek === prevWeek) {
         // Played last week too — consecutive streak continues.
-        newWeeklyStreak = stats.weeklyStreak + 1;
+        newWeeklyStreak = (stats.weeklyStreak ?? 0) + 1;
         showStreakCelebration = true;
-      } else if (stats.streakShieldsAvailable > 0) {
+      } else if ((stats.streakShieldsAvailable ?? 0) > 0) {
         // Missed a week but have a shield — streak is preserved.
         // Note: streakShieldUsedThisWeek is not checked here. The
         // `lastPlayedWeek === weekId` early-return above already ensures this
         // branch runs at most once per week, so any stale `true` from a prior
         // week must not block shield use on a new week.
-        newShields = stats.streakShieldsAvailable - 1;
+        newShields = (stats.streakShieldsAvailable ?? 0) - 1;
         newShieldUsedThisWeek = true;
         newBannerSeen = false;
       } else {
@@ -192,9 +194,9 @@ export function reducer(state: AppState, action: Action): AppState {
         stats: {
           ...stats,
           weeklyStreak: newWeeklyStreak,
-          bestWeeklyStreak: Math.max(stats.bestWeeklyStreak, newWeeklyStreak),
+          bestWeeklyStreak: Math.max(stats.bestWeeklyStreak ?? 0, newWeeklyStreak),
           lastPlayedWeek: weekId,
-          totalWeeksPlayed: stats.totalWeeksPlayed + 1,
+          totalWeeksPlayed: (stats.totalWeeksPlayed ?? 0) + 1,
           streakShieldsAvailable: newShields,
           streakShieldUsedThisWeek: newShieldUsedThisWeek,
           streakSavedBannerSeen: newBannerSeen,
@@ -257,7 +259,11 @@ export function reducer(state: AppState, action: Action): AppState {
       const localWeek = state.stats.lastPlayedWeek;
       const serverWins = serverWeek !== null && (localWeek === null || serverWeek >= localWeek);
       const baseStats = serverWins ? serverStats : state.stats;
+      // Spread initialState.stats first so any field absent in the Firestore
+      // document (e.g. totalWeeksPlayed before the weekly-streak schema existed)
+      // gets a safe zero-value rather than undefined, preventing NaN arithmetic.
       const mergedStats: AppState['stats'] = {
+        ...initialState.stats,
         ...baseStats,
         streakShieldsAvailable: Math.max(
           serverStats.streakShieldsAvailable ?? 0,

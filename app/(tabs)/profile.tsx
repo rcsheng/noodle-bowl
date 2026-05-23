@@ -7,13 +7,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useGame } from '@/context/GameContext';
+import { GameId } from '@/constants/data';
 import { signOutAndGoAnonymous } from '@/lib/authApi';
+
+const ALL_GAMES: GameId[] = ['lede', 'spread', 'sof', 'quip', 'wave'];
 
 export default function ProfileScreen() {
   const { user, isAnonymous, displayName } = useAuth();
+  const { setSeen } = useGame();
 
   async function handleSignOut() {
     await signOutAndGoAnonymous();
+  }
+
+  function handleResetSeen() {
+    Alert.alert(
+      'Reset seen questions?',
+      'Clears the "seen" tracker for all games so you can replay questions. Streak and stats are preserved.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            ALL_GAMES.forEach(g => setSeen(g, []));
+          },
+        },
+      ],
+    );
   }
 
   function handleClearLocalData() {
@@ -108,13 +130,22 @@ export default function ProfileScreen() {
         )}
 
         {__DEV__ && (
-          <TouchableOpacity
-            style={styles.debugBtn}
-            onPress={handleClearLocalData}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.debugBtnText}>Clear local data (dev)</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.debugBtn, { marginBottom: 10 }]}
+              onPress={handleResetSeen}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.debugBtnText}>Reset seen questions (dev)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.debugBtn}
+              onPress={handleClearLocalData}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.debugBtnText}>Clear local data (dev)</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         <View style={styles.footer}>
