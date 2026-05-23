@@ -49,3 +49,32 @@ export function computeActiveWeek(date: Date = new Date()): string {
   const { year, week } = getISOWeekYear(prevWeekDate);
   return formatWeekId(year, week);
 }
+
+/**
+ * Returns a human-readable date range for the Mon–Sun span of a given ISO week.
+ * Same-month weeks: "May 11–17". Cross-month weeks: "May 31 – Jun 6".
+ * Returns an empty string if weekId is not a valid ISO week string.
+ */
+export function getWeekDateRange(weekId: string): string {
+  const match = weekId.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return '';
+  const year = parseInt(match[1], 10);
+  const week = parseInt(match[2], 10);
+
+  // Jan 4 of the ISO year is always in week 1.
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const dow = jan4.getUTCDay() || 7; // 1=Mon … 7=Sun
+  const week1Mon = new Date(jan4.getTime() - (dow - 1) * 86_400_000);
+  const weekMon = new Date(week1Mon.getTime() + (week - 1) * 7 * 86_400_000);
+  const weekSun = new Date(weekMon.getTime() + 6 * 86_400_000);
+
+  const monMonth = weekMon.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  const sunMonth = weekSun.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+  const monDay = weekMon.getUTCDate();
+  const sunDay = weekSun.getUTCDate();
+
+  if (monMonth === sunMonth) {
+    return `${monMonth} ${monDay}–${sunDay}`;
+  }
+  return `${monMonth} ${monDay} – ${sunMonth} ${sunDay}`;
+}

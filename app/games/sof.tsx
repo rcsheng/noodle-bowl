@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CompactMasthead } from '@/components/masthead/CompactMasthead';
+import { Masthead } from '@/components/Masthead';
 import { CopiedToast } from '@/components/CopiedToast';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
@@ -278,21 +279,21 @@ export default function SofScreen() {
   if (hintUnavailable) {
     return (
       <SafeAreaView style={styles.safe}>
-        <CompactMasthead />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontFamily: F.fraunces, fontSize: 18, color: C.ink, textAlign: 'center', marginBottom: 24 }}>
-            This question is no longer available.
-          </Text>
-          <TouchableOpacity
-            style={{ backgroundColor: C.ink, paddingVertical: 14, paddingHorizontal: 32 }}
-            onPress={() => router.replace('/')}
-            activeOpacity={0.85}
-          >
-            <Text style={{ fontFamily: F.monoBold, fontSize: 11, letterSpacing: 1.8, textTransform: 'uppercase', color: C.onDark }}>
-              Back to Home
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Masthead />
+          <View style={styles.unavailableBody}>
+            <Text style={styles.unavailableText}>
+              This question is no longer available.
             </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.unavailableBtn}
+              onPress={() => router.replace('/')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.unavailableBtnText}>Back to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -607,6 +608,32 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 80,
+  },
+  unavailableBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 40,
+  },
+  unavailableText: {
+    fontFamily: F.fraunces,
+    fontSize: 18,
+    color: C.ink,
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 28,
+  },
+  unavailableBtn: {
+    backgroundColor: C.ink,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+  },
+  unavailableBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: C.onDark,
   },
   backButton: {
     paddingVertical: 8,

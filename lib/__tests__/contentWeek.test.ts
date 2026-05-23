@@ -1,4 +1,4 @@
-import { computeActiveWeek, computeCurrentWeek, formatWeekId, getISOWeekYear } from '../contentWeek';
+import { computeActiveWeek, computeCurrentWeek, formatWeekId, getISOWeekYear, getWeekDateRange } from '../contentWeek';
 
 // ---------------------------------------------------------------------------
 // getISOWeekYear
@@ -77,5 +77,42 @@ describe('computeActiveWeek', () => {
 
   it('wraps to 2025-W52 when current week is 2026-W01 (Jan 1 2026)', () => {
     expect(computeActiveWeek(new Date('2026-01-01T12:00:00Z'))).toBe('2025-W52');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getWeekDateRange
+// ---------------------------------------------------------------------------
+describe('getWeekDateRange', () => {
+  it('formats a same-month week: 2026-W20 → "May 11–17"', () => {
+    expect(getWeekDateRange('2026-W20')).toBe('May 11–17');
+  });
+
+  it('formats a same-month week: 2026-W21 → "May 18–24"', () => {
+    expect(getWeekDateRange('2026-W21')).toBe('May 18–24');
+  });
+
+  it('formats a cross-month week: 2026-W22 → "May 25 – May 31" or "May 25–31"', () => {
+    // May 25 (Mon) – May 31 (Sun) — same month
+    expect(getWeekDateRange('2026-W22')).toBe('May 25–31');
+  });
+
+  it('formats a cross-month week: 2026-W23 → "Jun 1–7"', () => {
+    expect(getWeekDateRange('2026-W23')).toBe('Jun 1–7');
+  });
+
+  it('formats a cross-month week spanning month boundary: 2026-W18 (Apr 27 – May 3)', () => {
+    expect(getWeekDateRange('2026-W18')).toBe('Apr 27 – May 3');
+  });
+
+  it('formats week 1 of 2026 spanning year boundary: Dec 29 – Jan 4', () => {
+    // 2026-W01: Mon Dec 29 2025 – Sun Jan 4 2026
+    expect(getWeekDateRange('2026-W01')).toBe('Dec 29 – Jan 4');
+  });
+
+  it('returns empty string for invalid weekId', () => {
+    expect(getWeekDateRange('')).toBe('');
+    expect(getWeekDateRange('2026-20')).toBe('');
+    expect(getWeekDateRange('bad')).toBe('');
   });
 });

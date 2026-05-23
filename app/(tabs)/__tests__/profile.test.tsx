@@ -9,6 +9,9 @@ jest.mock('@/context/GameContext', () => ({
     isLoaded: true,
   }),
 }));
+jest.mock('@/context/ContentContext', () => ({
+  useContent: () => ({ contentWeek: '', banks: {}, isLoading: false, reload: jest.fn(), versionId: '' }),
+}));
 jest.mock('firebase/firestore', () => ({}));
 jest.mock('@/lib/firebase', () => ({ db: {}, auth: {} }));
 

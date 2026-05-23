@@ -2,15 +2,19 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { C, F } from '@/constants/theme';
 import { getIssueNumber, getTodayString } from '@/constants/utils';
+import { useContent } from '@/context/ContentContext';
 import { useGame } from '@/context/GameContext';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { getWeekDateRange } from '@/lib/contentWeek';
 
 export function Masthead() {
   const issueNum = getIssueNumber();
   const today = getTodayString();
   const { state } = useGame();
+  const { contentWeek } = useContent();
   const { dailyStreak, streakShieldsAvailable } = state.stats;
   const { isOffline } = useNetworkStatus();
+  const weekRange = contentWeek ? getWeekDateRange(contentWeek) : '';
 
   return (
     <View style={styles.wrap}>
@@ -25,6 +29,9 @@ export function Masthead() {
           <Text style={styles.amp}>Bowl</Text>
         </View>
         <Text style={styles.tagline}>A Daily Mix Of Brain Games</Text>
+        {!!weekRange && (
+          <Text style={styles.contentRange}>News as of {weekRange}</Text>
+        )}
         {(dailyStreak > 0 || streakShieldsAvailable > 0) && (
           <Text style={styles.streakLine}>
             {dailyStreak > 0 ? `🔥 ${dailyStreak}` : ''}
@@ -90,6 +97,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
     marginTop: 8,
+  },
+  contentRange: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: C.muted,
+    marginTop: 5,
   },
   streakLine: {
     fontFamily: F.monoBold,
