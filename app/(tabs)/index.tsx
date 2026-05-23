@@ -19,6 +19,7 @@ import { C, F } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
+import { getWeekDateRange } from '@/lib/contentWeek';
 import { useGame } from '@/context/GameContext';
 import { db } from '@/lib/firebase';
 import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
@@ -33,7 +34,7 @@ function getSectionDate(): string {
 
 export default function HubScreen() {
   const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner } = useGame();
-  const { banks, reload } = useContent();
+  const { banks, contentWeek, reload } = useContent();
   const { streakShieldUsedToday, streakSavedBannerSeen } = state.stats;
   const showStreakSavedBanner = streakShieldUsedToday && !streakSavedBannerSeen;
   const today = getTodayISODate();
@@ -189,7 +190,11 @@ export default function HubScreen() {
         )}
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Today's Bowl · {getSectionDate()}</Text>
+          <Text style={styles.sectionLabel}>
+            {contentWeek
+              ? `This Week's Bowl · ${getWeekDateRange(contentWeek)}`
+              : `Today's Bowl · ${getSectionDate()}`}
+          </Text>
           <View style={styles.sectionLine} />
         </View>
 
