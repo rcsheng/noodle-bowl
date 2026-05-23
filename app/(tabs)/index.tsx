@@ -191,7 +191,7 @@ export default function HubScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>
-            {`This Week's Bowl · ${getWeekDateRange(contentWeek || computeActiveWeek())}`}
+            {`Games based on last week's news · ${getWeekDateRange(contentWeek || computeActiveWeek())}`}
           </Text>
           <View style={styles.sectionLine} />
         </View>
