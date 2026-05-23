@@ -66,13 +66,13 @@ describe('event helpers', () => {
   });
 
   it('gameComplete fires game_complete with correct params', () => {
-    Analytics.gameComplete('lede', true, 300);
-    expect(mockDispatch).toHaveBeenCalledWith('game_complete', { game_id: 'lede', correct: true, points: 300 });
+    Analytics.gameComplete('lede', true);
+    expect(mockDispatch).toHaveBeenCalledWith('game_complete', { game_id: 'lede', correct: true });
   });
 
   it('gameComplete works for incorrect answers', () => {
-    Analytics.gameComplete('wave', false, 0);
-    expect(mockDispatch).toHaveBeenCalledWith('game_complete', { game_id: 'wave', correct: false, points: 0 });
+    Analytics.gameComplete('wave', false);
+    expect(mockDispatch).toHaveBeenCalledWith('game_complete', { game_id: 'wave', correct: false });
   });
 
   it('challengeSent fires challenge_sent with game_id', () => {

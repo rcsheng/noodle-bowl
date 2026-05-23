@@ -31,20 +31,14 @@ describe('reducer: LOAD', () => {
     expect(next).toEqual(initialState);
   });
 
-  test('restores totalPoints from payload', () => {
-    const next = reducer(makeState(), { type: 'LOAD', payload: { stats: { totalPoints: 99 } } });
-    expect(next.stats.totalPoints).toBe(99);
-    expect(next.stats.dailyStreak).toBe(0); // unspecified field stays at default
-  });
-
   test('restores per-game stats merged with defaults', () => {
     const next = reducer(makeState(), {
       type: 'LOAD',
-      payload: { stats: { lede: { played: 5, correct: 3, streak: 2, bestStreak: 4, bestScore: 30 } } },
+      payload: { stats: { lede: { played: 5, correct: 3, streak: 2, bestStreak: 4 } } },
     });
     expect(next.stats.lede.played).toBe(5);
-    expect(next.stats.lede.bestScore).toBe(30);
-    expect(next.stats.spread).toEqual({ played: 0, correct: 0, streak: 0, bestStreak: 0, bestScore: 0 });
+    expect(next.stats.lede.bestStreak).toBe(4);
+    expect(next.stats.spread).toEqual({ played: 0, correct: 0, streak: 0, bestStreak: 0 });
   });
 
   test('per-game stats with partial fields fill missing from defaults', () => {
@@ -53,7 +47,7 @@ describe('reducer: LOAD', () => {
       payload: { stats: { lede: { played: 7 } as any } },
     });
     expect(next.stats.lede.played).toBe(7);
-    expect(next.stats.lede.bestScore).toBe(0);
+    expect(next.stats.lede.bestStreak).toBe(0);
   });
 
   test('restores seen arrays per game', () => {
@@ -95,87 +89,105 @@ describe('reducer: LOAD', () => {
     });
     expect(next.stats.streakShieldsAvailable).toBe(2);
   });
+
+  // Weekly seen-state reset
+  test('resets seen arrays when stored seenWeek differs from activeWeek', () => {
+    const next = reducer(makeState(), {
+      type: 'LOAD',
+      payload: { seen: { lede: [0, 1, 2], sof: [5], spread: [], quip: [], wave: [] }, seenWeek: '2026-W19' },
+      activeWeek: '2026-W20',
+    });
+    expect(next.seen.lede).toEqual([]);
+    expect(next.seen.sof).toEqual([]);
+    expect(next.seenWeek).toBe('2026-W20');
+  });
+
+  test('preserves seen arrays when stored seenWeek matches activeWeek', () => {
+    const next = reducer(makeState(), {
+      type: 'LOAD',
+      payload: { seen: { lede: [0, 1, 2], sof: [], spread: [], quip: [], wave: [] }, seenWeek: '2026-W20' },
+      activeWeek: '2026-W20',
+    });
+    expect(next.seen.lede).toEqual([0, 1, 2]);
+    expect(next.seenWeek).toBe('2026-W20');
+  });
+
+  test('does not reset seen when activeWeek is absent (no week semantics)', () => {
+    const next = reducer(makeState(), {
+      type: 'LOAD',
+      payload: { seen: { lede: [3, 4], sof: [], spread: [], quip: [], wave: [] } },
+    });
+    expect(next.seen.lede).toEqual([3, 4]);
+  });
+
+  test('sets seenWeek to activeWeek after reset', () => {
+    const next = reducer(makeState(), {
+      type: 'LOAD',
+      payload: { seenWeek: '2026-W18' },
+      activeWeek: '2026-W20',
+    });
+    expect(next.seenWeek).toBe('2026-W20');
+  });
 });
 
 // ---------------------------------------------------------------------------
 // UPDATE_STATS
 // ---------------------------------------------------------------------------
 describe('reducer: UPDATE_STATS', () => {
-  const action = (game: string, correct: boolean, points: number): Action =>
-    ({ type: 'UPDATE_STATS', game: game as any, correct, points, today: '2026-04-26' });
+  const action = (game: string, correct: boolean): Action =>
+    ({ type: 'UPDATE_STATS', game: game as any, correct, today: '2026-04-26' });
 
   test('increments played count for the targeted game', () => {
     const state = makeState();
-    const next = reducer(state, action('lede', true, 10));
+    const next = reducer(state, action('lede', true));
     expect(next.stats.lede.played).toBe(1);
   });
 
   test('increments correct count only when correct=true', () => {
     const state = makeState();
-    const next = reducer(state, action('lede', true, 10));
+    const next = reducer(state, action('lede', true));
     expect(next.stats.lede.correct).toBe(1);
   });
 
   test('does not increment correct count when correct=false', () => {
     const state = makeState();
-    const next = reducer(state, action('lede', false, 0));
+    const next = reducer(state, action('lede', false));
     expect(next.stats.lede.correct).toBe(0);
   });
 
-  test('increments totalPoints by the points value', () => {
-    const state = makeState({ stats: { ...initialState.stats, totalPoints: 50 } });
-    const next = reducer(state, action('lede', true, 15));
-    expect(next.stats.totalPoints).toBe(65);
-  });
-
   test('resets streak to 0 when correct=false', () => {
-    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 5, bestStreak: 5, bestScore: 0 } } });
-    const next = reducer(state, action('lede', false, 0));
+    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 5, bestStreak: 5 } } });
+    const next = reducer(state, action('lede', false));
     expect(next.stats.lede.streak).toBe(0);
   });
 
   test('increments streak by 1 when correct=true', () => {
-    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 3, bestStreak: 3, bestScore: 0 } } });
-    const next = reducer(state, action('lede', true, 10));
+    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 3, bestStreak: 3 } } });
+    const next = reducer(state, action('lede', true));
     expect(next.stats.lede.streak).toBe(4);
   });
 
   test('updates bestStreak when new streak exceeds it', () => {
-    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 5, bestStreak: 5, bestScore: 0 } } });
-    const next = reducer(state, action('lede', true, 10));
+    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 5, bestStreak: 5 } } });
+    const next = reducer(state, action('lede', true));
     expect(next.stats.lede.bestStreak).toBe(6);
   });
 
   test('does NOT decrease bestStreak', () => {
-    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 3, bestStreak: 10, bestScore: 0 } } });
-    const next = reducer(state, action('lede', false, 0));
+    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 3, bestStreak: 10 } } });
+    const next = reducer(state, action('lede', false));
     expect(next.stats.lede.bestStreak).toBe(10);
   });
 
   test('sets lastPlayed to today on the targeted game', () => {
     const state = makeState();
-    const next = reducer(state, action('lede', true, 10));
+    const next = reducer(state, action('lede', true));
     expect(next.stats.lede.lastPlayed).toBe('2026-04-26');
-  });
-
-  test('sets lastPoints to the points earned on the targeted game', () => {
-    const state = makeState();
-    const next = reducer(state, action('lede', true, 25));
-    expect(next.stats.lede.lastPoints).toBe(25);
-  });
-
-  test('updates bestScore with Math.max', () => {
-    const state = makeState({ stats: { ...initialState.stats, lede: { played: 0, correct: 0, streak: 0, bestStreak: 0, bestScore: 20 } } });
-    const higher = reducer(state, action('lede', true, 30));
-    expect(higher.stats.lede.bestScore).toBe(30);
-
-    const lower = reducer(state, action('lede', true, 10));
-    expect(lower.stats.lede.bestScore).toBe(20);
   });
 
   test('only modifies the targeted game stats (other games unchanged)', () => {
     const state = makeState();
-    const next = reducer(state, action('lede', true, 10));
+    const next = reducer(state, action('lede', true));
     expect(next.stats.spread).toEqual(state.stats.spread);
     expect(next.stats.sof).toEqual(state.stats.sof);
     expect(next.stats.quip).toEqual(state.stats.quip);
@@ -316,6 +328,53 @@ describe('reducer: UPDATE_DAILY_STREAK', () => {
     const next = reducer(state, action('2026-04-26'));
     expect(next.stats.streakSavedBannerSeen).toBe(true);
   });
+
+  test('sets showStreakCelebration to true when daily streak increments', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', dailyStreak: 3 } });
+    const next = reducer(state, action('2026-04-26'));
+    expect(next.stats.showStreakCelebration).toBe(true);
+  });
+
+  test('does NOT set showStreakCelebration when streak resets to 1', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-20', dailyStreak: 7, streakShieldsAvailable: 0 } });
+    const next = reducer(state, action('2026-04-26'));
+    expect(next.stats.showStreakCelebration).toBe(false);
+  });
+
+  test('does NOT set showStreakCelebration when a shield is used', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedDate: '2026-04-20',
+        dailyStreak: 7,
+        streakShieldsAvailable: 1,
+        streakShieldUsedToday: false,
+      },
+    });
+    const next = reducer(state, action('2026-04-26'));
+    expect(next.stats.showStreakCelebration).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DISMISS_STREAK_CELEBRATION
+// ---------------------------------------------------------------------------
+describe('reducer: DISMISS_STREAK_CELEBRATION', () => {
+  test('sets showStreakCelebration to false', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, showStreakCelebration: true },
+    });
+    const next = reducer(state, { type: 'DISMISS_STREAK_CELEBRATION' });
+    expect(next.stats.showStreakCelebration).toBe(false);
+  });
+
+  test('is a no-op when showStreakCelebration is already false', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, showStreakCelebration: false },
+    });
+    const next = reducer(state, { type: 'DISMISS_STREAK_CELEBRATION' });
+    expect(next).toBe(state);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -388,29 +447,29 @@ describe('reducer: MERGE_FROM_SERVER (seen sync)', () => {
 
   test('server stats win when server lastPlayedDate is newer', () => {
     const state = makeState({
-      stats: { ...initialState.stats, lastPlayedDate: '2026-04-20', totalPoints: 100 },
+      stats: { ...initialState.stats, lastPlayedDate: '2026-04-20', dailyStreak: 3 },
     });
     const serverStats: AppState['stats'] = {
       ...state.stats,
       lastPlayedDate: '2026-04-25',
-      totalPoints: 250,
+      dailyStreak: 7,
     };
     const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
-    expect(next.stats.totalPoints).toBe(250);
+    expect(next.stats.dailyStreak).toBe(7);
     expect(next.stats.lastPlayedDate).toBe('2026-04-25');
   });
 
   test('local stats kept when local lastPlayedDate is newer', () => {
     const state = makeState({
-      stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', totalPoints: 250 },
+      stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', dailyStreak: 7 },
     });
     const serverStats: AppState['stats'] = {
       ...state.stats,
       lastPlayedDate: '2026-04-20',
-      totalPoints: 100,
+      dailyStreak: 3,
     };
     const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
-    expect(next.stats.totalPoints).toBe(250);
+    expect(next.stats.dailyStreak).toBe(7);
     expect(next.stats.lastPlayedDate).toBe('2026-04-25');
   });
 });
@@ -677,13 +736,13 @@ describe('reducer: REMOVE_FRIEND_INTERACTION', () => {
 describe('reducer: immutability', () => {
   test('returned state is a new object reference', () => {
     const state = makeState();
-    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, points: 10, today: '2026-04-26' });
+    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, today: '2026-04-26' });
     expect(next).not.toBe(state);
   });
 
   test('returned state.stats is a new object reference when stats changed', () => {
     const state = makeState();
-    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, points: 10, today: '2026-04-26' });
+    const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, today: '2026-04-26' });
     expect(next.stats).not.toBe(state.stats);
   });
 });

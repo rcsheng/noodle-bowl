@@ -6,10 +6,13 @@ import { validateCollectionPrefix } from './utils/collectionPrefix';
 export interface HelpCreateInput {
   gameId: string;
   questionIndex: number;
+  contentWeek: string; // ISO week of the question, e.g. "2026-W20"
   askerName: string | null;
   askerPushToken: string | null;
   collectionPrefix?: string;
 }
+
+const CONTENT_WEEK_RE = /^\d{4}-W\d{2}$/;
 
 export interface HelpCreateOutput {
   token: string;
@@ -30,6 +33,9 @@ export async function createHelpHandler(
   }
   if (!Number.isInteger(data.questionIndex) || data.questionIndex < 0) {
     throw new HttpsError('invalid-argument', 'questionIndex must be a non-negative integer');
+  }
+  if (!CONTENT_WEEK_RE.test(data.contentWeek)) {
+    throw new HttpsError('invalid-argument', `Invalid contentWeek: ${data.contentWeek}`);
   }
 
   const prefix = validateCollectionPrefix(data.collectionPrefix);
@@ -75,6 +81,7 @@ export async function createHelpHandler(
     token,
     gameId: data.gameId,
     questionIndex: data.questionIndex,
+    contentWeek: data.contentWeek,
     askerId: uid,
     askerName: data.askerName,
     issuedAt: Timestamp.fromDate(now),

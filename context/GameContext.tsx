@@ -9,6 +9,7 @@ import { readSeen, writeSeen } from '@/lib/seenRepo';
 import { readStats, writeStats } from '@/lib/statsRepo';
 import { scheduleWrite } from '@/lib/syncQueue';
 import { useAuth } from '@/context/AuthContext';
+import { computeActiveWeek } from '@/lib/contentWeek';
 import { Action, AppState, FriendInteraction, initialState, reducer } from './gameReducer';
 
 export type { FriendInteraction };
@@ -16,7 +17,7 @@ export type { FriendInteraction };
 interface GameContextType {
   state: AppState;
   isLoaded: boolean;
-  updateGameStats: (game: GameId, correct: boolean, points: number) => void;
+  updateGameStats: (game: GameId, correct: boolean) => void;
   setSeen: (game: GameId, seen: number[]) => void;
   earnStreakShield: () => void;
   addFriendInteraction: (interaction: Omit<FriendInteraction, 'id' | 'date'>) => void;
@@ -24,11 +25,12 @@ interface GameContextType {
   dismissHelpCard: (token: string) => void;
   setAskerAnswer: (token: string, askerAnswer: string) => void;
   dismissStreakSavedBanner: () => void;
+  dismissStreakCelebration: () => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
 
-const STORAGE_KEY = 'daily_state_v9';
+const STORAGE_KEY = 'daily_state_v11';
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -53,7 +55,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           try {
             const parsed = JSON.parse(saved);
             if (parsed.ownerUid && parsed.ownerUid === uid) {
-              dispatch({ type: 'LOAD', payload: parsed });
+              dispatch({ type: 'LOAD', payload: parsed, activeWeek: computeActiveWeek() });
             }
             // Else: cache belongs to a different identity (or untagged legacy
             // blob) — discard. The Firestore merge effects below will populate
@@ -67,7 +69,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     if (loadedForUidRef.current !== uid) {
       loadedForUidRef.current = uid;
-      dispatch({ type: 'LOAD', payload: {} });
+      dispatch({ type: 'LOAD', payload: {}, activeWeek: computeActiveWeek() });
     }
   }, [uid]);
 
@@ -79,6 +81,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         ownerUid: uid,
         stats: state.stats,
         seen: state.seen,
+        seenWeek: state.seenWeek,
         friendInteractions: state.friendInteractions,
       }),
     ).catch(() => {});
@@ -141,9 +144,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, [uid, isAnonymous, isLoaded]);
 
-  const updateGameStats = useCallback((game: GameId, correct: boolean, points: number) => {
+  const updateGameStats = useCallback((game: GameId, correct: boolean) => {
     const today = getTodayISODate();
-    dispatch({ type: 'UPDATE_STATS', game, correct, points, today });
+    dispatch({ type: 'UPDATE_STATS', game, correct, today });
     dispatch({ type: 'UPDATE_DAILY_STREAK', today });
   }, []);
 
@@ -210,6 +213,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'DISMISS_STREAK_SAVED_BANNER' });
   }, []);
 
+  const dismissStreakCelebration = useCallback(() => {
+    dispatch({ type: 'DISMISS_STREAK_CELEBRATION' });
+  }, []);
+
   // Keep a ref to addFriendInteraction so the snapshot callbacks can call the
   // latest version without being listed as a dependency of the subscription
   // effect. If addFriendInteraction were in the dep array, any isAnonymous flip
@@ -274,6 +281,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             shieldEarned: false,
             token,
             friendAnswer: data.helperAnswer as string,
+            contentWeek: (data.contentWeek as string | undefined) ?? '',
           });
           unsubRefs.current.get(token)?.();
           unsubRefs.current.delete(token);
@@ -291,7 +299,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [uid]);
 
   return (
-    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard, setAskerAnswer, dismissStreakSavedBanner }}>
+    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard, setAskerAnswer, dismissStreakSavedBanner, dismissStreakCelebration }}>
       {children}
     </GameContext.Provider>
   );

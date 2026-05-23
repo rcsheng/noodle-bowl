@@ -19,7 +19,9 @@ import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
-import { calculatePoints, copyToClipboard, formatAttribution, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { copyToClipboard, formatAttribution, pickFromBank, shuffleIndices } from '@/constants/utils';
+import { BankExhaustedModal } from '@/components/BankExhaustedModal';
+import { StreakCelebrationModal } from '@/components/StreakCelebrationModal';
 import { isFriendHintMatch } from '@/lib/friendHint';
 import { useAuth } from '@/context/AuthContext';
 import { useContent } from '@/context/ContentContext';
@@ -45,14 +47,12 @@ type Phase = 'play' | 'reveal';
 
 interface RevealData {
   correct: boolean;
-  points: number;
-  prevStreak: number;
 }
 
 export default function LedeScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer } = useGame();
-  const { banks, isLoading: contentLoading } = useContent();
+  const { banks, contentWeek, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const {
@@ -65,6 +65,7 @@ export default function LedeScreen() {
     hintQuestionIndex,
     friendHint,
     hintToken,
+    hintContentWeek,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -75,6 +76,7 @@ export default function LedeScreen() {
     hintQuestionIndex?: string;
     friendHint?: string;
     hintToken?: string;
+    hintContentWeek?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
@@ -98,6 +100,8 @@ export default function LedeScreen() {
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
+  const [bankExhausted, setBankExhausted] = useState(false);
+  const [hintUnavailable, setHintUnavailable] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || contentLoading || started.current) return;
@@ -119,16 +123,22 @@ export default function LedeScreen() {
     } else if (isHintMode && hintQuestionIndex !== undefined) {
       const idx = parseInt(hintQuestionIndex, 10);
       const item = banks.lede[idx];
-      if (!item) { router.replace('/'); return; }
+      // Show unavailable state if the question no longer exists in the current
+      // week's bank, or if the hint was created for a different content week.
+      if (!item || (hintContentWeek && hintContentWeek !== contentWeek)) {
+        setHintUnavailable(true);
+        return;
+      }
       setQuestion(item);
       setQuestionIdx(idx);
       setOrder(shuffleIndices(item.panelists.length));
     } else {
-      const { idx, item, newSeen } = pickFromBank(banks.lede, state.seen.lede);
-      setSeen('lede', newSeen);
-      setQuestion(item);
-      setQuestionIdx(idx);
-      setOrder(shuffleIndices(item.panelists.length));
+      const result = pickFromBank(banks.lede, state.seen.lede);
+      if (result.exhausted) { setBankExhausted(true); return; }
+      setSeen('lede', result.newSeen);
+      setQuestion(result.item);
+      setQuestionIdx(result.idx);
+      setOrder(shuffleIndices(result.item.panelists.length));
     }
   }, [isLoaded, contentLoading]);
 
@@ -136,11 +146,9 @@ export default function LedeScreen() {
     if (selected === null || !question) return;
     const panelist = question.panelists[selected];
     const correct = panelist.isCorrect;
-    const prevStreak = state.stats.lede.streak;
-    const points = calculatePoints(correct, prevStreak);
-    setRevealData({ correct, points, prevStreak });
-    updateGameStats('lede', correct, points);
-    Analytics.gameComplete('lede', correct, points);
+    setRevealData({ correct });
+    updateGameStats('lede', correct);
+    Analytics.gameComplete('lede', correct);
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -190,11 +198,12 @@ export default function LedeScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromBank(banks.lede, state.seen.lede);
-    setSeen('lede', newSeen);
-    setQuestion(item);
-    setQuestionIdx(idx);
-    setOrder(shuffleIndices(item.panelists.length));
+    const result = pickFromBank(banks.lede, state.seen.lede);
+    if (result.exhausted) { setBankExhausted(true); return; }
+    setSeen('lede', result.newSeen);
+    setQuestion(result.item);
+    setQuestionIdx(result.idx);
+    setOrder(shuffleIndices(result.item.panelists.length));
     setSelected(null);
     setPhase('play');
     setRevealData(null);
@@ -216,6 +225,7 @@ export default function LedeScreen() {
       const result = await createHelp({
         gameId: 'lede',
         questionIndex: questionIdx,
+        contentWeek,
         askerName: null,
         askerPushToken: getCachedPushToken(),
       });
@@ -242,6 +252,38 @@ export default function LedeScreen() {
       setTimeout(() => setHelpCopied(false), 2000);
     }
   };
+
+  if (bankExhausted) {
+    return (
+      <BankExhaustedModal
+        visible
+        gameName="Lede"
+        onDismiss={() => router.replace('/')}
+      />
+    );
+  }
+
+  if (hintUnavailable) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <CompactMasthead />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ fontFamily: F.fraunces, fontSize: 18, color: C.ink, textAlign: 'center', marginBottom: 24 }}>
+            This question is no longer available.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: C.ink, paddingVertical: 14, paddingHorizontal: 32 }}
+            onPress={() => router.replace('/')}
+            activeOpacity={0.85}
+          >
+            <Text style={{ fontFamily: F.monoBold, fontSize: 11, letterSpacing: 1.8, textTransform: 'uppercase', color: C.onDark }}>
+              Back to Home
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!question) return null;
 
@@ -357,10 +399,6 @@ export default function LedeScreen() {
             <View style={styles.cardInnerBorder} />
             <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
               {revealData.correct ? 'Correct' : 'Incorrect'}
-            </Text>
-            <Text style={styles.resultDivider}> · </Text>
-            <Text style={styles.resultPoints}>
-              {revealData.correct ? `+${revealData.points} pts` : '0 pts'}
             </Text>
           </View>
         )}
@@ -560,6 +598,7 @@ export default function LedeScreen() {
       </Modal>
 
       <ShieldEarnedToast visible={shieldToastVisible} />
+      <StreakCelebrationModal />
     </SafeAreaView>
   );
 }

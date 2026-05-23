@@ -10,14 +10,14 @@ export interface ContentBanks {
 
 export interface ContentVersion {
   id: string;
-  active: boolean;
+  contentWeek: string; // ISO week string, e.g. "2026-W20". Empty string for bundled fallback.
   createdAt: string;
   banks: ContentBanks;
 }
 
 export interface ContentPackMeta {
   date: string;        // YYYY-MM-DD — primary identifier for the pack
-  versionId: string;   // Firestore contentVersions ID
+  weekId: string;      // ISO week string, e.g. "2026-W20"
   publishedAt: string; // ISO timestamp
   ledeCount: number;
   spreadCount: number;

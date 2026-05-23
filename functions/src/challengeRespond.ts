@@ -49,6 +49,7 @@ export async function respondToChallengeHandler(
 
   await db.collection(col).doc(input.token).update({
     friendAnswer: input.friendAnswer,
+    recipientId: uid,
     resolvedAt: Timestamp.fromDate(new Date()),
   });
 

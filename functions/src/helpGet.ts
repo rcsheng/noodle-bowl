@@ -5,6 +5,7 @@ import { validateCollectionPrefix } from './utils/collectionPrefix';
 export interface HelpGetResponse {
   gameId: string;
   questionIndex: number;
+  contentWeek: string; // ISO week of the question; empty string for old requests (backward compat)
   askerName: string | null;
   expiresAt: string;
 }
@@ -26,6 +27,7 @@ export async function getHelpHandler(
   return {
     gameId: data.gameId as string,
     questionIndex: data.questionIndex as number,
+    contentWeek: (data.contentWeek as string | undefined) ?? '',
     askerName: (data.askerName as string | null) ?? null,
     expiresAt: (data.expiresAt.toDate() as Date).toISOString(),
   };

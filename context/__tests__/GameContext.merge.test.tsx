@@ -52,10 +52,10 @@ async function flushEffects(count = 15) {
 // ── Pure reducer: MERGE_FROM_SERVER ──────────────────────────────────────────
 
 describe('reducer: MERGE_FROM_SERVER', () => {
-  const localStats = { ...initialState.stats, totalPoints: 50, lastPlayedDate: '2026-04-20' };
-  const serverStatsNewer = { ...initialState.stats, totalPoints: 200, lastPlayedDate: '2026-04-27' };
-  const serverStatsOlder = { ...initialState.stats, totalPoints: 10, lastPlayedDate: '2026-04-10' };
-  const serverStatsSameDate = { ...initialState.stats, totalPoints: 300, lastPlayedDate: '2026-04-20' };
+  const localStats = { ...initialState.stats, dailyStreak: 5, lastPlayedDate: '2026-04-20' };
+  const serverStatsNewer = { ...initialState.stats, dailyStreak: 20, lastPlayedDate: '2026-04-27' };
+  const serverStatsOlder = { ...initialState.stats, dailyStreak: 1, lastPlayedDate: '2026-04-10' };
+  const serverStatsSameDate = { ...initialState.stats, dailyStreak: 30, lastPlayedDate: '2026-04-20' };
 
   function makeState(stats: typeof initialState.stats = localStats) {
     return { ...initialState, stats };
@@ -63,31 +63,31 @@ describe('reducer: MERGE_FROM_SERVER', () => {
 
   test('server wins when server.lastPlayedDate is newer than local', () => {
     const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverStatsNewer });
-    expect(next.stats.totalPoints).toBe(200);
+    expect(next.stats.dailyStreak).toBe(20);
     expect(next.stats.lastPlayedDate).toBe('2026-04-27');
   });
 
   test('local wins when local.lastPlayedDate is newer than server', () => {
     const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverStatsOlder });
-    expect(next.stats.totalPoints).toBe(50);
+    expect(next.stats.dailyStreak).toBe(5);
     expect(next.stats.lastPlayedDate).toBe('2026-04-20');
   });
 
   test('server wins when dates are equal', () => {
     const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverStatsSameDate });
-    expect(next.stats.totalPoints).toBe(300);
+    expect(next.stats.dailyStreak).toBe(30);
   });
 
   test('server wins when local.lastPlayedDate is null', () => {
     const state = makeState({ ...initialState.stats, lastPlayedDate: null });
     const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats: serverStatsNewer });
-    expect(next.stats.totalPoints).toBe(200);
+    expect(next.stats.dailyStreak).toBe(20);
   });
 
   test('local wins when server.lastPlayedDate is null', () => {
     const serverNull = { ...initialState.stats, lastPlayedDate: null };
     const next = reducer(makeState(), { type: 'MERGE_FROM_SERVER', serverStats: serverNull });
-    expect(next.stats.totalPoints).toBe(50);
+    expect(next.stats.dailyStreak).toBe(5);
   });
 
   test('preserves higher local shield count even when server wins on date', () => {
@@ -167,7 +167,7 @@ describe('GameContext: sign-in merge', () => {
   });
 
   test('merges server stats into local state when readStats returns data', async () => {
-    const serverStats = { ...initialState.stats, totalPoints: 999, lastPlayedDate: '2026-04-27' };
+    const serverStats = { ...initialState.stats, dailyStreak: 9, lastPlayedDate: '2026-04-27' };
     mockReadStats.mockResolvedValue(serverStats);
     useAuth.mockReturnValue({ user: { uid: 'user1', isAnonymous: false }, isAnonymous: false });
 
@@ -176,7 +176,7 @@ describe('GameContext: sign-in merge', () => {
     await act(async () => { await flushEffects(); });
 
     // Server date (2026-04-27) > local date (null) → server wins
-    expect(result.current.state.stats.totalPoints).toBe(999);
+    expect(result.current.state.stats.dailyStreak).toBe(9);
   });
 
   test('leaves state unchanged when readStats returns null', async () => {
@@ -187,7 +187,7 @@ describe('GameContext: sign-in merge', () => {
 
     await act(async () => { await flushEffects(); });
 
-    expect(result.current.state.stats.totalPoints).toBe(0);
+    expect(result.current.state.stats.dailyStreak).toBe(0);
   });
 
   test('calls readSeen with uid when signed-in user mounts', async () => {

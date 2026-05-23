@@ -130,6 +130,13 @@ describe('respondToChallengeHandler', () => {
     expect((updateCalls[0].data as any).resolvedAt).toBeDefined();
   });
 
+  test('writes recipientId to the challenge document', async () => {
+    const { db, updateCalls } = makeDb(makeChallengeDoc());
+    await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend');
+
+    expect(updateCalls[0].data).toMatchObject({ recipientId: 'uid-friend' });
+  });
+
   // ── Return value ──────────────────────────────────────────────────────────
 
   test('returns full comparison data including senderAnswer', async () => {

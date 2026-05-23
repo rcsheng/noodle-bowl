@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { Share } from 'react-native';
+import type { SofItem } from './data';
 
 export function calculatePoints(correct: boolean, currentStreak: number, baseAmount = 10): number {
   if (!correct) return 0;
@@ -71,11 +72,47 @@ export function decodeChallengeToken(token: string): ChallengePayload | null {
   }
 }
 
-export function pickFromBank<T>(bank: T[], seen: number[]): { idx: number; item: T; newSeen: number[] } {
-  const effective = seen.length >= bank.length ? [] : seen;
-  const available = bank.map((_, i) => i).filter(i => !effective.includes(i));
+export type BankPickResult<T> =
+  | { exhausted: false; idx: number; item: T; newSeen: number[] }
+  | { exhausted: true };
+
+/**
+ * Picks a random unseen item from `bank`. Returns `{ exhausted: true }` when
+ * the bank is empty or every item has already been seen — never wraps around.
+ * Does not mutate `seen`.
+ */
+export function pickFromBank<T>(bank: T[], seen: number[]): BankPickResult<T> {
+  if (bank.length === 0) return { exhausted: true };
+  const available = bank.map((_, i) => i).filter(i => !seen.includes(i));
+  if (available.length === 0) return { exhausted: true };
   const idx = available[Math.floor(Math.random() * available.length)];
-  return { idx, item: bank[idx], newSeen: [...effective, idx] };
+  return { exhausted: false, idx, item: bank[idx], newSeen: [...seen, idx] };
+}
+
+export type SofPickResult =
+  | { exhausted: false; idx: number; item: SofItem; newSeen: number[] }
+  | { exhausted: true };
+
+/**
+ * Picks a random unseen SoF item matching `weirdMode` from `sofBank`.
+ * Returns `{ exhausted: true }` when no unseen item in the requested mode
+ * remains. Does not mutate `seen`.
+ */
+export function pickFromSof(sofBank: SofItem[], weirdMode: boolean, seen: number[]): SofPickResult {
+  const filtered = sofBank
+    .map((item, i) => ({ item, i }))
+    .filter(({ item }) => item.weirdAndTrue === weirdMode);
+  if (filtered.length === 0) return { exhausted: true };
+  const seenInMode = seen.filter(i => sofBank[i]?.weirdAndTrue === weirdMode);
+  const available = filtered.filter(({ i }) => !seenInMode.includes(i));
+  if (available.length === 0) return { exhausted: true };
+  const pick = available[Math.floor(Math.random() * available.length)];
+  return {
+    exhausted: false,
+    idx: pick.i,
+    item: pick.item,
+    newSeen: seen.includes(pick.i) ? seen : [...seen, pick.i],
+  };
 }
 
 // Combines source + date into "Source Name, Month Year" format.

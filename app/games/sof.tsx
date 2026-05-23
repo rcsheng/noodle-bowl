@@ -1,4 +1,6 @@
-import { copyToClipboard, formatAttribution, shuffleIndices } from '@/constants/utils';
+import { copyToClipboard, formatAttribution, pickFromSof, shuffleIndices } from '@/constants/utils';
+import { BankExhaustedModal } from '@/components/BankExhaustedModal';
+import { StreakCelebrationModal } from '@/components/StreakCelebrationModal';
 import { isFriendHintMatch } from '@/lib/friendHint';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -37,31 +39,14 @@ type Phase = 'play' | 'reveal';
 
 interface RevealData {
   correct: boolean;
-  points: number;
   scienceClaim: number;
-  prevStreak: number;
 }
 
-function pickFromSof(
-  sofBank: SofItem[],
-  weirdMode: boolean,
-  seen: number[]
-): { idx: number; item: SofItem; newSeen: number[] } {
-  const filtered = sofBank
-    .map((item, i) => ({ item, i }))
-    .filter(({ item }) => item.weirdAndTrue === weirdMode);
-  const seenInMode = seen.filter(i => sofBank[i]?.weirdAndTrue === weirdMode);
-  const available = seenInMode.length >= filtered.length
-    ? filtered
-    : filtered.filter(({ i }) => !seenInMode.includes(i));
-  const pick = available[Math.floor(Math.random() * available.length)];
-  return { idx: pick.i, item: pick.item, newSeen: seen.includes(pick.i) ? seen : [...seen, pick.i] };
-}
 
 export default function SofScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer } = useGame();
-  const { banks, isLoading: contentLoading } = useContent();
+  const { banks, contentWeek, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -76,6 +61,7 @@ export default function SofScreen() {
     hintQuestionIndex,
     friendHint,
     hintToken,
+    hintContentWeek,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -86,6 +72,7 @@ export default function SofScreen() {
     hintQuestionIndex?: string;
     friendHint?: string;
     hintToken?: string;
+    hintContentWeek?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
@@ -110,6 +97,8 @@ export default function SofScreen() {
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
+  const [bankExhausted, setBankExhausted] = useState(false);
+  const [hintUnavailable, setHintUnavailable] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || contentLoading || started.current) return;
@@ -131,16 +120,23 @@ export default function SofScreen() {
     } else if (isHintMode && hintQuestionIndex !== undefined) {
       const idx = parseInt(hintQuestionIndex, 10);
       const item = banks.sof[idx];
-      if (!item) { router.replace('/'); return; }
+      // Show unavailable state if the question no longer exists in the current
+      // week's bank, or if the hint was created for a different content week.
+      if (!item || (hintContentWeek && hintContentWeek !== contentWeek)) {
+        setHintUnavailable(true);
+        return;
+      }
       const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
       if (item.weirdAndTrue) setWeirdSlot(slot); else setStandardSlot(slot);
       setWeirdMode(item.weirdAndTrue);
     } else {
-      const { idx: stdIdx, item: stdItem, newSeen: seenAfterStd } = pickFromSof(banks.sof, false, state.seen.sof);
-      const { idx: wrdIdx, item: wrdItem, newSeen: seenAfterBoth } = pickFromSof(banks.sof, true, seenAfterStd);
-      setSeen('sof', seenAfterBoth);
-      setStandardSlot({ item: stdItem, idx: stdIdx, claimOrder: shuffleIndices(stdItem.claims.length) });
-      setWeirdSlot({ item: wrdItem, idx: wrdIdx, claimOrder: shuffleIndices(wrdItem.claims.length) });
+      const stdResult = pickFromSof(banks.sof, false, state.seen.sof);
+      if (stdResult.exhausted) { setBankExhausted(true); return; }
+      const wrdResult = pickFromSof(banks.sof, true, stdResult.newSeen);
+      if (wrdResult.exhausted) { setBankExhausted(true); return; }
+      setSeen('sof', wrdResult.newSeen);
+      setStandardSlot({ item: stdResult.item, idx: stdResult.idx, claimOrder: shuffleIndices(stdResult.item.claims.length) });
+      setWeirdSlot({ item: wrdResult.item, idx: wrdResult.idx, claimOrder: shuffleIndices(wrdResult.item.claims.length) });
     }
   }, [isLoaded, contentLoading]);
 
@@ -148,11 +144,9 @@ export default function SofScreen() {
     if (!question || selectedClaim === null) return;
     const scienceClaim = question.claims.findIndex(c => c.isScience);
     const correct = selectedClaim === scienceClaim;
-    const points = correct ? 10 : 0;
-    const prevStreak = state.stats.sof.streak;
-    setRevealData({ correct, points, scienceClaim, prevStreak });
-    updateGameStats('sof', correct, points);
-    Analytics.gameComplete('sof', correct, Math.max(0, points));
+    setRevealData({ correct, scienceClaim });
+    updateGameStats('sof', correct);
+    Analytics.gameComplete('sof', correct);
     setPhase('reveal');
     setTimeout(() => {
       scrollRef.current?.scrollTo({ y: resultY.current - 16, animated: true });
@@ -202,9 +196,10 @@ export default function SofScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromSof(banks.sof, weirdMode, state.seen.sof);
-    setSeen('sof', newSeen);
-    const newSlot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
+    const result = pickFromSof(banks.sof, weirdMode, state.seen.sof);
+    if (result.exhausted) { setBankExhausted(true); return; }
+    setSeen('sof', result.newSeen);
+    const newSlot = { item: result.item, idx: result.idx, claimOrder: shuffleIndices(result.item.claims.length) };
     if (weirdMode) setWeirdSlot(newSlot); else setStandardSlot(newSlot);
     setSelectedClaim(null);
     setPhase('play');
@@ -237,6 +232,7 @@ export default function SofScreen() {
       const result = await createHelp({
         gameId: 'sof',
         questionIndex: questionIdx,
+        contentWeek,
         askerName: null,
         askerPushToken: getCachedPushToken(),
       });
@@ -268,6 +264,38 @@ export default function SofScreen() {
   const question = currentSlot?.item ?? null;
   const questionIdx = currentSlot?.idx ?? 0;
   const claimOrder = currentSlot?.claimOrder ?? [0, 1];
+
+  if (bankExhausted) {
+    return (
+      <BankExhaustedModal
+        visible
+        gameName="Science or Fiction"
+        onDismiss={() => router.replace('/')}
+      />
+    );
+  }
+
+  if (hintUnavailable) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <CompactMasthead />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ fontFamily: F.fraunces, fontSize: 18, color: C.ink, textAlign: 'center', marginBottom: 24 }}>
+            This question is no longer available.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: C.ink, paddingVertical: 14, paddingHorizontal: 32 }}
+            onPress={() => router.replace('/')}
+            activeOpacity={0.85}
+          >
+            <Text style={{ fontFamily: F.monoBold, fontSize: 11, letterSpacing: 1.8, textTransform: 'uppercase', color: C.onDark }}>
+              Back to Home
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!question) return null;
 
@@ -416,10 +444,6 @@ export default function SofScreen() {
               <View style={styles.cardInnerBorder} />
               <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
                 {revealData.correct ? 'Correct' : 'Incorrect'}
-              </Text>
-              <Text style={styles.resultDivider}> · </Text>
-              <Text style={styles.resultPoints}>
-                {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
               </Text>
             </View>
 
@@ -570,6 +594,7 @@ export default function SofScreen() {
       </Modal>
 
       <ShieldEarnedToast visible={shieldToastVisible} />
+      <StreakCelebrationModal />
     </SafeAreaView>
   );
 }

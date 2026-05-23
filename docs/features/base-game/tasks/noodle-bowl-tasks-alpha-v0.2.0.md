@@ -1,7 +1,7 @@
 # Noodle Bowl — Task List alpha-v0.2.0
 
 **PRD ref:** `noodle-bowl-prd-alpha-v0.2.0.md`
-**Last updated:** 2026-05-10
+**Last updated:** 2026-05-24
 **Note:** Absorbs all open alpha-v0.1.2 items — no standalone v0.1.2 build was ever cut.
 
 ---
@@ -12,10 +12,13 @@
 - [x] Add `--days=N` to `ingest.ts` for bulk historical Wikipedia ingestion
 - [x] Add `--scale=N` to `select.ts` to scale selection targets
 - [x] Remove hardcoded `slice(0, 20)` cap in `generate.ts` so quip/wave scale with lede
+- [x] Cross-game dedup in `select.ts` — each story assigned to exactly one game (Lede → Spread → SoF priority)
+- [x] Cross-day dedup in `select.ts` — exclude story IDs already used in previous `selected/*.json` runs
+- [x] `context/ContentContext.tsx` — `reload()` sets `isLoading=true` so game screens wait for fresh content when tapped during a background refresh
 - [ ] Bulk pipeline run — emulator dry run (see runbook below)
-- [ ] Bulk pipeline run — production publish (60-day bank)
+- [ ] Bulk pipeline run — production publish (8-week bank, one `pipeline:publish` per date)
 - [ ] Verify app reads live content (no bundled fallback triggered)
-- [ ] Verify subsequent daily run correctly deactivates previous version
+- [ ] Verify subsequent daily run accumulates into the week doc (does not replace)
 
 ---
 
@@ -95,7 +98,7 @@ npm run pipeline:review
 
 # 6. Dry run — publish to emulator first
 npm run pipeline:publish:emulator
-# Confirm 'y'. Check http://localhost:4000 for contentVersions with active: true.
+# Confirm 'y'. Check http://localhost:4000 for contentVersions — doc ID = ISO week (e.g. "2026-W21").
 
 # 7. Production publish
 npm run pipeline:publish
@@ -121,7 +124,7 @@ npm run pipeline:select        # 30 lede, 30 spread, 60 SoF (daily targets)
                                # automatically merges weird candidates; they sort first for Lede
 npm run pipeline:generate      # ~2–3 minutes
 npm run pipeline:review        # spot-check output
-npm run pipeline:publish       # deactivates previous version, publishes new one
+npm run pipeline:publish       # accumulates today's items into the current week doc (idempotent)
 ```
 
 ---
@@ -131,9 +134,53 @@ npm run pipeline:publish       # deactivates previous version, publishes new one
 After any production publish:
 
 1. Run `npm run start:qa` (prod Firebase, QA collections)
-2. Open the Firestore console — confirm `contentVersions` has exactly one `active: true` doc
+2. Open the Firestore console — confirm `contentVersions` has a doc for the previous ISO week (e.g. `2026-W20`)
 3. Launch app, play a game — content should reflect what was published (spot-check a headline)
 4. Force-quit and relaunch — content loads instantly from AsyncStorage cache
+
+---
+
+## Points removal & streak celebration (2026-05-14)
+
+### Cloud functions (data gap fix)
+
+- [x] `functions/src/helpRespond.ts` — write `helperId: uid` to `helpRequests` doc on respond
+- [x] `functions/src/challengeRespond.ts` — write `recipientId: uid` to `challenges` doc on respond
+- [x] Functions tests updated and passing
+
+### State & context
+
+- [x] `context/gameReducer.ts` — remove `totalPoints`, `bestScore`, `lastPoints` from state; add `showStreakCelebration`; bump storage key to `daily_state_v10`
+- [x] `context/GameContext.tsx` — remove `points` from `updateGameStats`; add `dismissStreakCelebration`
+- [x] `lib/analytics.ts` — remove `points` from `gameComplete`
+
+### UI
+
+- [x] `components/StreakCelebrationModal.tsx` — new modal: fires once per day when streak increments
+- [x] `app/(tabs)/index.tsx` — remove stats summary card; simplify game row to show `✓` (no pts)
+- [x] `app/(tabs)/explore.tsx` — remove Lifetime Points section; remove Best column from per-game grid; update AuthGateTab copy
+- [x] `app/games/lede.tsx` — remove points from result card; add `<StreakCelebrationModal />`
+- [x] `app/games/sof.tsx` — remove points from result card; add `<StreakCelebrationModal />`
+- [x] `app/games/spread.tsx` — remove points from result card; add `<StreakCelebrationModal />`
+- [x] `app/games/wave.tsx` — remove points from result card; add `<StreakCelebrationModal />`
+- [x] `app/games/quip.tsx` — remove points from result card; add `<StreakCelebrationModal />`
+
+### Tests
+
+- [x] `context/__tests__/GameContext.reducer.test.ts` — new tests for `showStreakCelebration` + `DISMISS_STREAK_CELEBRATION`; remove all `points` references
+- [x] `context/__tests__/GameContext.merge.test.tsx` — replace `totalPoints` discriminator with `dailyStreak`
+- [x] `context/__tests__/GameContext.test.tsx` — bump storage key to v10; remove `totalPoints` assertions
+- [x] `lib/__tests__/analytics.test.ts` — update `gameComplete` tests to new signature
+- [x] All 388 tests passing, `npx tsc --noEmit` clean
+
+### To test on device (`npm run start:dev`)
+
+- [ ] Play a game for the first time today — streak celebration modal appears when streak increments
+- [ ] Tap "Keep it up!" or outside the card — modal dismisses
+- [ ] Play a second game the same day — streak celebration does NOT reappear
+- [ ] Check home screen — no summary stats card
+- [ ] Check game result cards — no points shown (just Correct / Wrong verdict)
+- [ ] Check Stats tab — no Lifetime Points section; per-game grid has 3 columns (Played / Correct / Accuracy)
 
 ---
 
@@ -151,6 +198,101 @@ Already-played state shows the card as informational only (no button).
 - [x] `app/games/sof.tsx` — read `hintQuestionIndex`/`friendHint`; highlight hinted claim; hide mode toggle
 - [x] Tests — 15 new tests across `friendHint`, `HelpResultCard`, `lede`, `sof` (all passing)
 - [ ] Smoke test on device — tap Play from home card, confirm hint visible on correct option
+
+---
+
+## Bank safety & question exhaustion (PRD §5)
+
+### Per-bank fallback
+
+- [x] `lib/__tests__/contentRepo.test.ts` — RED: tests for `mergeWithFallback` (all-empty, partial-empty, fully-populated, does not mutate original)
+- [x] `lib/contentRepo.ts` — add `mergeWithFallback(version: ContentVersion): ContentVersion`
+- [x] `context/ContentContext.tsx` — apply `mergeWithFallback` when setting version from Firestore (initial load + `reload()`)
+- [x] Run tests → GREEN
+
+### Question exhaustion
+
+- [x] `constants/__tests__/utils.test.ts` — RED: `pickFromBank` exhaustion tests (empty bank → exhausted, all-seen → exhausted, partial-seen → normal pick, no wraparound)
+- [x] `constants/__tests__/utils.test.ts` — RED: `pickFromSof` exhaustion tests (no items in mode → exhausted, all-in-mode seen → exhausted, normal pick)
+- [x] `constants/utils.ts` — update `pickFromBank` to return `BankPickResult<T>` discriminated union; remove seen-list reset; export `BankPickResult`
+- [x] `constants/utils.ts` — add `pickFromSof(sofBank, weirdMode, seen): SofPickResult`; export `SofPickResult` and `pickFromSof`
+- [x] Run tests → GREEN
+- [x] `components/BankExhaustedModal.tsx` — new component: `visible`, `gameName`, `onDismiss` props; matches `StreakCelebrationModal` style; overlay tap also dismisses; upsell CTA slot is a commented `TODO`
+- [x] `app/games/lede.tsx` — add `exhausted` state; handle `BankPickResult.exhausted` in `useEffect` + `handlePlayAgain`; render `<BankExhaustedModal>`
+- [x] `app/games/spread.tsx` — same pattern
+- [x] `app/games/sof.tsx` — import `pickFromSof` from `constants/utils`; handle `SofPickResult.exhausted` in `useEffect` + `handlePlayAgain`; render `<BankExhaustedModal>`
+- [x] `app/games/wave.tsx` — same pattern as lede/spread
+- [x] `app/games/quip.tsx` — same pattern as lede/spread
+
+### Device smoke test
+
+- [ ] Play all questions in a small bank (or clear all but one from seen state) → last question plays normally
+- [ ] Tap "Play Again" after last question → exhausted modal appears with correct game name
+- [ ] Tap "Back to Home" → navigates to home tab
+- [ ] Tap the overlay → same navigation
+- [ ] Cold-open a game screen after all questions seen → exhausted modal appears immediately
+
+---
+
+---
+
+## Weekly content windows (PRD §6)
+
+### Utilities & shared types
+
+- [x] `lib/__tests__/contentWeek.test.ts` — RED: `getISOWeekYear`, `formatWeekId`, `computeCurrentWeek`, `computeActiveWeek` (edge cases: Mon boundary, year rollover)
+- [x] `lib/contentWeek.ts` — implement; tests GREEN
+- [x] `packages/shared/contentTypes.ts` — remove `active: boolean`; add `contentWeek: string`
+- [x] `packages/shared/types.ts` — add `contentWeek: string` to `HelpCreateInput` and `HelpGetResponse`
+
+### Content repo & context
+
+- [x] `lib/__tests__/contentRepo.test.ts` — update RED: `findForWeek` replaces `findActive`; `getFallback` has no `active` field
+- [x] `lib/contentRepo.ts` — implement `findForWeek(weekId)`; update `getFallback()`
+- [x] `context/ContentContext.tsx` — use `computeActiveWeek()` + `findForWeek`; replace `isCachedToday` with `isCachedForActiveWeek`; expose `contentWeek` in context value
+
+### Game state
+
+- [x] `context/__tests__/GameContext.reducer.test.ts` — RED: LOAD with stale `seenWeek` resets `seen` arrays; LOAD with current `seenWeek` preserves them
+- [x] `context/gameReducer.ts` — add `seenWeek: string` to `AppState` + `initialState`; add `seenWeek?: string` to LOAD payload; add `activeWeek?: string` to LOAD action; reset `seen` when week changed; add `contentWeek?: string` to `FriendInteraction`
+- [x] `context/GameContext.tsx` — bump storage key to `daily_state_v11`; persist `seenWeek`; pass `activeWeek: computeActiveWeek()` to LOAD dispatch; propagate `contentWeek` from Firestore snapshot to `received_help` interaction
+
+### Help request staleness fix
+
+- [x] `functions/src/__tests__/helpCreate.test.ts` — RED: `contentWeek` stored in Firestore; invalid format rejected
+- [x] `functions/src/helpCreate.ts` — store `contentWeek` in help request doc; validate ISO week format
+- [x] `functions/src/helpGet.ts` — return `contentWeek` in response (default `''` for missing)
+- [x] `lib/helpApi.ts` — pass `contentWeek: contentWeek` (from `useContent`) in `createHelp` call
+- [x] `app/games/help/[token].tsx` — check `contentWeek` after `fetchHelp`; show "no longer available" error if non-empty and stale
+
+### Hint mode fix (lede + sof)
+
+- [x] `app/(tabs)/index.tsx` — pass `hintContentWeek: interaction.contentWeek ?? ''` as navigation param
+- [x] `app/games/lede.tsx` — read `hintContentWeek` param; set `hintUnavailable = true` when `!item` or week mismatch; render unavailable inline state; pass `contentWeek` to `createHelp`
+- [x] `app/games/sof.tsx` — same pattern as lede
+- [x] `app/games/spread.tsx`, `wave.tsx`, `quip.tsx` — pass `contentWeek` to `createHelp` calls
+
+### Pipeline
+
+- [x] `pipeline/publish.ts` — remove `active` flag and deactivation logic; add `getISOWeekId(dateStr)`; add `firestoreGet`/`fromFirestoreValue` helpers; accumulate into `contentVersions/YYYY-Www`; idempotent by `publishedDates`
+- [x] `pipeline/db.ts` — rename `versionId` → `weekId` in `ContentPackRow`; update SQL aliases
+
+### Polish & copy
+
+- [x] `components/BankExhaustedModal.tsx` — update body copy: "New questions arrive next Monday."
+
+### Verification
+
+- [x] `npm test` — 422 tests passing
+- [x] `npx tsc --noEmit` — clean
+
+### Device smoke tests (weekly model)
+
+- [ ] Active content is from the previous ISO week (check Firestore doc ID loaded)
+- [ ] On simulated Monday: seen arrays reset; new week's content appears
+- [ ] Stale help link shows "no longer available" in helper landing screen
+- [ ] Stale hint tapping "Try this question" shows unavailable state (not blank redirect)
+- [ ] Pipeline publish for same date twice is idempotent (no duplicate questions)
 
 ---
 

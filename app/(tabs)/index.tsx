@@ -15,7 +15,7 @@ import { ChallengeReplyCard } from '@/components/ChallengeReplyCard';
 import { HelpResultCard } from '@/components/HelpResultCard';
 import { Masthead } from '@/components/Masthead';
 import { ShieldSavedBanner } from '@/components/ShieldSavedBanner';
-import { C, F, cardShadow } from '@/constants/theme';
+import { C, F } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
@@ -34,9 +34,8 @@ function getSectionDate(): string {
 export default function HubScreen() {
   const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner } = useGame();
   const { banks, reload } = useContent();
-  const { totalPoints, dailyStreak, streakShieldUsedToday, streakSavedBannerSeen } = state.stats;
+  const { streakShieldUsedToday, streakSavedBannerSeen } = state.stats;
   const showStreakSavedBanner = streakShieldUsedToday && !streakSavedBannerSeen;
-  const assists = state.friendInteractions.filter(i => i.type === 'gave_help').length;
   const today = getTodayISODate();
 
   const candidateHelpResults = state.friendInteractions.filter(
@@ -118,26 +117,6 @@ export default function HubScreen() {
       >
         <Masthead />
 
-        <View style={styles.statsCard}>
-          <View style={styles.cardInnerBorder} />
-          <View style={styles.statsRow}>
-            <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{totalPoints}</Text>
-              <Text style={styles.statLabel}>Points</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{dailyStreak > 0 ? `🔥 ${dailyStreak}` : 0}</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{assists}</Text>
-              <Text style={styles.statLabel}>Assists</Text>
-            </View>
-          </View>
-        </View>
-
         <ShieldSavedBanner visible={showStreakSavedBanner} onDismiss={dismissStreakSavedBanner} />
 
         {hasReplies && (
@@ -200,6 +179,7 @@ export default function HubScreen() {
                       hintQuestionIndex: String(interaction.questionIndex),
                       friendHint: interaction.friendAnswer ?? '',
                       hintToken: interaction.token ?? '',
+                      hintContentWeek: interaction.contentWeek ?? '',
                     },
                   })}
                 />
@@ -218,7 +198,6 @@ export default function HubScreen() {
             const meta = GAME_META[id];
             const gameStats = state.stats[id];
             const playedToday = gameStats.lastPlayed === today;
-            const pts = gameStats.lastPoints;
             return (
               <TouchableHighlight
                 key={id}
@@ -237,9 +216,7 @@ export default function HubScreen() {
                   <View style={styles.rowTrailingWrapper}>
                     {playedToday ? (
                       <>
-                        <Text style={styles.rowTrailingPlayed}>
-                          {pts !== undefined ? `✓ +${pts}` : '✓'}
-                        </Text>
+                        <Text style={styles.rowTrailingPlayed}>✓</Text>
                         <Text style={styles.rowPlayAgain}>PLAY AGAIN</Text>
                       </>
                     ) : (
@@ -270,52 +247,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 80,
-  },
-  cardInnerBorder: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(42,36,29,0.15)',
-    pointerEvents: 'none',
-  },
-  statsCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.paperDark,
-    padding: 20,
-    marginBottom: 24,
-    ...cardShadow,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statBlock: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontFamily: F.frauncesXBold,
-    fontSize: 28,
-    color: C.ink,
-    lineHeight: 34,
-  },
-  statLabel: {
-    fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: C.muted,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: C.paperDarker,
   },
   sectionHeader: {
     flexDirection: 'row',

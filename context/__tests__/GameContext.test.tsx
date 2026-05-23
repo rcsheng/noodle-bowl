@@ -221,7 +221,7 @@ describe('GameContext Firestore persistence', () => {
       shieldEarned: true,
     };
     await AsyncStorage.setItem(
-      'daily_state_v9',
+      'daily_state_v11',
       JSON.stringify({
         ownerUid: 'user1',
         stats: {},
@@ -254,11 +254,10 @@ describe('GameContext Firestore persistence', () => {
   test('discards cache whose ownerUid does not match the current user', async () => {
     // Cache was written by user1 (e.g. a previous session or another account).
     await AsyncStorage.setItem(
-      'daily_state_v9',
+      'daily_state_v11',
       JSON.stringify({
         ownerUid: 'user1',
         stats: {
-          totalPoints: 999,
           dailyStreak: 3,
           bestDailyStreak: 3,
           lastPlayedDate: '2026-04-26',
@@ -293,16 +292,15 @@ describe('GameContext Firestore persistence', () => {
 
     // Streak and friend interactions from user1 must NOT leak into user2's session.
     expect(result.current.state.stats.dailyStreak).toBe(0);
-    expect(result.current.state.stats.totalPoints).toBe(0);
     expect(result.current.state.friendInteractions).toHaveLength(0);
   });
 
   test('discards untagged legacy cache (no ownerUid field)', async () => {
     // Pre-uid-tagging cache shape — must not be loaded for any user.
     await AsyncStorage.setItem(
-      'daily_state_v9',
+      'daily_state_v11',
       JSON.stringify({
-        stats: { totalPoints: 50, dailyStreak: 2 },
+        stats: { dailyStreak: 2 },
         seen: {},
         friendInteractions: [
           {
@@ -327,7 +325,6 @@ describe('GameContext Firestore persistence', () => {
       for (let i = 0; i < 12; i++) await Promise.resolve();
     });
 
-    expect(result.current.state.stats.totalPoints).toBe(0);
     expect(result.current.state.stats.dailyStreak).toBe(0);
     expect(result.current.state.friendInteractions).toHaveLength(0);
   });
@@ -346,7 +343,7 @@ describe('GameContext Firestore persistence', () => {
     };
     // Same id in BOTH local and server — should not trigger setDoc for this one.
     await AsyncStorage.setItem(
-      'daily_state_v9',
+      'daily_state_v11',
       JSON.stringify({ ownerUid: 'user1', stats: {}, seen: {}, friendInteractions: [sharedInteraction] }),
     );
     getDocs.mockResolvedValue({ docs: [{ data: () => sharedInteraction }] });

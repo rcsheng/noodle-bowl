@@ -14,6 +14,7 @@ export interface FriendInteraction {
   askerAnswer?: string;
   bonusPointsEarned?: number;
   homeCardDismissed?: boolean;
+  contentWeek?: string; // ISO week of the question; absent on old interactions
 }
 
 interface GameStats {
@@ -21,14 +22,11 @@ interface GameStats {
   correct: number;
   streak: number;
   bestStreak: number;
-  bestScore: number;
   lastPlayed?: string;
-  lastPoints?: number;
 }
 
 interface AppState {
   stats: {
-    totalPoints: number;
     dailyStreak: number;
     bestDailyStreak: number;
     lastPlayedDate: string | null;
@@ -36,6 +34,7 @@ interface AppState {
     streakShieldsAvailable: number;
     streakShieldUsedToday: boolean;
     streakSavedBannerSeen: boolean;
+    showStreakCelebration: boolean;
     lede: GameStats;
     spread: GameStats;
     sof: GameStats;
@@ -43,16 +42,16 @@ interface AppState {
     wave: GameStats;
   };
   seen: Record<GameId, number[]>;
+  seenWeek: string; // ISO week string when seen arrays were last populated, e.g. "2026-W20"
   friendInteractions: FriendInteraction[];
 }
 
 export type { AppState, GameStats };
 
-const defaultGameStats: GameStats = { played: 0, correct: 0, streak: 0, bestStreak: 0, bestScore: 0 };
+const defaultGameStats: GameStats = { played: 0, correct: 0, streak: 0, bestStreak: 0 };
 
 export const initialState: AppState = {
   stats: {
-    totalPoints: 0,
     dailyStreak: 0,
     bestDailyStreak: 0,
     lastPlayedDate: null,
@@ -60,6 +59,7 @@ export const initialState: AppState = {
     streakShieldsAvailable: 0,
     streakShieldUsedToday: false,
     streakSavedBannerSeen: true,
+    showStreakCelebration: false,
     lede: { ...defaultGameStats },
     spread: { ...defaultGameStats },
     sof: { ...defaultGameStats },
@@ -67,6 +67,7 @@ export const initialState: AppState = {
     wave: { ...defaultGameStats },
   },
   seen: { quip: [], spread: [], lede: [], wave: [], sof: [] },
+  seenWeek: '',
   friendInteractions: [],
 };
 
@@ -77,12 +78,13 @@ export function getPreviousDay(isoDate: string): string {
 }
 
 export type Action =
-  | { type: 'LOAD'; payload: { stats?: Partial<AppState['stats']>; seen?: Partial<AppState['seen']>; friendInteractions?: FriendInteraction[] } }
-  | { type: 'UPDATE_STATS'; game: GameId; correct: boolean; points: number; today: string }
+  | { type: 'LOAD'; payload: { stats?: Partial<AppState['stats']>; seen?: Partial<AppState['seen']>; seenWeek?: string; friendInteractions?: FriendInteraction[] }; activeWeek?: string }
+  | { type: 'UPDATE_STATS'; game: GameId; correct: boolean; today: string }
   | { type: 'UPDATE_DAILY_STREAK'; today: string }
   | { type: 'SET_SEEN'; game: GameId; seen: number[] }
   | { type: 'EARN_SHIELD' }
   | { type: 'DISMISS_STREAK_SAVED_BANNER' }
+  | { type: 'DISMISS_STREAK_CELEBRATION' }
   | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction }
   | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] }
   | { type: 'REMOVE_FRIEND_INTERACTION'; id: string }
@@ -93,10 +95,14 @@ export type Action =
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'LOAD': {
-      const { stats, seen, friendInteractions } = action.payload;
+      const { stats, seen, seenWeek: storedSeenWeek, friendInteractions } = action.payload;
+      const activeWeek = action.activeWeek ?? '';
+      // Reset seen arrays when the stored week differs from the current active week.
+      // If activeWeek is absent (empty string), skip the check for backward compat.
+      const weekChanged = activeWeek !== '' && (storedSeenWeek ?? '') !== activeWeek;
+
       const mergedStats = { ...initialState.stats };
       if (stats) {
-        mergedStats.totalPoints = stats.totalPoints ?? 0;
         mergedStats.dailyStreak = stats.dailyStreak ?? 0;
         mergedStats.bestDailyStreak = stats.bestDailyStreak ?? 0;
         mergedStats.lastPlayedDate = stats.lastPlayedDate ?? null;
@@ -104,13 +110,15 @@ export function reducer(state: AppState, action: Action): AppState {
         mergedStats.streakShieldsAvailable = stats.streakShieldsAvailable ?? 0;
         mergedStats.streakShieldUsedToday = stats.streakShieldUsedToday ?? false;
         mergedStats.streakSavedBannerSeen = stats.streakSavedBannerSeen ?? true;
+        // showStreakCelebration is a transient display flag — never restored from storage
         (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
           const saved = stats[g];
           if (saved) mergedStats[g] = { ...defaultGameStats, ...(saved as GameStats) };
         });
       }
+      // If the week changed, discard the old seen lists so users get a fresh bank.
       const mergedSeen = { ...initialState.seen };
-      if (seen) {
+      if (!weekChanged && seen) {
         (['quip', 'spread', 'lede', 'wave', 'sof'] as GameId[]).forEach(g => {
           if (seen[g]) mergedSeen[g] = seen[g]!;
         });
@@ -118,26 +126,24 @@ export function reducer(state: AppState, action: Action): AppState {
       return {
         stats: mergedStats,
         seen: mergedSeen,
+        seenWeek: activeWeek || storedSeenWeek || '',
         friendInteractions: friendInteractions ?? [],
       };
     }
     case 'UPDATE_STATS': {
-      const { game, correct, points, today } = action;
+      const { game, correct, today } = action;
       const prev = state.stats[game];
       const newStreak = correct ? prev.streak + 1 : 0;
       return {
         ...state,
         stats: {
           ...state.stats,
-          totalPoints: state.stats.totalPoints + points,
           [game]: {
             played: prev.played + 1,
             correct: prev.correct + (correct ? 1 : 0),
             streak: newStreak,
             bestStreak: Math.max(prev.bestStreak, newStreak),
-            bestScore: Math.max(prev.bestScore, points),
             lastPlayed: today,
-            lastPoints: points,
           },
         },
       };
@@ -151,14 +157,16 @@ export function reducer(state: AppState, action: Action): AppState {
       let newShields = stats.streakShieldsAvailable;
       let newShieldUsedToday = false;
       let newBannerSeen = stats.streakSavedBannerSeen;
+      let showStreakCelebration = false;
       if (stats.lastPlayedDate === yesterday) {
         newDailyStreak = stats.dailyStreak + 1;
+        showStreakCelebration = true;
       } else if (stats.streakShieldsAvailable > 0 && !stats.streakShieldUsedToday) {
         newShields = stats.streakShieldsAvailable - 1;
         newShieldUsedToday = true;
         newBannerSeen = false;
       } else {
-        newDailyStreak = stats.lastPlayedDate === null ? 1 : 1;
+        newDailyStreak = 1;
       }
       return {
         ...state,
@@ -171,6 +179,7 @@ export function reducer(state: AppState, action: Action): AppState {
           streakShieldsAvailable: newShields,
           streakShieldUsedToday: newShieldUsedToday,
           streakSavedBannerSeen: newBannerSeen,
+          showStreakCelebration,
         },
       };
     }
@@ -189,6 +198,12 @@ export function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         stats: { ...state.stats, streakSavedBannerSeen: true },
+      };
+    case 'DISMISS_STREAK_CELEBRATION':
+      if (!state.stats.showStreakCelebration) return state;
+      return {
+        ...state,
+        stats: { ...state.stats, showStreakCelebration: false },
       };
     case 'ADD_FRIEND_INTERACTION':
       return { ...state, friendInteractions: [action.interaction, ...state.friendInteractions] };

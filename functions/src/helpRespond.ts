@@ -20,6 +20,7 @@ export interface HelpRespondOutput {
 export async function respondToHelpHandler(
   db: ReturnType<typeof getFirestore>,
   input: HelpRespondInput,
+  uid: string,
 ): Promise<HelpRespondOutput> {
   const prefix = validateCollectionPrefix(input.collectionPrefix);
   const col = `${prefix}helpRequests`;
@@ -42,6 +43,7 @@ export async function respondToHelpHandler(
 
   await db.collection(col).doc(input.token).update({
     helperAnswer: input.helperAnswer,
+    helperId: uid,
     resolvedAt: Timestamp.fromDate(new Date()),
   });
 
@@ -67,5 +69,5 @@ export const helpRespond = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Must be signed in to respond to a help request');
   }
-  return respondToHelpHandler(getFirestore(), request.data as HelpRespondInput);
+  return respondToHelpHandler(getFirestore(), request.data as HelpRespondInput, request.auth.uid);
 });

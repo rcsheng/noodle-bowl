@@ -3,6 +3,7 @@ export type GameId = 'lede' | 'spread' | 'sof' | 'wave' | 'quip';
 export interface HelpCreateInput {
   gameId: string;
   questionIndex: number;
+  contentWeek: string; // ISO week of the question, e.g. "2026-W20"
   askerName: string | null;
   askerPushToken: string | null;
   collectionPrefix?: string;
@@ -17,6 +18,7 @@ export interface HelpCreateOutput {
 export interface HelpGetResponse {
   gameId: string;
   questionIndex: number;
+  contentWeek: string; // ISO week of the question; empty string for old requests (backward compat)
   askerName: string | null;
   expiresAt: string;
 }

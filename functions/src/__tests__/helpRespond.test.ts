@@ -88,7 +88,7 @@ describe('respondToHelpHandler', () => {
     test('throws not-found when the token does not exist', async () => {
       const { db } = makeDb(null);
       await expect(
-        respondToHelpHandler(db as any, { token: 'NOTOKEN', helperAnswer: '42' }),
+        respondToHelpHandler(db as any, { token: 'NOTOKEN', helperAnswer: '42' }, 'uid-helper'),
       ).rejects.toMatchObject({ code: 'not-found' });
     });
 
@@ -96,14 +96,14 @@ describe('respondToHelpHandler', () => {
       const past = new Date(Date.now() - 1000);
       const { db } = makeDb(makeHelpDoc({ expiresAt: { toDate: () => past } }));
       await expect(
-        respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }),
+        respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper'),
       ).rejects.toMatchObject({ code: 'deadline-exceeded' });
     });
 
     test('throws already-exists when the help request is already resolved', async () => {
       const { db } = makeDb(makeHelpDoc({ resolvedAt: { toDate: () => new Date() } }));
       await expect(
-        respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }),
+        respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper'),
       ).rejects.toMatchObject({ code: 'already-exists' });
     });
   });
@@ -111,18 +111,25 @@ describe('respondToHelpHandler', () => {
   describe('Firestore update', () => {
     test('writes helperAnswer and resolvedAt to the help document', async () => {
       const { db, updateCalls } = makeDb(makeHelpDoc());
-      await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' });
+      await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
 
       expect(updateCalls).toHaveLength(1);
       expect(updateCalls[0].data).toMatchObject({ helperAnswer: '42' });
       expect((updateCalls[0].data as any).resolvedAt).toBeDefined();
+    });
+
+    test('writes helperId to the help document', async () => {
+      const { db, updateCalls } = makeDb(makeHelpDoc());
+      await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
+
+      expect(updateCalls[0].data).toMatchObject({ helperId: 'uid-helper' });
     });
   });
 
   describe('return value', () => {
     test('returns gameId, questionIndex, askerName, and helperAnswer', async () => {
       const { db } = makeDb(makeHelpDoc());
-      const result = await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' });
+      const result = await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
 
       expect(result).toMatchObject({
         gameId: 'spread',
@@ -134,7 +141,7 @@ describe('respondToHelpHandler', () => {
 
     test('returns null askerName when not set', async () => {
       const { db } = makeDb(makeHelpDoc({ askerName: null }));
-      const result = await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' });
+      const result = await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
       expect(result.askerName).toBeNull();
     });
   });
@@ -142,13 +149,13 @@ describe('respondToHelpHandler', () => {
   describe('push notifications', () => {
     test('does NOT send push when askerPushToken is null', async () => {
       const { db } = makeDb(makeHelpDoc({ askerPushToken: null }));
-      await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' });
+      await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
       expect(pushUtils.sendExpoPush).not.toHaveBeenCalled();
     });
 
     test('sends push to asker when askerPushToken is present', async () => {
       const { db } = makeDb(makeHelpDoc({ askerPushToken: 'ExponentPushToken[xyz]' }));
-      await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' });
+      await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
       expect(pushUtils.sendExpoPush).toHaveBeenCalledWith(
         'ExponentPushToken[xyz]',
         expect.objectContaining({ type: 'received_help', token: 'HELPTKN1' }),

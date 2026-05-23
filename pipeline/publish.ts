@@ -22,7 +22,7 @@ type FirestoreValue =
   | { integerValue: string }
   | { doubleValue: number }
   | { stringValue: string }
-  | { arrayValue: { values: FirestoreValue[] } }
+  | { arrayValue: { values?: FirestoreValue[] } }
   | { mapValue: { fields: Record<string, FirestoreValue> } };
 
 function toFirestoreValue(val: unknown): FirestoreValue {
@@ -43,6 +43,34 @@ function toFirestoreValue(val: unknown): FirestoreValue {
   throw new Error(`Unsupported Firestore type: ${typeof val}`);
 }
 
+function fromFirestoreValue(val: FirestoreValue): unknown {
+  if ('nullValue' in val) return null;
+  if ('booleanValue' in val) return val.booleanValue;
+  if ('integerValue' in val) return parseInt(val.integerValue, 10);
+  if ('doubleValue' in val) return val.doubleValue;
+  if ('stringValue' in val) return val.stringValue;
+  if ('arrayValue' in val) return (val.arrayValue.values ?? []).map(fromFirestoreValue);
+  if ('mapValue' in val) {
+    const obj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(val.mapValue.fields)) {
+      obj[k] = fromFirestoreValue(v);
+    }
+    return obj;
+  }
+  return null;
+}
+
+/** Compute the ISO 8601 week ID (e.g. "2026-W20") for a YYYY-MM-DD date string. */
+function getISOWeekId(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  // Adjust to nearest Thursday to determine ISO year
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
 async function getIdToken(isProd: boolean): Promise<string> {
   if (!isProd) return 'owner';
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -53,58 +81,46 @@ async function getIdToken(isProd: boolean): Promise<string> {
   return tokenResult.token;
 }
 
-async function firestoreQuery(
+/** Fetch a single Firestore document. Returns null if not found (404). */
+async function firestoreGet(
   token: string,
   projectId: string,
   isProd: boolean,
-  collectionId: string,
-  fieldPath: string,
-  value: FirestoreValue
-): Promise<string[]> {
-  const body = JSON.stringify({
-    structuredQuery: {
-      from: [{ collectionId }],
-      where: { fieldFilter: { field: { fieldPath }, op: 'EQUAL', value } },
-    },
-  });
-  const urlPath = `/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
-
+  docPath: string,
+): Promise<Record<string, unknown> | null> {
+  const urlPath = `/v1/projects/${projectId}/databases/(default)/documents/${docPath}`;
   return new Promise((resolve, reject) => {
     const options = {
       hostname: isProd ? 'firestore.googleapis.com' : 'localhost',
       port: isProd ? 443 : 8080,
       path: urlPath,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-        Authorization: `Bearer ${token}`,
-      },
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
     };
     const transport = isProd ? https : http;
-    const prefix = `projects/${projectId}/databases/(default)/documents/`;
     const req = transport.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
-        try {
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            const results = JSON.parse(data) as Array<{ document?: { name: string } }>;
-            resolve(
-              results
-                .filter((r) => r.document?.name?.startsWith(prefix))
-                .map((r) => r.document!.name.slice(prefix.length))
-            );
-          } else {
-            reject(new Error(`Firestore runQuery HTTP ${res.statusCode}: ${data.slice(0, 300)}`));
+        if (res.statusCode === 404) { resolve(null); return; }
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const doc = JSON.parse(data) as { fields?: Record<string, FirestoreValue> };
+            if (!doc.fields) { resolve(null); return; }
+            const result: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(doc.fields)) {
+              result[k] = fromFirestoreValue(v);
+            }
+            resolve(result);
+          } catch (e) {
+            reject(new Error(`firestoreGet parse error: ${String(e)}`));
           }
-        } catch (e) {
-          reject(new Error(`Firestore runQuery: failed to parse response — ${String(e)}`));
+        } else {
+          reject(new Error(`Firestore GET HTTP ${res.statusCode}: ${data.slice(0, 300)}`));
         }
       });
     });
     req.on('error', reject);
-    req.write(body);
     req.end();
   });
 }
@@ -176,8 +192,10 @@ async function main() {
   const filePath = latestFile(dataPath('generated'), 'Run pipeline:generate first.');
   const date = path.basename(filePath, '.json'); // YYYY-MM-DD
   const banks = readJson<ContentBanks>(filePath);
+  const weekId = getISOWeekId(date);
 
   console.log(`\nReady to publish:`);
+  console.log(`  Date: ${date}  →  Week: ${weekId}`);
   console.log(`  lede: ${banks.lede.length}  spread: ${banks.spread.length}  sof: ${banks.sof.length}`);
   console.log(`  Source: ${path.basename(filePath)}`);
   console.log(`  Target: ${isProd ? `PRODUCTION (project: ${projectId})` : 'LOCAL EMULATOR'}`);
@@ -190,31 +208,54 @@ async function main() {
 
   const token = await getIdToken(isProd);
 
-  // Find existing active versions before writing the new one.
-  const activeDocs = await firestoreQuery(token, projectId, isProd, 'contentVersions', 'active', {
-    booleanValue: true,
-  });
+  // Fetch existing week doc (may be null if this is the first day of the week)
+  const existingDoc = await firestoreGet(token, projectId, isProd, `contentVersions/${weekId}`);
+  const existingPublishedDates: string[] = (existingDoc?.publishedDates as string[] | undefined) ?? [];
 
-  // Write the new version first so there is never a window with zero active docs.
-  // During the brief overlap while old versions are being deactivated, the app may
-  // read either version — both are valid content, so this is safe.
-  const docId = `v${Date.now()}`;
-  const doc: Record<string, unknown> = {
-    id: docId,
-    active: true,
-    createdAt: new Date().toISOString(),
-    banks,
+  // Idempotency: skip if this date is already recorded
+  if (existingPublishedDates.includes(date)) {
+    console.log(`\n⚠ Date ${date} already published to ${weekId}. Skipping (idempotent).`);
+    return;
+  }
+
+  // Merge banks: accumulate new items into whatever is already in the week doc
+  const existingBanks: ContentBanks = existingDoc
+    ? (existingDoc.banks as ContentBanks)
+    : { lede: [], spread: [], sof: [], quip: [], wave: [] };
+  const mergedBanks: ContentBanks = {
+    lede: [...existingBanks.lede, ...banks.lede],
+    spread: [...existingBanks.spread, ...banks.spread],
+    sof: [...existingBanks.sof, ...banks.sof],
+    quip: [...existingBanks.quip, ...banks.quip],
+    wave: [...existingBanks.wave, ...banks.wave],
   };
 
-  await firestorePatch(token, projectId, isProd, `contentVersions/${docId}`, doc);
-  console.log(`\n✓ Published ContentVersion '${docId}' (active: true)`);
+  const publishedDates = [...existingPublishedDates, date];
+  const now = new Date().toISOString();
 
-  // Write contentPacks/{date} — historical pack delivery for future content pack feature
-  const publishedAt = new Date().toISOString();
+  // Write merged ContentVersion doc — ID is the weekId
+  const weekDoc: Record<string, unknown> = {
+    contentWeek: weekId,
+    publishedDates,
+    createdAt: (existingDoc?.createdAt as string | undefined) ?? now,
+    updatedAt: now,
+    banks: mergedBanks,
+  };
+
+  await firestorePatch(token, projectId, isProd, `contentVersions/${weekId}`, weekDoc);
+  console.log(
+    `\n✓ Published ContentVersion '${weekId}' ` +
+    `(${publishedDates.length} day(s): ${publishedDates.join(', ')})`
+  );
+  console.log(
+    `  Week totals — lede: ${mergedBanks.lede.length}  spread: ${mergedBanks.spread.length}  sof: ${mergedBanks.sof.length}`
+  );
+
+  // Write contentPacks/{date} — per-day historical record
   const packDoc: Record<string, unknown> = {
     date,
-    versionId: docId,
-    publishedAt,
+    weekId,
+    publishedAt: now,
     ledeCount: banks.lede.length,
     spreadCount: banks.spread.length,
     sofCount: banks.sof.length,
@@ -226,8 +267,8 @@ async function main() {
   // Write to local SQLite history
   writeContentPack({
     date,
-    versionId: docId,
-    publishedAt,
+    weekId,
+    publishedAt: now,
     ledeCount: banks.lede.length,
     spreadCount: banks.spread.length,
     sofCount: banks.sof.length,
@@ -235,18 +276,13 @@ async function main() {
     spreadJson: JSON.stringify(banks.spread),
     sofJson: JSON.stringify(banks.sof),
   });
-  writePipelineRun(date, 'publish', 'ok', `lede:${banks.lede.length} spread:${banks.spread.length} sof:${banks.sof.length} → ${docId}`);
+  writePipelineRun(
+    date,
+    'publish',
+    'ok',
+    `lede:${banks.lede.length} spread:${banks.spread.length} sof:${banks.sof.length} → ${weekId}`,
+  );
   console.log(`✓ Saved to local history (pipeline/data/history.db)`);
-
-  if (activeDocs.length > 0) {
-    console.log(`Deactivating ${activeDocs.length} previous version(s)...`);
-    await Promise.all(
-      activeDocs.map((docPath) =>
-        firestorePatch(token, projectId, isProd, docPath, { active: false }, ['active'])
-      )
-    );
-    console.log(`✓ Done`);
-  }
 }
 
 main().catch((err: Error) => {

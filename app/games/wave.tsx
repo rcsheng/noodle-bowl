@@ -17,6 +17,8 @@ import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
+import { BankExhaustedModal } from '@/components/BankExhaustedModal';
+import { StreakCelebrationModal } from '@/components/StreakCelebrationModal';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { WaveItem } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
@@ -37,8 +39,6 @@ type Phase = 'play' | 'reveal';
 
 interface RevealData {
   correct: boolean;
-  points: number;
-  prevStreak: number;
   userPosition: number;
   truthPosition: number;
 }
@@ -62,7 +62,7 @@ function scoreWave(userPos: number, truthPos: number): { correct: boolean; point
 export default function WaveScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
-  const { banks } = useContent();
+  const { banks, contentWeek } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const {
@@ -101,6 +101,7 @@ export default function WaveScreen() {
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
+  const [bankExhausted, setBankExhausted] = useState(false);
 
   const userPosRef = useRef(50);
   const trackWidthRef = useRef(0);
@@ -121,10 +122,11 @@ export default function WaveScreen() {
       setQuestion(item);
       setQuestionIdx(idx);
     } else {
-      const { idx, item, newSeen } = pickFromBank(banks.wave, state.seen.wave);
-      setSeen('wave', newSeen);
-      setQuestion(item);
-      setQuestionIdx(idx);
+      const result = pickFromBank(banks.wave, state.seen.wave);
+      if (result.exhausted) { setBankExhausted(true); return; }
+      setSeen('wave', result.newSeen);
+      setQuestion(result.item);
+      setQuestionIdx(result.idx);
     }
   }, [isLoaded]);
 
@@ -154,11 +156,10 @@ export default function WaveScreen() {
   const handleLockIn = async () => {
     if (!question) return;
     const pos = userPosRef.current;
-    const { correct, points } = scoreWave(pos, question.truthPosition);
-    const prevStreak = state.stats.wave.streak;
-    setRevealData({ correct, points, prevStreak, userPosition: pos, truthPosition: question.truthPosition });
-    updateGameStats('wave', correct, points);
-    Analytics.gameComplete('wave', correct, points);
+    const { correct } = scoreWave(pos, question.truthPosition);
+    setRevealData({ correct, userPosition: pos, truthPosition: question.truthPosition });
+    updateGameStats('wave', correct);
+    Analytics.gameComplete('wave', correct);
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -201,10 +202,11 @@ export default function WaveScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromBank(banks.wave, state.seen.wave);
-    setSeen('wave', newSeen);
-    setQuestion(item);
-    setQuestionIdx(idx);
+    const result = pickFromBank(banks.wave, state.seen.wave);
+    if (result.exhausted) { setBankExhausted(true); return; }
+    setSeen('wave', result.newSeen);
+    setQuestion(result.item);
+    setQuestionIdx(result.idx);
     setPhase('play');
     setUserPosition(50);
     userPosRef.current = 50;
@@ -226,6 +228,7 @@ export default function WaveScreen() {
       const result = await createHelp({
         gameId: 'wave',
         questionIndex: questionIdx,
+        contentWeek,
         askerName: null,
         askerPushToken: getCachedPushToken(),
       });
@@ -252,6 +255,16 @@ export default function WaveScreen() {
   const handleShare = async () => {
     await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
   };
+
+  if (bankExhausted) {
+    return (
+      <BankExhaustedModal
+        visible
+        gameName="Wave"
+        onDismiss={() => router.replace('/')}
+      />
+    );
+  }
 
   if (!question) return null;
 
@@ -380,10 +393,6 @@ export default function WaveScreen() {
                       : revealData.correct
                       ? 'Close Read'
                       : 'Off the Mark'}
-                  </Text>
-                  <Text style={styles.resultDivider}> · </Text>
-                  <Text style={styles.resultPoints}>
-                    {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
                   </Text>
                 </View>
                 <Text style={styles.resultDistance}>
@@ -555,6 +564,7 @@ export default function WaveScreen() {
       </Modal>
 
       <ShieldEarnedToast visible={shieldToastVisible} />
+      <StreakCelebrationModal />
     </SafeAreaView>
   );
 }
@@ -776,17 +786,6 @@ const styles = StyleSheet.create({
   },
   resultWrong: {
     color: C.accent,
-  },
-  resultDivider: {
-    fontFamily: F.fraunces,
-    fontSize: 16,
-    color: C.muted,
-    marginHorizontal: 2,
-  },
-  resultPoints: {
-    fontFamily: F.frauncesXBoldItalic,
-    fontSize: 18,
-    color: C.ink,
   },
   resultDistance: {
     fontFamily: F.mono,

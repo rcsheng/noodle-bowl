@@ -21,8 +21,8 @@ export function _setDispatchForTesting(fn: ((name: string, params?: EventParams)
   _dispatch = fn;
 }
 
-export const gameComplete = (gameId: string, correct: boolean, points: number): void =>
-  track('game_complete', { game_id: gameId, correct, points });
+export const gameComplete = (gameId: string, correct: boolean): void =>
+  track('game_complete', { game_id: gameId, correct });
 
 export const challengeSent = (gameId: string): void =>
   track('challenge_sent', { game_id: gameId });

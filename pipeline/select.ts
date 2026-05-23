@@ -51,16 +51,48 @@ function main() {
     }
   }
 
-  console.log(`  ${allCandidates.length} total candidates  (scale=${scale}: targets lede=${TARGET_LEDE} spread=${TARGET_SPREAD} sof=${TARGET_SOF_CLUSTERS})`);
+  // Collect story IDs used in previous selections to avoid cross-day duplicates.
+  const previouslyUsedIds = new Set<string>();
+  const selectedDir = dataPath('selected');
+  if (fs.existsSync(selectedDir)) {
+    const todayStr = today();
+    for (const file of fs.readdirSync(selectedDir).filter((f) => f.endsWith('.json') && !f.startsWith(todayStr))) {
+      try {
+        const prev = readJson<SelectedFile>(path.join(selectedDir, file));
+        prev.lede.forEach((c) => previouslyUsedIds.add(c.id));
+        prev.spread.forEach((c) => previouslyUsedIds.add(c.id));
+        prev.sofClusters.forEach((cl) => cl.stories.forEach((c) => previouslyUsedIds.add(c.id)));
+      } catch {
+        // Skip unreadable files
+      }
+    }
+  }
+  const freshCandidates = previouslyUsedIds.size > 0
+    ? allCandidates.filter((c) => !previouslyUsedIds.has(c.id))
+    : allCandidates;
+  if (previouslyUsedIds.size > 0) {
+    const skipped = allCandidates.length - freshCandidates.length;
+    console.log(`  ${skipped} skipped (used in previous days)  →  ${freshCandidates.length} fresh`);
+  }
 
-  const sorted = [...allCandidates].sort((a, b) => score(b) - score(a));
+  console.log(`  ${freshCandidates.length} total candidates  (scale=${scale}: targets lede=${TARGET_LEDE} spread=${TARGET_SPREAD} sof=${TARGET_SOF_CLUSTERS})`);
+
+  const sorted = [...freshCandidates].sort((a, b) => score(b) - score(a));
+
+  // Each story is used by exactly one game. Selection order determines priority:
+  // Lede first (captures weird/high-score stories), then Spread, then SoF from remaining.
+  const usedIds = new Set<string>();
 
   const lede = sorted.slice(0, TARGET_LEDE);
+  lede.forEach((c) => usedIds.add(c.id));
 
-  const spread = sorted.filter((c) => c.hasNumber).slice(0, TARGET_SPREAD);
+  const remaining1 = sorted.filter((c) => !usedIds.has(c.id));
+  const spread = remaining1.filter((c) => c.hasNumber).slice(0, TARGET_SPREAD);
+  spread.forEach((c) => usedIds.add(c.id));
 
+  const remaining2 = sorted.filter((c) => !usedIds.has(c.id));
   const byDomain = new Map<string, StoryCandidate[]>();
-  for (const c of sorted) {
+  for (const c of remaining2) {
     const group = byDomain.get(c.domain) ?? [];
     group.push(c);
     byDomain.set(c.domain, group);

@@ -36,7 +36,7 @@ function openDb(): Database.Database {
 
 export interface ContentPackRow {
   date: string;
-  versionId: string;
+  weekId: string;
   publishedAt: string;
   ledeCount: number;
   spreadCount: number;
@@ -52,7 +52,7 @@ export function writeContentPack(row: ContentPackRow): void {
     INSERT OR REPLACE INTO content_packs
       (date, version_id, published_at, lede_count, spread_count, sof_count, lede_json, spread_json, sof_json)
     VALUES
-      (@date, @versionId, @publishedAt, @ledeCount, @spreadCount, @sofCount, @ledeJson, @spreadJson, @sofJson)
+      (@date, @weekId, @publishedAt, @ledeCount, @spreadCount, @sofCount, @ledeJson, @spreadJson, @sofJson)
   `).run(row);
   db.close();
 }
@@ -60,7 +60,7 @@ export function writeContentPack(row: ContentPackRow): void {
 export function getContentPack(date: string): ContentPackRow | null {
   const db = openDb();
   const row = db.prepare(`
-    SELECT date, version_id AS versionId, published_at AS publishedAt,
+    SELECT date, version_id AS weekId, published_at AS publishedAt,
            lede_count AS ledeCount, spread_count AS spreadCount, sof_count AS sofCount,
            lede_json AS ledeJson, spread_json AS spreadJson, sof_json AS sofJson
     FROM content_packs WHERE date = ?
@@ -72,7 +72,7 @@ export function getContentPack(date: string): ContentPackRow | null {
 export function listContentPacks(): ContentPackMeta[] {
   const db = openDb();
   const rows = db.prepare(`
-    SELECT date, version_id AS versionId, published_at AS publishedAt,
+    SELECT date, version_id AS weekId, published_at AS publishedAt,
            lede_count AS ledeCount, spread_count AS spreadCount, sof_count AS sofCount
     FROM content_packs ORDER BY date DESC
   `).all() as ContentPackMeta[];

@@ -7,6 +7,7 @@ import { Masthead } from '@/components/Masthead';
 import { GAME_META, GameId } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { fetchHelp } from '@/lib/helpApi';
+import { computeActiveWeek } from '@/lib/contentWeek';
 import type { HelpGetResponse } from '@/packages/shared/types';
 
 const SHORT_TOKEN_RE = /^[A-Z0-9]{8}$/;
@@ -36,6 +37,15 @@ export default function HelpScreen() {
       const validGames: GameId[] = ['lede', 'spread', 'sof', 'wave', 'quip'];
       if (!validGames.includes(result.gameId as GameId)) {
         setError('This help request is for a game that is not available.');
+        return;
+      }
+      // Stale-week check: if contentWeek is set and doesn't match the active week,
+      // the question is no longer in this week's content bank — block the helper flow.
+      if (result.contentWeek !== '' && result.contentWeek !== computeActiveWeek()) {
+        setError(
+          'This question is from a previous week and is no longer available.\n\n' +
+          'The person who sent this link may not have played yet — ask them to share a new link!',
+        );
         return;
       }
       setPayload(result);

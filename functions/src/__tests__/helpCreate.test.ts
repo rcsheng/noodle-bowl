@@ -65,6 +65,7 @@ function makeDb(existingTokenIds: string[] = [], existingDoc: ExistingDoc | null
 const validInput: HelpCreateInput = {
   gameId: 'lede',
   questionIndex: 3,
+  contentWeek: '2026-W20',
   askerName: 'Alex',
   askerPushToken: null,
 };
@@ -175,12 +176,20 @@ describe('createHelpHandler', () => {
         token: 'HELPTKN1',
         gameId: 'lede',
         questionIndex: 3,
+        contentWeek: '2026-W20',
         askerId: 'uid-asker',
         askerName: 'Alex',
         helperAnswer: null,
         resolvedAt: null,
         askerPushToken: null,
       });
+    });
+
+    test('throws invalid-argument for malformed contentWeek', async () => {
+      const { db } = makeDb();
+      await expect(
+        createHelpHandler(db as any, 'uid-1', { ...validInput, contentWeek: 'not-a-week' }),
+      ).rejects.toMatchObject({ code: 'invalid-argument' });
     });
 
     test('does NOT write to pushTokens when askerPushToken is null', async () => {

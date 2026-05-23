@@ -4,12 +4,12 @@ import { Text } from 'react-native';
 import { ContentProvider, useContent } from '../ContentContext';
 
 jest.mock('@/lib/contentRepo', () => ({
-  findActive: jest.fn(),
+  findForWeek: jest.fn(),
   getCached: jest.fn(),
   cache: jest.fn(),
   getFallback: jest.fn(() => ({
     id: 'bundled',
-    active: true,
+    contentWeek: '',
     createdAt: new Date(0).toISOString(),
     banks: { lede: [], spread: [], sof: [], quip: [], wave: [] },
   })),
@@ -20,8 +20,8 @@ jest.mock('@/context/AuthContext', () => ({
 }));
 
 const { useAuth } = require('@/context/AuthContext') as { useAuth: jest.Mock };
-const { findActive, getCached } = require('@/lib/contentRepo') as {
-  findActive: jest.Mock;
+const { findForWeek, getCached } = require('@/lib/contentRepo') as {
+  findForWeek: jest.Mock;
   getCached: jest.Mock;
 };
 
@@ -34,10 +34,10 @@ describe('ContentContext auth gating', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getCached.mockResolvedValue(null);
-    findActive.mockResolvedValue(null);
+    findForWeek.mockResolvedValue(null);
   });
 
-  test('does NOT call findActive while auth is still loading', async () => {
+  test('does NOT call findForWeek while auth is still loading', async () => {
     useAuth.mockReturnValue({ user: null, isLoading: true });
 
     render(
@@ -51,10 +51,10 @@ describe('ContentContext auth gating', () => {
       expect(getCached).toHaveBeenCalled();
     });
 
-    expect(findActive).not.toHaveBeenCalled();
+    expect(findForWeek).not.toHaveBeenCalled();
   });
 
-  test('calls findActive once auth resolves with a user', async () => {
+  test('calls findForWeek once auth resolves with a user', async () => {
     useAuth.mockReturnValue({ user: { uid: 'u1' }, isLoading: false });
 
     render(
@@ -64,11 +64,11 @@ describe('ContentContext auth gating', () => {
     );
 
     await waitFor(() => {
-      expect(findActive).toHaveBeenCalledTimes(1);
+      expect(findForWeek).toHaveBeenCalledTimes(1);
     });
   });
 
-  test('does NOT call findActive when auth resolves with no user (sign-in failure)', async () => {
+  test('does NOT call findForWeek when auth resolves with no user (sign-in failure)', async () => {
     useAuth.mockReturnValue({ user: null, isLoading: false });
 
     render(
@@ -81,6 +81,6 @@ describe('ContentContext auth gating', () => {
       expect(getCached).toHaveBeenCalled();
     });
 
-    expect(findActive).not.toHaveBeenCalled();
+    expect(findForWeek).not.toHaveBeenCalled();
   });
 });

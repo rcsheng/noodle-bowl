@@ -1,4 +1,6 @@
 import { copyToClipboard, formatAttribution, pickFromBank } from '@/constants/utils';
+import { BankExhaustedModal } from '@/components/BankExhaustedModal';
+import { StreakCelebrationModal } from '@/components/StreakCelebrationModal';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -37,15 +39,13 @@ type Phase = 'play' | 'reveal';
 
 interface RevealData {
   correct: boolean;
-  points: number;
   selected: number;
-  prevStreak: number;
 }
 
 export default function SpreadScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
-  const { banks, isLoading: contentLoading } = useContent();
+  const { banks, contentWeek, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -85,6 +85,7 @@ export default function SpreadScreen() {
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
+  const [bankExhausted, setBankExhausted] = useState(false);
 
   const loadQuestion = (item: SpreadItem) => {
     setChoices(buildChoicesForItem(item));
@@ -111,22 +112,21 @@ export default function SpreadScreen() {
       setQuestionIdx(idx);
       loadQuestion(item);
     } else {
-      const { idx, item, newSeen } = pickFromBank(banks.spread, state.seen.spread);
-      setSeen('spread', newSeen);
-      setQuestion(item);
-      setQuestionIdx(idx);
-      loadQuestion(item);
+      const result = pickFromBank(banks.spread, state.seen.spread);
+      if (result.exhausted) { setBankExhausted(true); return; }
+      setSeen('spread', result.newSeen);
+      setQuestion(result.item);
+      setQuestionIdx(result.idx);
+      loadQuestion(result.item);
     }
   }, [isLoaded, contentLoading]);
 
   const handleLockIn = () => {
     if (!question || selected === null) return;
     const correct = selected === question.answer;
-    const points = correct ? 10 : 0;
-    const prevStreak = state.stats.spread.streak;
-    setRevealData({ correct, points, selected, prevStreak });
-    updateGameStats('spread', correct, points);
-    Analytics.gameComplete('spread', correct, points);
+    setRevealData({ correct, selected });
+    updateGameStats('spread', correct);
+    Analytics.gameComplete('spread', correct);
     setPhase('reveal');
 
     if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -167,11 +167,12 @@ export default function SpreadScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromBank(banks.spread, state.seen.spread);
-    setSeen('spread', newSeen);
-    setQuestion(item);
-    setQuestionIdx(idx);
-    loadQuestion(item);
+    const result = pickFromBank(banks.spread, state.seen.spread);
+    if (result.exhausted) { setBankExhausted(true); return; }
+    setSeen('spread', result.newSeen);
+    setQuestion(result.item);
+    setQuestionIdx(result.idx);
+    loadQuestion(result.item);
     setHelpUrl('');
     setHelpError(false);
     setHelpToken(null);
@@ -190,6 +191,7 @@ export default function SpreadScreen() {
       const result = await createHelp({
         gameId: 'spread',
         questionIndex: questionIdx,
+        contentWeek,
         askerName: null,
         askerPushToken: getCachedPushToken(),
       });
@@ -216,6 +218,16 @@ export default function SpreadScreen() {
       setTimeout(() => setHelpCopied(false), 2000);
     }
   };
+
+  if (bankExhausted) {
+    return (
+      <BankExhaustedModal
+        visible
+        gameName="Spread"
+        onDismiss={() => router.replace('/')}
+      />
+    );
+  }
 
   if (!question) return null;
 
@@ -342,10 +354,6 @@ export default function SpreadScreen() {
               <View style={styles.cardInnerBorder} />
               <Text style={[styles.resultVerdict, revealData.correct ? styles.resultCorrect : styles.resultWrong]}>
                 {revealData.correct ? 'Correct' : 'Incorrect'}
-              </Text>
-              <Text style={styles.resultDivider}> · </Text>
-              <Text style={styles.resultPoints}>
-                {revealData.points > 0 ? `+${revealData.points} pts` : '0 pts'}
               </Text>
             </View>
 
@@ -504,6 +512,7 @@ export default function SpreadScreen() {
       </Modal>
 
       <ShieldEarnedToast visible={shieldToastVisible} />
+      <StreakCelebrationModal />
     </SafeAreaView>
   );
 }

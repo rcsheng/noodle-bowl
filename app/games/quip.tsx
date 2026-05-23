@@ -20,6 +20,8 @@ import { CopiedToast } from '@/components/CopiedToast';
 import { Masthead } from '@/components/Masthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
+import { BankExhaustedModal } from '@/components/BankExhaustedModal';
+import { StreakCelebrationModal } from '@/components/StreakCelebrationModal';
 import { PANEL, QuipPrompt } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
 import { copyToClipboard, pickFromBank } from '@/constants/utils';
@@ -78,7 +80,7 @@ function getReaction(panelist: typeof PANEL[0], quip: string): { reaction: strin
 export default function QuipScreen() {
   const { user, isAnonymous } = useAuth();
   const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
-  const { banks } = useContent();
+  const { banks, contentWeek } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
   const {
@@ -105,7 +107,6 @@ export default function QuipScreen() {
   const [phase, setPhase] = useState<Phase>('play');
   const [judgeResults, setJudgeResults] = useState<JudgeResult[]>([]);
   const [revealedCount, setRevealedCount] = useState(0);
-  const [points, setPoints] = useState(0);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
   const [helpError, setHelpError] = useState(false);
@@ -118,6 +119,7 @@ export default function QuipScreen() {
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
+  const [bankExhausted, setBankExhausted] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -135,10 +137,11 @@ export default function QuipScreen() {
       setPrompt(item);
       setQuestionIdx(idx);
     } else {
-      const { idx, item, newSeen } = pickFromBank(banks.quip, state.seen.quip);
-      setSeen('quip', newSeen);
-      setPrompt(item);
-      setQuestionIdx(idx);
+      const result = pickFromBank(banks.quip, state.seen.quip);
+      if (result.exhausted) { setBankExhausted(true); return; }
+      setSeen('quip', result.newSeen);
+      setPrompt(result.item);
+      setQuestionIdx(result.idx);
     }
   }, [isLoaded]);
 
@@ -158,10 +161,8 @@ export default function QuipScreen() {
         setRevealedCount(i + 1);
         if (i === results.length - 1) {
           const likes = results.filter((r) => r.liked).length;
-          const earned = likes === 3 ? 30 : likes === 2 ? 20 : likes === 1 ? 10 : 0;
-          setPoints(earned);
-          updateGameStats('quip', likes >= 2, earned);
-          Analytics.gameComplete('quip', likes >= 2, earned);
+          updateGameStats('quip', likes >= 2);
+          Analytics.gameComplete('quip', likes >= 2);
           setTimeout(async () => {
             setPhase('result');
             if (isChallengeMode && challengeToken && !challengeComparison) {
@@ -207,15 +208,15 @@ export default function QuipScreen() {
   };
 
   const handlePlayAgain = () => {
-    const { idx, item, newSeen } = pickFromBank(banks.quip, state.seen.quip);
-    setSeen('quip', newSeen);
-    setPrompt(item);
-    setQuestionIdx(idx);
+    const result = pickFromBank(banks.quip, state.seen.quip);
+    if (result.exhausted) { setBankExhausted(true); return; }
+    setSeen('quip', result.newSeen);
+    setPrompt(result.item);
+    setQuestionIdx(result.idx);
     setQuip('');
     setPhase('play');
     setJudgeResults([]);
     setRevealedCount(0);
-    setPoints(0);
     setHelpUrl('');
     setHelpError(false);
     setHelpToken(null);
@@ -233,6 +234,7 @@ export default function QuipScreen() {
       const result = await createHelp({
         gameId: 'quip',
         questionIndex: questionIdx,
+        contentWeek,
         askerName: null,
         askerPushToken: getCachedPushToken(),
       });
@@ -259,6 +261,16 @@ export default function QuipScreen() {
   const handleShare = async () => {
     await Share.share({ message: `Can you help me with this question on Noodle Bowl? ${helpUrl}` });
   };
+
+  if (bankExhausted) {
+    return (
+      <BankExhaustedModal
+        visible
+        gameName="Quip"
+        onDismiss={() => router.replace('/')}
+      />
+    );
+  }
 
   if (!prompt) return null;
 
@@ -377,8 +389,6 @@ export default function QuipScreen() {
                     ? 'One Fan'
                     : 'Tough Room'}
                 </Text>
-                <Text style={styles.resultDivider}> · </Text>
-                <Text style={styles.resultPoints}>+{points} pts</Text>
               </View>
 
               {isChallengeMode ? (
@@ -543,6 +553,7 @@ export default function QuipScreen() {
       </Modal>
 
       <ShieldEarnedToast visible={shieldToastVisible} />
+      <StreakCelebrationModal />
     </SafeAreaView>
   );
 }
@@ -783,9 +794,7 @@ const styles = StyleSheet.create({
     color: C.muted,
   },
   resultCard: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 1,
     borderColor: C.rule,
     backgroundColor: C.paper,
@@ -798,17 +807,6 @@ const styles = StyleSheet.create({
     fontFamily: F.frauncesXBoldItalic,
     fontSize: 22,
     color: C.ink,
-  },
-  resultDivider: {
-    fontFamily: F.fraunces,
-    fontSize: 16,
-    color: C.muted,
-    marginHorizontal: 2,
-  },
-  resultPoints: {
-    fontFamily: F.frauncesXBoldItalic,
-    fontSize: 18,
-    color: C.accentWarm,
   },
   challengePanel: {
     borderWidth: 1,

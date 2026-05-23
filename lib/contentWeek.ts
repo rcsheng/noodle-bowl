@@ -1,0 +1,51 @@
+/**
+ * ISO 8601 calendar-week utilities.
+ *
+ * Content is served by the previous complete ISO week (Mon–Sun, UTC).
+ * Example: on Sat 2026-05-23 (week 21), users see week 20 content (May 11–17).
+ *          on Mon 2026-05-25 (week 22 starts), users see week 21 content (May 18–24).
+ */
+
+/**
+ * Returns the ISO 8601 year and week number for a given UTC date.
+ * Week 1 is the week containing the first Thursday of the year.
+ * Weeks start on Monday.
+ */
+export function getISOWeekYear(date: Date): { year: number; week: number } {
+  // Work in UTC to avoid local-timezone boundary drift.
+  // Shift the date to Thursday of its ISO week — Thursday is the pivot day that
+  // determines the ISO year (the year that "owns" the week).
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return { year: d.getUTCFullYear(), week };
+}
+
+/** Formats a year + week number as an ISO week string, e.g. "2026-W20". */
+export function formatWeekId(year: number, week: number): string {
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+/** Returns the ISO week string for the given date (defaults to now). */
+export function computeCurrentWeek(date: Date = new Date()): string {
+  const { year, week } = getISOWeekYear(date);
+  return formatWeekId(year, week);
+}
+
+/**
+ * Returns the active content week for users on the given date (defaults to now).
+ * This is always the previous ISO week: users see last week's content, not this week's.
+ *
+ * Subtracting 7 days always lands in the previous ISO week and handles year-end
+ * boundaries correctly (e.g. week 1 → last week of the previous year).
+ */
+export function computeActiveWeek(date: Date = new Date()): string {
+  const prevWeekDate = new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate() - 7,
+  ));
+  const { year, week } = getISOWeekYear(prevWeekDate);
+  return formatWeekId(year, week);
+}

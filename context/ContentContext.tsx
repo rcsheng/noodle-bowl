@@ -3,24 +3,26 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type { ContentBanks, ContentVersion } from '@/packages/shared/contentTypes';
 
 import { useAuth } from '@/context/AuthContext';
-import { cache, findActive, getCached, getFallback } from '../lib/contentRepo';
+import { cache, findForWeek, getCached, getFallback, mergeWithFallback } from '../lib/contentRepo';
+import { computeActiveWeek } from '../lib/contentWeek';
 import { logger } from '../lib/logger';
 
 interface ContentContextValue {
   banks: ContentBanks;
   versionId: string;
+  contentWeek: string; // active ISO week being served, e.g. "2026-W20"
   isLoading: boolean;
   reload: () => Promise<void>;
 }
 
 const ContentContext = createContext<ContentContextValue | null>(null);
 
-function isCachedToday(version: ContentVersion): boolean {
-  const d = new Date(version.createdAt);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear()
-    && d.getMonth() === now.getMonth()
-    && d.getDate() === now.getDate();
+/**
+ * Returns true when the cached version is for the current active content week.
+ * If it is, we can immediately mark loading as done without waiting for Firestore.
+ */
+function isCachedForActiveWeek(version: ContentVersion): boolean {
+  return version.contentWeek !== '' && version.contentWeek === computeActiveWeek();
 }
 
 export function ContentProvider({ children }: { children: React.ReactNode }) {
@@ -38,10 +40,10 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
       if (cached && !cancelled) {
         setVersion(cached);
-        // Only mark loaded immediately if the cache is already from today —
+        // Only mark loaded immediately if the cache is already for the active week —
         // otherwise keep isLoading=true so game screens wait for Firestore to
-        // deliver today's content before picking questions.
-        if (isCachedToday(cached)) {
+        // deliver current content before picking questions.
+        if (isCachedForActiveWeek(cached)) {
           setIsLoading(false);
         }
       }
@@ -53,12 +55,14 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const active = await findActive();
+        const activeWeek = computeActiveWeek();
+        const active = await findForWeek(activeWeek);
         if (active && !cancelled) {
-          setVersion(active);
+          const merged = mergeWithFallback(active);
+          setVersion(merged);
           setIsLoading(false);
-          await cache(active);
-        } else if (!cached && !cancelled) {
+          await cache(merged);
+        } else if (!cancelled) {
           setIsLoading(false);
         }
       } catch (err) {
@@ -73,19 +77,30 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
   const reload = useCallback(async () => {
     if (!isAuthed) return;
+    setIsLoading(true);
     try {
-      const active = await findActive();
+      const activeWeek = computeActiveWeek();
+      const active = await findForWeek(activeWeek);
       if (active) {
-        setVersion(active);
-        await cache(active);
+        const merged = mergeWithFallback(active);
+        setVersion(merged);
+        await cache(merged);
       }
     } catch (err) {
       logger.warn('ContentContext: reload failed', err);
+    } finally {
+      setIsLoading(false);
     }
   }, [isAuthed]);
 
   return (
-    <ContentContext.Provider value={{ banks: version.banks, versionId: version.id, isLoading, reload }}>
+    <ContentContext.Provider value={{
+      banks: version.banks,
+      versionId: version.id,
+      contentWeek: version.contentWeek,
+      isLoading,
+      reload,
+    }}>
       {children}
     </ContentContext.Provider>
   );

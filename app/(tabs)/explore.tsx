@@ -17,12 +17,11 @@ export default function StatsScreen() {
     return (
       <AuthGateTab
         title="Sign in to track your stats"
-        body="Your streaks, accuracy, and lifetime points — saved and synced across devices."
+        body="Your streaks, accuracy, and history — saved and synced across devices."
       />
     );
   }
   const {
-    totalPoints,
     dailyStreak,
     bestDailyStreak,
     totalDaysPlayed,
@@ -69,17 +68,6 @@ export default function StatsScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Lifetime Points</Text>
-          <View style={styles.sectionLine} />
-        </View>
-
-        <View style={styles.totalCard}>
-          <View style={styles.totalInnerBorder} />
-          <Text style={styles.totalValue}>{totalPoints}</Text>
-          <Text style={styles.totalLabel}>pts</Text>
-        </View>
-
-        <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>Per-Game Breakdown</Text>
           <View style={styles.sectionLine} />
         </View>
@@ -112,11 +100,6 @@ export default function StatsScreen() {
                 <View style={styles.statCell}>
                   <Text style={styles.statValue}>{accuracy}%</Text>
                   <Text style={styles.statLabel}>Accuracy</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{stats.bestScore > 0 ? `+${stats.bestScore}` : '—'}</Text>
-                  <Text style={styles.statLabel}>Best</Text>
                 </View>
               </View>
             </View>
@@ -228,42 +211,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
-  },
-  totalCard: {
-    borderWidth: 1,
-    borderColor: C.rule,
-    backgroundColor: C.ink,
-    padding: 24,
-    marginBottom: 28,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    ...cardShadow,
-  },
-  totalInnerBorder: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(232,238,243,0.15)',
-    pointerEvents: 'none',
-  },
-  totalValue: {
-    fontFamily: F.frauncesXBold,
-    fontSize: 52,
-    color: C.onDark,
-    lineHeight: 58,
-  },
-  totalLabel: {
-    fontFamily: F.mono,
-    fontSize: 14,
-    letterSpacing: 1.5,
-    color: C.onDarkDim,
-    alignSelf: 'flex-end',
-    paddingBottom: 6,
   },
   gameCard: {
     borderWidth: 1,
