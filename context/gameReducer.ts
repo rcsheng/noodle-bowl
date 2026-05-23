@@ -161,7 +161,11 @@ export function reducer(state: AppState, action: Action): AppState {
       if (stats.lastPlayedDate === yesterday) {
         newDailyStreak = stats.dailyStreak + 1;
         showStreakCelebration = true;
-      } else if (stats.streakShieldsAvailable > 0 && !stats.streakShieldUsedToday) {
+      } else if (stats.streakShieldsAvailable > 0) {
+        // Note: !streakShieldUsedToday is intentionally omitted. The
+        // `lastPlayedDate === today` early-return above already ensures this
+        // branch runs at most once per day. A stale `true` from a previous
+        // play session must not block shield use on a new day.
         newShields = stats.streakShieldsAvailable - 1;
         newShieldUsedToday = true;
         newBannerSeen = false;

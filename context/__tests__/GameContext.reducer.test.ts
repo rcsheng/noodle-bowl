@@ -242,7 +242,12 @@ describe('reducer: UPDATE_DAILY_STREAK', () => {
     expect(next.stats.dailyStreak).toBe(7);
   });
 
-  test('does NOT use a shield if streakShieldUsedToday is already true', () => {
+  test('uses shield even if streakShieldUsedToday is stale-true from a previous day', () => {
+    // Regression: a shield earned on the same day a previous shield was used would
+    // leave streakShieldUsedToday=true in storage. Returning after multiple days
+    // must still consume the available shield — the lastPlayedDate===today guard
+    // already ensures UPDATE_DAILY_STREAK only runs once per day, so the stale
+    // flag must not block the shield.
     const state = makeState({
       stats: {
         ...initialState.stats,
@@ -253,9 +258,10 @@ describe('reducer: UPDATE_DAILY_STREAK', () => {
       },
     });
     const next = reducer(state, action('2026-04-26'));
-    // Shield not used; streak resets to 1
-    expect(next.stats.streakShieldsAvailable).toBe(2);
-    expect(next.stats.dailyStreak).toBe(1);
+    // Shield IS used; streak is preserved
+    expect(next.stats.streakShieldsAvailable).toBe(1);
+    expect(next.stats.dailyStreak).toBe(7);
+    expect(next.stats.streakShieldUsedToday).toBe(true);
   });
 
   test('updates bestDailyStreak when current exceeds it', () => {
