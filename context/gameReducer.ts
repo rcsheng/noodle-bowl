@@ -172,10 +172,29 @@ export function reducer(state: AppState, action: Action): AppState {
       const { weekId } = action;
       const { stats } = state;
       const currentStreak = safeNum(stats.weeklyStreak, 0);
+      const isSameWeek = stats.lastPlayedWeek === weekId;
+
       // Idempotent: only update once per week.
-      // Exception: if weeklyStreak is 0 despite lastPlayedWeek matching (corrupted
-      // by an old NaN bug), allow the update to run once more to self-heal.
-      if (stats.lastPlayedWeek === weekId && currentStreak > 0) return state;
+      // Exception: allow one corrective run when weeklyStreak is 0 despite
+      // lastPlayedWeek already matching (corrupted by old NaN bug).
+      if (isSameWeek && currentStreak > 0) return state;
+
+      // Self-heal path: same week but streak was corrupted to 0.
+      // Repair it to 1 without touching shields, banners, or week count —
+      // we know the user already played this week, so no shield should fire.
+      if (isSameWeek) {
+        return {
+          ...state,
+          stats: {
+            ...stats,
+            weeklyStreak: 1,
+            bestWeeklyStreak: Math.max(safeNum(stats.bestWeeklyStreak, 0), 1),
+            totalWeeksPlayed: Math.max(safeNum(stats.totalWeeksPlayed, 0), 1),
+          },
+        };
+      }
+
+      // Normal path: first play of a new week.
       const prevWeek = getPreviousWeek(weekId);
       let newWeeklyStreak = currentStreak;
       let newShields = safeNum(stats.streakShieldsAvailable, 0);
@@ -188,9 +207,6 @@ export function reducer(state: AppState, action: Action): AppState {
         showStreakCelebration = true;
       } else if (newShields > 0) {
         // Missed a week but have a shield — streak is preserved.
-        // Note: streakShieldUsedThisWeek is not checked here. The
-        // `lastPlayedWeek === weekId && currentStreak > 0` early-return above
-        // already ensures this branch runs at most once per week.
         newShields = newShields - 1;
         newShieldUsedThisWeek = true;
         newBannerSeen = false;

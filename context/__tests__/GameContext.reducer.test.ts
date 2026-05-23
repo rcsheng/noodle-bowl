@@ -371,8 +371,7 @@ describe('reducer: UPDATE_WEEKLY_STREAK', () => {
   // NaN self-heal regression
   test('self-heals when lastPlayedWeek matches but weeklyStreak is 0 (NaN corruption)', () => {
     // Simulates state written by the old NaN bug: lastPlayedWeek is set to the
-    // current week but weeklyStreak was corrupted to 0. The idempotency guard
-    // must allow one more run so the streak is repaired to 1.
+    // current week but weeklyStreak was corrupted to 0.
     const state = makeState({
       stats: {
         ...initialState.stats,
@@ -384,6 +383,25 @@ describe('reducer: UPDATE_WEEKLY_STREAK', () => {
     const next = reducer(state, action('2026-W17'));
     expect(next.stats.weeklyStreak).toBe(1);
     expect(next.stats.totalWeeksPlayed).toBe(1);
+  });
+
+  test('self-heal does NOT consume a shield even when shields are available', () => {
+    // Regression: the old path fell through to the shield branch because
+    // lastPlayedWeek !== prevWeek, triggering a false "streak saved" banner.
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedWeek: '2026-W17',
+        weeklyStreak: 0,
+        totalWeeksPlayed: 0,
+        streakShieldsAvailable: 2,
+      },
+    });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.weeklyStreak).toBe(1);
+    expect(next.stats.streakShieldsAvailable).toBe(2); // shield untouched
+    expect(next.stats.streakShieldUsedThisWeek).toBe(false);
+    expect(next.stats.streakSavedBannerSeen).toBe(true); // banner not triggered
   });
 
   test('produces finite numbers even when input fields are NaN', () => {
