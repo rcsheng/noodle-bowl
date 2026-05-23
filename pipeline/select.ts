@@ -51,25 +51,60 @@ function main() {
     }
   }
 
-  // Collect story IDs used in previous selections to avoid cross-day duplicates.
+  // Collect story IDs and headline fingerprints used in previous selections.
+  // ID-based dedup catches same-article re-use; fingerprint-based dedup catches
+  // the same NEWS STORY covered by different sources/URLs on different days.
   const previouslyUsedIds = new Set<string>();
+  const previouslyUsedFingerprints = new Set<string>();
+
+  // Stop words excluded from fingerprinting — too common to be distinctive.
+  const STOP_WORDS = new Set([
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'is', 'was', 'are', 'were', 'be', 'been',
+    'has', 'have', 'had', 'that', 'this', 'it', 'its', 'as', 'up', 'into',
+    'than', 'then', 'so', 'if', 'not', 'no', 'how', 'what', 'when', 'who',
+    'after', 'over', 'new', 'out', 'about', 'across', 'says', 'said',
+  ]);
+
+  /** Returns a sorted tuple of 3+ distinctive words from a headline. */
+  function headlineFingerprint(headline: string): string {
+    return headline
+      .toLowerCase()
+      .split(/\W+/)
+      .filter(w => w.length >= 5 && !STOP_WORDS.has(w))
+      .sort()
+      .join('|');
+  }
+
   const selectedDir = dataPath('selected');
   if (fs.existsSync(selectedDir)) {
     const todayStr = today();
     for (const file of fs.readdirSync(selectedDir).filter((f) => f.endsWith('.json') && !f.startsWith(todayStr))) {
       try {
         const prev = readJson<SelectedFile>(path.join(selectedDir, file));
-        prev.lede.forEach((c) => previouslyUsedIds.add(c.id));
-        prev.spread.forEach((c) => previouslyUsedIds.add(c.id));
-        prev.sofClusters.forEach((cl) => cl.stories.forEach((c) => previouslyUsedIds.add(c.id)));
+        const addCandidate = (c: StoryCandidate) => {
+          previouslyUsedIds.add(c.id);
+          const fp = headlineFingerprint(c.headline);
+          if (fp) previouslyUsedFingerprints.add(fp);
+        };
+        prev.lede.forEach(addCandidate);
+        prev.spread.forEach(addCandidate);
+        prev.sofClusters.forEach((cl) => cl.stories.forEach(addCandidate));
       } catch {
         // Skip unreadable files
       }
     }
   }
-  const freshCandidates = previouslyUsedIds.size > 0
-    ? allCandidates.filter((c) => !previouslyUsedIds.has(c.id))
-    : allCandidates;
+
+  const freshCandidates = allCandidates.filter((c) => {
+    if (previouslyUsedIds.has(c.id)) return false;
+    // Reject if the headline fingerprint matches a previously used story.
+    // This catches same-story-different-URL situations (e.g. viral news covered
+    // by multiple sources on consecutive days).
+    const fp = headlineFingerprint(c.headline);
+    if (fp && previouslyUsedFingerprints.has(fp)) return false;
+    return true;
+  });
   if (previouslyUsedIds.size > 0) {
     const skipped = allCandidates.length - freshCandidates.length;
     console.log(`  ${skipped} skipped (used in previous days)  →  ${freshCandidates.length} fresh`);
