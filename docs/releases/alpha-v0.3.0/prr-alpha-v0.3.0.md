@@ -53,6 +53,7 @@ Full regression against **production Firebase with QA collections** (`npm run st
 - [ ] Block 10 — Self-challenge guard
 - [ ] Block 11 — Universal link deep linking
 - [ ] Block 12 — Live content (from alpha-v0.2.0 PRR)
+- [ ] Block 13 — Weekly streak & shields
 
 ---
 
@@ -70,7 +71,7 @@ Full regression against **production Firebase with QA collections** (`npm run st
 
 - [ ] Production Firebase project is the target (not emulator)
 - [ ] `.env.local` — `EXPO_PUBLIC_COLLECTION_PREFIX` absent or unset for prod build
-- [ ] Production `contentVersions` has exactly one doc with `active: true`
+- [ ] Production `contentVersions` has a doc for the current active ISO week (e.g. `2026-W21`)
 - [ ] `contentPacks` collection up to date
 - [ ] Firestore security rules deployed and verified
 - [ ] Cloud Functions deployed and verified
@@ -118,6 +119,23 @@ Choose **App Store** (not TestFlight) in the submission flow.
 - [ ] Push tag: `git push origin --tags`
 - [ ] Row added to `docs/RELEASES.md`
 - [ ] This PRR updated with actual dates and outcomes
+
+---
+
+## Block 13 — Weekly streak & shields
+
+Run against `npm run start:qa` (prod Firebase, QA collections). Use a signed-in account so stats persist across app restarts.
+
+| # | Step | Expected |
+|---|---|---|
+| 13.1 | Play any game for the first time this week | Weekly streak increments by 1; weeks played increments by 1 |
+| 13.2 | Play a second game the same week | Streak and weeks played unchanged (idempotent) |
+| 13.3 | Open Stats tab | Weekly streak, best streak, weeks played all show correct numbers — no `NaN` or `—` when non-zero |
+| 13.4 | Return the following week and play | Streak increments again; streak celebration modal appears (consecutive weeks) |
+| 13.5 | Simulate missed week + shield available (manipulate state via dev clear + replant) | Streak preserved, shield count decrements, shield saved banner appears on home |
+| 13.6 | Dismiss the shield saved banner | Banner disappears; does not reappear on reload or focus |
+| 13.7 | Simulate missed week + no shields | Streak resets to 1; no banner |
+| 13.8 | Home screen section header | Shows "GAMES BASED ON LAST WEEK'S NEWS · [month range]" |
 
 ---
 

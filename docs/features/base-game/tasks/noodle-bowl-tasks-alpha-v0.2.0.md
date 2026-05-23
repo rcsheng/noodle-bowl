@@ -316,6 +316,44 @@ Already-played state shows the card as informational only (no button).
 - `pipeline/select.ts` `BASE_SOF_CLUSTERS=60` now targets ~60 sessions (was 60 → ~30 sessions with 2 slots). PRD §1 updated.
 
 ---
+## Weekly streak & shield system (PRD §7) — 2026-05-23
+
+### State & context
+
+- [x] `context/gameReducer.ts` — add `safeNum()` helper; add `weeklyStreak`, `bestWeeklyStreak`, `lastPlayedWeek`, `totalWeeksPlayed`, `streakShieldsAvailable`, `streakShieldUsedThisWeek`, `streakSavedBannerSeen` to `AppState.stats`; add `UPDATE_WEEKLY_STREAK`, `EARN_SHIELD`, `DISMISS_STREAK_SAVED_BANNER` actions; bump storage key to `weekly_state_v13`
+- [x] `lib/statsRepo.ts` — sanitize numeric streak fields with `isFinite()` before writing to Firestore (prevents NaN persistence)
+
+### NaN bug fixes (three-commit sequence)
+
+- [x] `fix(streak): prevent NaN stats and correct shield-banner field name` — replace `?? 0` guards with `safeNum()` in LOAD and UPDATE_WEEKLY_STREAK; fix stale `streakShieldUsedToday` → `streakShieldUsedThisWeek` in `index.tsx`
+- [x] `fix(streak): survive NaN-corrupted Firestore data and unblock self-heal` — add self-heal branch (same week, streak=0 → repair to 1); relax idempotency to allow repair; apply `safeNum()` to MERGE_FROM_SERVER; add `...initialState.stats` spread to MERGE_FROM_SERVER for missing-field safety
+- [x] `fix(streak): self-heal must not consume shield or show streak-saved banner` — self-heal early-returns before normal new-week logic, preventing false shield consumption
+
+### UI
+
+- [x] `components/ShieldSavedBanner.tsx` — new component: shows when `streakShieldUsedThisWeek && !streakSavedBannerSeen`; dismisses via `DISMISS_STREAK_SAVED_BANNER`
+- [x] `app/(tabs)/index.tsx` — show `ShieldSavedBanner`; section label → "Games based on last week's news · [date range]"
+- [x] `app/(tabs)/explore.tsx` — stats section shows `weeklyStreak`, `bestWeeklyStreak`, `totalWeeksPlayed`; display `—` for zero/non-finite values
+- [x] `app/(tabs)/profile.tsx` (dev-only) — "Reset seen questions" debug button: clears all `seen` arrays without touching streak/stats
+- [x] All five game screens — dispatch `UPDATE_WEEKLY_STREAK` on game completion
+
+### Tests
+
+- [x] `context/__tests__/GameContext.reducer.test.ts` — regression tests: NaN self-heal, self-heal does NOT consume shield, finite numbers from NaN inputs, MERGE_FROM_SERVER normalises NaN to 0, MERGE_FROM_SERVER takes Math.max of server and local
+- [x] 438 tests passing, `npx tsc --noEmit` clean
+
+### Device smoke tests
+
+- [ ] Play first game of a new week → weekly streak increments; `totalWeeksPlayed` increments
+- [ ] Play a second game same week → streak unchanged (idempotent)
+- [ ] Return after consecutive week (played last week too) → streak increments, celebration fires
+- [ ] Return after missed week, have a shield → streak preserved, shield count decrements by 1, banner appears on home
+- [ ] Dismiss banner → banner gone, does not reappear on reload
+- [ ] Return after missed week, no shield → streak resets to 1, no banner
+- [ ] Stats tab → weekly streak, best streak, weeks played all show correct values (no `—` when non-zero)
+
+---
+
 ## Deferred (not in this release)
 
 - [ ] [P2] Garbage-collect orphaned `received_help` interactions after N days

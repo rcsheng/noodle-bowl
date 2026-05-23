@@ -1,7 +1,7 @@
 # Noodle Bowl — PRD alpha-v0.2.0
 
 **Status:** In progress
-**Last updated:** 2026-05-10
+**Last updated:** 2026-05-23
 **What's new:** Live content pipeline — first production content batch, App Store prep
 
 ---
@@ -302,6 +302,74 @@ Body: "You've played every {Game} question available. New questions arrive **nex
 - [ ] Stale hint mode shows "no longer available" inline state in lede/sof game screens
 - [ ] Missing `contentWeek` (old requests, backward compat) does not block helper flow
 - [ ] `npm test` all passing; `npx tsc --noEmit` clean
+
+---
+
+## 7. Weekly Streak & Shield System
+
+### Background
+
+The original streak tracked daily consecutive gameplay. With the weekly content model (one bank per ISO week), a daily streak is misaligned — users have up to seven days to play each week's content. Switching to a weekly cadence makes the streak meaningful relative to the content.
+
+Streak shields let users preserve their streak when they miss a week. A friend interaction (challenge or help) earns a shield. One shield is consumed automatically when the user returns after a missed week.
+
+A NaN-corruption bug existed in stored stats: Firestore can store NaN as a valid IEEE 754 float, and the old `?? 0` guard does not catch NaN (NaN ?? 0 === NaN). This caused streak fields to silently corrupt and become permanently stuck.
+
+### What changed in this release
+
+**`context/gameReducer.ts`**
+- Added `weeklyStreak`, `bestWeeklyStreak`, `lastPlayedWeek`, `totalWeeksPlayed`, `streakShieldsAvailable`, `streakShieldUsedThisWeek`, `streakSavedBannerSeen` to `AppState.stats`
+- Added `safeNum(val, fallback)` helper using `isFinite()` — replaces `?? 0` guards throughout to correctly reject NaN, null, and undefined
+- Added `UPDATE_WEEKLY_STREAK` action:
+  - **Idempotent:** `lastPlayedWeek === weekId && weeklyStreak > 0` → no-op
+  - **Self-heal:** `lastPlayedWeek === weekId && weeklyStreak === 0` (NaN-corruption case) → repairs to 1, no shield/banner side effects
+  - **Consecutive:** played previous week → `weeklyStreak + 1`, sets `showStreakCelebration = true`
+  - **Shield save:** missed a week, shields > 0 → consumes one shield, preserves streak, sets `streakSavedBannerSeen = false`
+  - **Reset:** missed a week, no shields → `weeklyStreak = 1`
+- Added `EARN_SHIELD` action — increments `streakShieldsAvailable`
+- Added `DISMISS_STREAK_SAVED_BANNER` action
+- `MERGE_FROM_SERVER` — all numeric streak fields use `Math.max(safeNum(server), safeNum(local))` to survive NaN in Firestore and prevent multi-device race downgrades
+- Storage key bumped to `weekly_state_v13`
+
+**`lib/statsRepo.ts`**
+- `writeStats` sanitizes numeric streak fields with `isFinite()` before writing to Firestore, preventing NaN from being persisted
+
+**`app/(tabs)/explore.tsx`**
+- Stats section shows `weeklyStreak`, `bestWeeklyStreak`, `totalWeeksPlayed`
+- Displays `—` when values are zero or non-finite (guards against NaN display)
+
+**`components/ShieldSavedBanner.tsx`** (new)
+- Shown on home screen when `streakShieldUsedThisWeek && !streakSavedBannerSeen`
+- Dismisses via `DISMISS_STREAK_SAVED_BANNER`
+
+**`app/(tabs)/index.tsx`**
+- Shows `ShieldSavedBanner` when a shield was used this week
+- Section label updated: "This Week's Bowl" → "Games based on last week's news"
+
+**`app/(tabs)/profile.tsx`** (dev-only)
+- Added "Reset seen questions" debug button: clears all `seen` arrays without touching streak or stats
+
+**All five game screens**
+- Dispatch `UPDATE_WEEKLY_STREAK` on game completion (only fires on first play of each new week due to idempotency guard)
+
+**`context/__tests__/GameContext.reducer.test.ts`** — regression tests:
+- NaN self-heal fires without consuming a shield
+- Produces finite numbers even when input fields are NaN
+- MERGE_FROM_SERVER normalises NaN streak fields to 0
+- MERGE_FROM_SERVER takes Math.max of server and local
+
+### Acceptance criteria
+
+- [ ] Playing the first game of a new week increments `weeklyStreak` and `totalWeeksPlayed` by 1
+- [ ] Playing additional games in the same week is idempotent (streak does not double-count)
+- [ ] Consecutive weeks: streak continues (e.g. 3 → 4); `showStreakCelebration` = true
+- [ ] Missed week + shield available: streak preserved, shield consumed, banner visible on home
+- [ ] Missed week + no shield: streak resets to 1; no banner
+- [ ] Friend interaction (challenge/help) earns a shield (`EARN_SHIELD`)
+- [ ] NaN-corrupted stored values are repaired on next game play (self-heal: streak repairs to 1, no shield consumed)
+- [ ] Shield saved banner dismisses and does not reappear
+- [ ] Stats tab shows weekly streak, best weekly streak, weeks played with `—` for zero
+- [ ] No NaN appears anywhere in the stats UI
 
 ---
 
