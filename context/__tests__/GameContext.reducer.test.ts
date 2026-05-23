@@ -367,6 +367,40 @@ describe('reducer: UPDATE_WEEKLY_STREAK', () => {
     const next = reducer(state, action('2026-W01'));
     expect(next.stats.weeklyStreak).toBe(5);
   });
+
+  // NaN self-heal regression
+  test('self-heals when lastPlayedWeek matches but weeklyStreak is 0 (NaN corruption)', () => {
+    // Simulates state written by the old NaN bug: lastPlayedWeek is set to the
+    // current week but weeklyStreak was corrupted to 0. The idempotency guard
+    // must allow one more run so the streak is repaired to 1.
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedWeek: '2026-W17',
+        weeklyStreak: 0,
+        totalWeeksPlayed: 0,
+      },
+    });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.weeklyStreak).toBe(1);
+    expect(next.stats.totalWeeksPlayed).toBe(1);
+  });
+
+  test('produces finite numbers even when input fields are NaN', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        weeklyStreak: NaN as any,
+        bestWeeklyStreak: NaN as any,
+        totalWeeksPlayed: NaN as any,
+        lastPlayedWeek: '2026-W16',
+      },
+    });
+    const next = reducer(state, action('2026-W17'));
+    expect(Number.isFinite(next.stats.weeklyStreak)).toBe(true);
+    expect(Number.isFinite(next.stats.bestWeeklyStreak)).toBe(true);
+    expect(Number.isFinite(next.stats.totalWeeksPlayed)).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -514,6 +548,39 @@ describe('reducer: MERGE_FROM_SERVER (seen sync)', () => {
     const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
     expect(next.stats.weeklyStreak).toBe(7);
     expect(next.stats.lastPlayedWeek).toBe('2026-W17');
+  });
+
+  // NaN normalization regression
+  test('normalises NaN streak fields from old Firestore documents to 0', () => {
+    const state = makeState();
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W17',
+      weeklyStreak: NaN as any,
+      bestWeeklyStreak: NaN as any,
+      totalWeeksPlayed: NaN as any,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(Number.isFinite(next.stats.weeklyStreak)).toBe(true);
+    expect(Number.isFinite(next.stats.bestWeeklyStreak)).toBe(true);
+    expect(Number.isFinite(next.stats.totalWeeksPlayed)).toBe(true);
+  });
+
+  test('takes Math.max of server and local streak values', () => {
+    // Local has a valid streak earned this session; server still has old NaN data.
+    // MERGE_FROM_SERVER must not downgrade the local value.
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W17', weeklyStreak: 1, totalWeeksPlayed: 1 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W17',
+      weeklyStreak: NaN as any,
+      totalWeeksPlayed: NaN as any,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.weeklyStreak).toBe(1);
+    expect(next.stats.totalWeeksPlayed).toBe(1);
   });
 });
 

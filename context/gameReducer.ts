@@ -1,6 +1,15 @@
 import { GameId } from '@/constants/data';
 import { getISOWeekYear, formatWeekId } from '@/lib/contentWeek';
 
+/**
+ * Returns `val` if it is a finite number, otherwise `fallback`.
+ * Handles undefined, null, and NaN — all of which survive `?? 0` and
+ * can cause silent arithmetic breakage (NaN + 1 = NaN).
+ */
+function safeNum(val: number | undefined | null, fallback: number): number {
+  return typeof val === 'number' && isFinite(val) ? val : fallback;
+}
+
 export interface FriendInteraction {
   id: string;
   type: 'received_help' | 'gave_help' | 'sent_challenge' | 'challenge_accepted' | 'received_challenge' | 'sent_help';
@@ -114,11 +123,11 @@ export function reducer(state: AppState, action: Action): AppState {
 
       const mergedStats = { ...initialState.stats };
       if (stats) {
-        mergedStats.weeklyStreak = stats.weeklyStreak ?? 0;
-        mergedStats.bestWeeklyStreak = stats.bestWeeklyStreak ?? 0;
+        mergedStats.weeklyStreak = safeNum(stats.weeklyStreak, 0);
+        mergedStats.bestWeeklyStreak = safeNum(stats.bestWeeklyStreak, 0);
         mergedStats.lastPlayedWeek = stats.lastPlayedWeek ?? null;
-        mergedStats.totalWeeksPlayed = stats.totalWeeksPlayed ?? 0;
-        mergedStats.streakShieldsAvailable = stats.streakShieldsAvailable ?? 0;
+        mergedStats.totalWeeksPlayed = safeNum(stats.totalWeeksPlayed, 0);
+        mergedStats.streakShieldsAvailable = safeNum(stats.streakShieldsAvailable, 0);
         mergedStats.streakShieldUsedThisWeek = stats.streakShieldUsedThisWeek ?? false;
         mergedStats.streakSavedBannerSeen = stats.streakSavedBannerSeen ?? true;
         // showStreakCelebration is a transient display flag — never restored from storage
@@ -162,27 +171,27 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'UPDATE_WEEKLY_STREAK': {
       const { weekId } = action;
       const { stats } = state;
+      const currentStreak = safeNum(stats.weeklyStreak, 0);
       // Idempotent: only update once per week.
-      if (stats.lastPlayedWeek === weekId) return state;
+      // Exception: if weeklyStreak is 0 despite lastPlayedWeek matching (corrupted
+      // by an old NaN bug), allow the update to run once more to self-heal.
+      if (stats.lastPlayedWeek === weekId && currentStreak > 0) return state;
       const prevWeek = getPreviousWeek(weekId);
-      // Guard against undefined fields left by old Firestore schema versions that
-      // MERGE_FROM_SERVER may have spread into state before this field existed.
-      let newWeeklyStreak = stats.weeklyStreak ?? 0;
-      let newShields = stats.streakShieldsAvailable ?? 0;
+      let newWeeklyStreak = currentStreak;
+      let newShields = safeNum(stats.streakShieldsAvailable, 0);
       let newShieldUsedThisWeek = false;
       let newBannerSeen = stats.streakSavedBannerSeen;
       let showStreakCelebration = false;
       if (stats.lastPlayedWeek === prevWeek) {
         // Played last week too — consecutive streak continues.
-        newWeeklyStreak = (stats.weeklyStreak ?? 0) + 1;
+        newWeeklyStreak = currentStreak + 1;
         showStreakCelebration = true;
-      } else if ((stats.streakShieldsAvailable ?? 0) > 0) {
+      } else if (newShields > 0) {
         // Missed a week but have a shield — streak is preserved.
         // Note: streakShieldUsedThisWeek is not checked here. The
-        // `lastPlayedWeek === weekId` early-return above already ensures this
-        // branch runs at most once per week, so any stale `true` from a prior
-        // week must not block shield use on a new week.
-        newShields = (stats.streakShieldsAvailable ?? 0) - 1;
+        // `lastPlayedWeek === weekId && currentStreak > 0` early-return above
+        // already ensures this branch runs at most once per week.
+        newShields = newShields - 1;
         newShieldUsedThisWeek = true;
         newBannerSeen = false;
       } else {
@@ -194,9 +203,9 @@ export function reducer(state: AppState, action: Action): AppState {
         stats: {
           ...stats,
           weeklyStreak: newWeeklyStreak,
-          bestWeeklyStreak: Math.max(stats.bestWeeklyStreak ?? 0, newWeeklyStreak),
+          bestWeeklyStreak: Math.max(safeNum(stats.bestWeeklyStreak, 0), newWeeklyStreak),
           lastPlayedWeek: weekId,
-          totalWeeksPlayed: (stats.totalWeeksPlayed ?? 0) + 1,
+          totalWeeksPlayed: safeNum(stats.totalWeeksPlayed, 0) + 1,
           streakShieldsAvailable: newShields,
           streakShieldUsedThisWeek: newShieldUsedThisWeek,
           streakSavedBannerSeen: newBannerSeen,
@@ -259,15 +268,30 @@ export function reducer(state: AppState, action: Action): AppState {
       const localWeek = state.stats.lastPlayedWeek;
       const serverWins = serverWeek !== null && (localWeek === null || serverWeek >= localWeek);
       const baseStats = serverWins ? serverStats : state.stats;
-      // Spread initialState.stats first so any field absent in the Firestore
-      // document (e.g. totalWeeksPlayed before the weekly-streak schema existed)
-      // gets a safe zero-value rather than undefined, preventing NaN arithmetic.
+      // Spread initialState.stats first so any field absent from an old Firestore
+      // document gets a safe default, then baseStats overlays the actual data.
+      // Numeric streak fields are then re-assigned explicitly with safeNum so that
+      // NaN values stored by the old bug cannot survive into state. We take the
+      // max of server and local for each count so a multi-device race never
+      // downgrades a value that was already earned in this session.
       const mergedStats: AppState['stats'] = {
         ...initialState.stats,
         ...baseStats,
+        weeklyStreak: Math.max(
+          safeNum(serverStats.weeklyStreak, 0),
+          safeNum(state.stats.weeklyStreak, 0),
+        ),
+        bestWeeklyStreak: Math.max(
+          safeNum(serverStats.bestWeeklyStreak, 0),
+          safeNum(state.stats.bestWeeklyStreak, 0),
+        ),
+        totalWeeksPlayed: Math.max(
+          safeNum(serverStats.totalWeeksPlayed, 0),
+          safeNum(state.stats.totalWeeksPlayed, 0),
+        ),
         streakShieldsAvailable: Math.max(
-          serverStats.streakShieldsAvailable ?? 0,
-          state.stats.streakShieldsAvailable ?? 0,
+          safeNum(serverStats.streakShieldsAvailable, 0),
+          safeNum(state.stats.streakShieldsAvailable, 0),
         ),
         // showStreakCelebration is a transient session flag — never restore from server,
         // even if old Firestore data has it set to true.
