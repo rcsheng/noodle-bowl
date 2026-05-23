@@ -5,11 +5,9 @@ import {
   genChallengeUrl,
   getTodayISODate,
   pickFromBank,
-  pickFromSof,
   scoreSpread,
   shuffleIndices,
 } from '../utils';
-import type { SofItem } from '../data';
 
 // ---------------------------------------------------------------------------
 // calculatePoints
@@ -247,79 +245,6 @@ describe('pickFromBank', () => {
     const seen = [1, 2];
     const original = [...seen];
     pickFromBank(bank, seen);
-    expect(seen).toEqual(original);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// pickFromSof
-// ---------------------------------------------------------------------------
-describe('pickFromSof', () => {
-  const standard: SofItem = {
-    topic: 'std', intro: 'i', weirdAndTrue: false,
-    claims: [{ text: 'c1', isScience: true, explanation: 'e', source: null }],
-  };
-  const weird: SofItem = {
-    topic: 'wrd', intro: 'i', weirdAndTrue: true,
-    claims: [{ text: 'c1', isScience: true, explanation: 'e', source: null }],
-  };
-  const sofBank: SofItem[] = [standard, weird, standard, weird]; // indices 0,2 std; 1,3 weird
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  test('returns exhausted:false with a standard item when weirdMode=false', () => {
-    const result = pickFromSof(sofBank, false, []);
-    expect(result.exhausted).toBe(false);
-    if (result.exhausted) return;
-    expect(result.item.weirdAndTrue).toBe(false);
-  });
-
-  test('returns exhausted:false with a weird item when weirdMode=true', () => {
-    const result = pickFromSof(sofBank, true, []);
-    expect(result.exhausted).toBe(false);
-    if (result.exhausted) return;
-    expect(result.item.weirdAndTrue).toBe(true);
-  });
-
-  test('does not pick an already-seen index in the same mode', () => {
-    jest.spyOn(Math, 'random').mockReturnValue(0);
-    // Standard items are at indices 0 and 2. Seen = [0] → must pick 2.
-    const result = pickFromSof(sofBank, false, [0]);
-    expect(result.exhausted).toBe(false);
-    if (result.exhausted) return;
-    expect(result.idx).toBe(2);
-  });
-
-  test('newSeen includes the picked index', () => {
-    const result = pickFromSof(sofBank, false, []);
-    expect(result.exhausted).toBe(false);
-    if (result.exhausted) return;
-    expect(result.newSeen).toContain(result.idx);
-  });
-
-  test('returns exhausted:true when all items in the requested mode have been seen', () => {
-    // All standard items (indices 0, 2) are in seen
-    const result = pickFromSof(sofBank, false, [0, 2]);
-    expect(result.exhausted).toBe(true);
-  });
-
-  test('returns exhausted:true when bank has no items in the requested mode', () => {
-    const standardOnlyBank: SofItem[] = [standard, standard];
-    const result = pickFromSof(standardOnlyBank, true, []); // no weird items
-    expect(result.exhausted).toBe(true);
-  });
-
-  test('returns exhausted:true when bank is empty', () => {
-    const result = pickFromSof([], false, []);
-    expect(result.exhausted).toBe(true);
-  });
-
-  test('does not mutate the original seen array', () => {
-    const seen = [0];
-    const original = [...seen];
-    pickFromSof(sofBank, false, seen);
     expect(seen).toEqual(original);
   });
 });

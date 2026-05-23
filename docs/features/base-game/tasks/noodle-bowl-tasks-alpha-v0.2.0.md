@@ -108,7 +108,7 @@ npm run pipeline:publish
 **Expected output counts after bulk generate (`--scale=2`):**
 - lede: ~35–50 items → ~40–50 sessions (quality gate skips dry headlines)
 - spread: ~50–60 items → ~60 sessions (fewer if low-number candidates)
-- sof: ~100–120 items → ~60 sessions (2 items consumed per session: 1 standard + 1 weird)
+- sof: ~60 items → ~60 sessions (1 item per session; standard and weird mixed in the same bank)
 - quip: not yet generated (empty — app falls back to bundled content)
 - wave: not yet generated (empty — app falls back to bundled content)
 
@@ -213,14 +213,14 @@ Already-played state shows the card as informational only (no button).
 ### Question exhaustion
 
 - [x] `constants/__tests__/utils.test.ts` — RED: `pickFromBank` exhaustion tests (empty bank → exhausted, all-seen → exhausted, partial-seen → normal pick, no wraparound)
-- [x] `constants/__tests__/utils.test.ts` — RED: `pickFromSof` exhaustion tests (no items in mode → exhausted, all-in-mode seen → exhausted, normal pick)
+- ~~[x] `constants/__tests__/utils.test.ts` — RED: `pickFromSof` exhaustion tests~~ _(superseded by SoF toggle removal)_
 - [x] `constants/utils.ts` — update `pickFromBank` to return `BankPickResult<T>` discriminated union; remove seen-list reset; export `BankPickResult`
-- [x] `constants/utils.ts` — add `pickFromSof(sofBank, weirdMode, seen): SofPickResult`; export `SofPickResult` and `pickFromSof`
+- ~~[x] `constants/utils.ts` — add `pickFromSof`~~ _(removed — SoF now uses `pickFromBank` directly)_
 - [x] Run tests → GREEN
 - [x] `components/BankExhaustedModal.tsx` — new component: `visible`, `gameName`, `onDismiss` props; matches `StreakCelebrationModal` style; overlay tap also dismisses; upsell CTA slot is a commented `TODO`
 - [x] `app/games/lede.tsx` — add `exhausted` state; handle `BankPickResult.exhausted` in `useEffect` + `handlePlayAgain`; render `<BankExhaustedModal>`
 - [x] `app/games/spread.tsx` — same pattern
-- [x] `app/games/sof.tsx` — import `pickFromSof` from `constants/utils`; handle `SofPickResult.exhausted` in `useEffect` + `handlePlayAgain`; render `<BankExhaustedModal>`
+- [x] `app/games/sof.tsx` — rewritten: single slot from `pickFromBank`; removed mode toggle + `pickFromSof`; Weird & True shown as category label; `<BankExhaustedModal>` on exhaustion
 - [x] `app/games/wave.tsx` — same pattern as lede/spread
 - [x] `app/games/quip.tsx` — same pattern as lede/spread
 
@@ -296,6 +296,26 @@ Already-played state shows the card as informational only (no button).
 
 ---
 
+## SoF mode toggle removal
+
+**Goal:** Simplify SoF to one question per session from the full bank (standard + weird mixed). Replace the in-game mode toggle with a "Weird & True" category label on weird questions.
+
+### Implementation (done)
+
+- [x] pp/games/__tests__/sof.test.tsx — RED tests: no toggle buttons, category label for weird, single setSeen call, challenge/hint/reveal flow
+- [x] pp/games/sof.tsx — rewritten: single `slot` state; `pickFromBank(banks.sof, ...)` on mount; Weird & True label; mode toggle UI removed
+- [x] constants/utils.ts — removed `pickFromSof` and `SofPickResult` (no longer used)
+- [x] constants/__tests__/utils.test.ts — removed `pickFromSof` describe block
+- [x] Deleted `app/games/__tests__/sof.toggle.test.tsx` (superseded)
+- [x] `npm test` — 423 tests passing (36 suites)
+
+### Notes
+
+- `SofItem.weirdAndTrue` field is preserved in the data schema; it drives the category label only.
+- No database schema change needed — existing `weirdAndTrue: boolean` on each SofItem is unchanged.
+- `pipeline/select.ts` `BASE_SOF_CLUSTERS=60` now targets ~60 sessions (was 60 → ~30 sessions with 2 slots). PRD §1 updated.
+
+---
 ## Deferred (not in this release)
 
 - [ ] [P2] Garbage-collect orphaned `received_help` interactions after N days

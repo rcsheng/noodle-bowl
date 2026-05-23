@@ -62,7 +62,7 @@ The pipeline produces a `ContentVersion` document in Firestore, which the app re
 `pipeline:ingest:bulk` = `--days=60` (fetches 60 dates of Wikipedia)
 `pipeline:select:bulk` = `--scale=2` (2× targets: 60 lede, 60 spread, 120 SoF)
 
-SoF needs 2× as many items as other games because each session consumes 2 items (one standard, one weird/wacky). `BASE_SOF_CLUSTERS=60` accounts for this: at scale=1, 60 items → ~30 sessions; at scale=2, 120 items → ~60 sessions.
+SoF now picks **one question per session** from the full bank (standard and weird/wacky mixed). `BASE_SOF_CLUSTERS=60` targets ~60 sessions at scale=1. The in-game mode toggle has been removed; "Weird & True" questions show a category label instead.
 
 ### Acceptance criteria
 

@@ -1,4 +1,4 @@
-import { copyToClipboard, formatAttribution, pickFromSof, shuffleIndices } from '@/constants/utils';
+import { copyToClipboard, formatAttribution, pickFromBank, shuffleIndices } from '@/constants/utils';
 import { BankExhaustedModal } from '@/components/BankExhaustedModal';
 import { StreakCelebrationModal } from '@/components/StreakCelebrationModal';
 import { isFriendHintMatch } from '@/lib/friendHint';
@@ -80,12 +80,10 @@ export default function SofScreen() {
   const isHintMode = !!hintQuestionIndex && !helpTokenParam && !challengeToken;
 
   type Slot = { item: SofItem; idx: number; claimOrder: number[] };
-  const [standardSlot, setStandardSlot] = useState<Slot | null>(null);
-  const [weirdSlot, setWeirdSlot] = useState<Slot | null>(null);
+  const [slot, setSlot] = useState<Slot | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<number | null>(null);
   const [phase, setPhase] = useState<Phase>('play');
   const [revealData, setRevealData] = useState<RevealData | null>(null);
-  const [weirdMode, setWeirdMode] = useState(false);
   const [showFriend, setShowFriend] = useState(false);
   const [helpUrl, setHelpUrl] = useState('');
   const [helpError, setHelpError] = useState(false);
@@ -108,16 +106,12 @@ export default function SofScreen() {
       const idx = parseInt(challengeQuestionIndex, 10);
       const item = banks.sof[idx];
       if (!item) { router.replace('/'); return; }
-      const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
-      if (item.weirdAndTrue) setWeirdSlot(slot); else setStandardSlot(slot);
-      setWeirdMode(item.weirdAndTrue);
+      setSlot({ item, idx, claimOrder: shuffleIndices(item.claims.length) });
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.sof[idx];
       if (!item) { router.replace('/'); return; }
-      const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
-      if (item.weirdAndTrue) setWeirdSlot(slot); else setStandardSlot(slot);
-      setWeirdMode(item.weirdAndTrue);
+      setSlot({ item, idx, claimOrder: shuffleIndices(item.claims.length) });
     } else if (isHintMode && hintQuestionIndex !== undefined) {
       const idx = parseInt(hintQuestionIndex, 10);
       const item = banks.sof[idx];
@@ -127,17 +121,12 @@ export default function SofScreen() {
         setHintUnavailable(true);
         return;
       }
-      const slot = { item, idx, claimOrder: shuffleIndices(item.claims.length) };
-      if (item.weirdAndTrue) setWeirdSlot(slot); else setStandardSlot(slot);
-      setWeirdMode(item.weirdAndTrue);
+      setSlot({ item, idx, claimOrder: shuffleIndices(item.claims.length) });
     } else {
-      const stdResult = pickFromSof(banks.sof, false, state.seen.sof);
-      if (stdResult.exhausted) { setBankExhausted(true); return; }
-      const wrdResult = pickFromSof(banks.sof, true, stdResult.newSeen);
-      if (wrdResult.exhausted) { setBankExhausted(true); return; }
-      setSeen('sof', wrdResult.newSeen);
-      setStandardSlot({ item: stdResult.item, idx: stdResult.idx, claimOrder: shuffleIndices(stdResult.item.claims.length) });
-      setWeirdSlot({ item: wrdResult.item, idx: wrdResult.idx, claimOrder: shuffleIndices(wrdResult.item.claims.length) });
+      const result = pickFromBank(banks.sof, state.seen.sof);
+      if (result.exhausted) { setBankExhausted(true); return; }
+      setSeen('sof', result.newSeen);
+      setSlot({ item: result.item, idx: result.idx, claimOrder: shuffleIndices(result.item.claims.length) });
     }
   }, [isLoaded, contentLoading]);
 
@@ -197,22 +186,10 @@ export default function SofScreen() {
   };
 
   const handlePlayAgain = () => {
-    const result = pickFromSof(banks.sof, weirdMode, state.seen.sof);
+    const result = pickFromBank(banks.sof, state.seen.sof);
     if (result.exhausted) { setBankExhausted(true); return; }
     setSeen('sof', result.newSeen);
-    const newSlot = { item: result.item, idx: result.idx, claimOrder: shuffleIndices(result.item.claims.length) };
-    if (weirdMode) setWeirdSlot(newSlot); else setStandardSlot(newSlot);
-    setSelectedClaim(null);
-    setPhase('play');
-    setRevealData(null);
-    setHelpUrl('');
-    setHelpError(false);
-    setHelpToken(null);
-  };
-
-  const handleToggleMode = (nextMode: boolean) => {
-    if (nextMode === weirdMode) return;
-    setWeirdMode(nextMode);
+    setSlot({ item: result.item, idx: result.idx, claimOrder: shuffleIndices(result.item.claims.length) });
     setSelectedClaim(null);
     setPhase('play');
     setRevealData(null);
@@ -261,10 +238,9 @@ export default function SofScreen() {
     }
   };
 
-  const currentSlot = weirdMode ? weirdSlot : standardSlot;
-  const question = currentSlot?.item ?? null;
-  const questionIdx = currentSlot?.idx ?? 0;
-  const claimOrder = currentSlot?.claimOrder ?? [0, 1];
+  const question = slot?.item ?? null;
+  const questionIdx = slot?.idx ?? 0;
+  const claimOrder = slot?.claimOrder ?? [0, 1];
 
   if (bankExhausted) {
     return (
@@ -309,29 +285,9 @@ export default function SofScreen() {
           <Text style={styles.backText}>← Back to Home</Text>
         </TouchableOpacity>
 
-        {/* Mode toggle — segmented control */}
-        {!isChallengeMode && !isHelpMode && !isHintMode && phase === 'play' && (
-          <>
-          <Text style={styles.modeLabel}>Select mode</Text>
-          <View style={styles.modeToggle}>
-            <TouchableOpacity
-              testID="sof-mode-standard"
-              style={[styles.modeBtn, !weirdMode && styles.modeBtnActive]}
-              onPress={() => handleToggleMode(false)}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.modeBtnText, !weirdMode && styles.modeBtnTextActive]}>Standard</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              testID="sof-mode-weird"
-              style={[styles.modeBtn, weirdMode && styles.modeBtnActive]}
-              onPress={() => handleToggleMode(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.modeBtnText, weirdMode && styles.modeBtnTextActive]}>Weird & True</Text>
-            </TouchableOpacity>
-          </View>
-          </>
+        {/* Category label — only shown for Weird & True questions */}
+        {question.weirdAndTrue && (
+          <Text testID="sof-category-label" style={styles.categoryLabel}>Weird &amp; True</Text>
         )}
 
         {/* Topic header */}
@@ -646,38 +602,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
   },
-  modeToggle: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  modeBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: C.ink,
-    backgroundColor: C.paper,
-  },
-  modeBtnActive: {
-    backgroundColor: C.ink,
-  },
-  modeBtnText: {
+  categoryLabel: {
     fontFamily: F.monoBold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: C.ink,
-  },
-  modeBtnTextActive: {
-    color: C.onDark,
-  },
-  modeLabel: {
-    fontFamily: F.mono,
     fontSize: 10,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    color: C.muted,
+    color: C.accent,
     marginBottom: 6,
   },
   categoryHeadline: {
@@ -880,17 +810,6 @@ const styles = StyleSheet.create({
   },
   resultWrong: {
     color: C.accent,
-  },
-  resultDivider: {
-    fontFamily: F.fraunces,
-    fontSize: 16,
-    color: C.muted,
-    marginHorizontal: 2,
-  },
-  resultPoints: {
-    fontFamily: F.frauncesXBoldItalic,
-    fontSize: 18,
-    color: C.ink,
   },
   challengePanel: {
     borderWidth: 1,
