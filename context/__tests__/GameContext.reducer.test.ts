@@ -196,129 +196,129 @@ describe('reducer: UPDATE_STATS', () => {
 });
 
 // ---------------------------------------------------------------------------
-// UPDATE_DAILY_STREAK
+// UPDATE_WEEKLY_STREAK
 // ---------------------------------------------------------------------------
-describe('reducer: UPDATE_DAILY_STREAK', () => {
-  const action = (today: string): Action => ({ type: 'UPDATE_DAILY_STREAK', today });
+describe('reducer: UPDATE_WEEKLY_STREAK', () => {
+  const action = (weekId: string): Action => ({ type: 'UPDATE_WEEKLY_STREAK', weekId });
 
-  test('is a no-op when lastPlayedDate equals today', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-26', dailyStreak: 5 } });
-    const next = reducer(state, action('2026-04-26'));
+  test('is a no-op when lastPlayedWeek equals current week', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2026-W17', weeklyStreak: 5 } });
+    const next = reducer(state, action('2026-W17'));
     expect(next).toBe(state); // same reference
   });
 
-  test('increments dailyStreak when lastPlayedDate was yesterday', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', dailyStreak: 3 } });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.dailyStreak).toBe(4);
+  test('increments weeklyStreak when lastPlayedWeek was the previous week', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2026-W16', weeklyStreak: 3 } });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.weeklyStreak).toBe(4);
   });
 
-  test('sets dailyStreak to 1 on first ever play (null lastPlayedDate)', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: null, dailyStreak: 0 } });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.dailyStreak).toBe(1);
+  test('sets weeklyStreak to 1 on first ever play (null lastPlayedWeek)', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: null, weeklyStreak: 0 } });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.weeklyStreak).toBe(1);
   });
 
-  test('resets dailyStreak to 1 when gap > 1 day and no shields', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-20', dailyStreak: 7, streakShieldsAvailable: 0 } });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.dailyStreak).toBe(1);
+  test('resets weeklyStreak to 1 when gap > 1 week and no shields', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2026-W10', weeklyStreak: 7, streakShieldsAvailable: 0 } });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.weeklyStreak).toBe(1);
   });
 
-  test('uses a shield when gap > 1 day and shields available', () => {
+  test('uses a shield when gap > 1 week and shields available', () => {
     const state = makeState({
       stats: {
         ...initialState.stats,
-        lastPlayedDate: '2026-04-20',
-        dailyStreak: 7,
+        lastPlayedWeek: '2026-W10',
+        weeklyStreak: 7,
         streakShieldsAvailable: 2,
-        streakShieldUsedToday: false,
+        streakShieldUsedThisWeek: false,
       },
     });
-    const next = reducer(state, action('2026-04-26'));
+    const next = reducer(state, action('2026-W17'));
     expect(next.stats.streakShieldsAvailable).toBe(1);
-    expect(next.stats.streakShieldUsedToday).toBe(true);
-    // dailyStreak is NOT incremented when using shield (kept same)
-    expect(next.stats.dailyStreak).toBe(7);
+    expect(next.stats.streakShieldUsedThisWeek).toBe(true);
+    // weeklyStreak is NOT incremented when using shield (kept same)
+    expect(next.stats.weeklyStreak).toBe(7);
   });
 
-  test('uses shield even if streakShieldUsedToday is stale-true from a previous day', () => {
-    // Regression: a shield earned on the same day a previous shield was used would
-    // leave streakShieldUsedToday=true in storage. Returning after multiple days
-    // must still consume the available shield — the lastPlayedDate===today guard
-    // already ensures UPDATE_DAILY_STREAK only runs once per day, so the stale
+  test('uses shield even if streakShieldUsedThisWeek is stale-true from a previous week', () => {
+    // Regression: a shield earned on the same week a previous shield was used would
+    // leave streakShieldUsedThisWeek=true in storage. Returning after multiple weeks
+    // must still consume the available shield — the lastPlayedWeek===weekId guard
+    // already ensures UPDATE_WEEKLY_STREAK only runs once per week, so the stale
     // flag must not block the shield.
     const state = makeState({
       stats: {
         ...initialState.stats,
-        lastPlayedDate: '2026-04-20',
-        dailyStreak: 7,
+        lastPlayedWeek: '2026-W10',
+        weeklyStreak: 7,
         streakShieldsAvailable: 2,
-        streakShieldUsedToday: true,
+        streakShieldUsedThisWeek: true,
       },
     });
-    const next = reducer(state, action('2026-04-26'));
+    const next = reducer(state, action('2026-W17'));
     // Shield IS used; streak is preserved
     expect(next.stats.streakShieldsAvailable).toBe(1);
-    expect(next.stats.dailyStreak).toBe(7);
-    expect(next.stats.streakShieldUsedToday).toBe(true);
+    expect(next.stats.weeklyStreak).toBe(7);
+    expect(next.stats.streakShieldUsedThisWeek).toBe(true);
   });
 
-  test('updates bestDailyStreak when current exceeds it', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', dailyStreak: 5, bestDailyStreak: 5 } });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.bestDailyStreak).toBe(6);
+  test('updates bestWeeklyStreak when current exceeds it', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2026-W16', weeklyStreak: 5, bestWeeklyStreak: 5 } });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.bestWeeklyStreak).toBe(6);
   });
 
-  test('increments totalDaysPlayed', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', totalDaysPlayed: 10 } });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.totalDaysPlayed).toBe(11);
+  test('increments totalWeeksPlayed', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2026-W16', totalWeeksPlayed: 10 } });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.totalWeeksPlayed).toBe(11);
   });
 
-  test('streakShieldUsedToday resets to false on a normal next-day continuation', () => {
+  test('streakShieldUsedThisWeek resets to false on a normal consecutive-week continuation', () => {
     const state = makeState({
       stats: {
         ...initialState.stats,
-        lastPlayedDate: '2026-04-25',
-        dailyStreak: 7,
+        lastPlayedWeek: '2026-W16',
+        weeklyStreak: 7,
         streakShieldsAvailable: 1,
-        streakShieldUsedToday: true,
+        streakShieldUsedThisWeek: true,
       },
     });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.streakShieldUsedToday).toBe(false);
-    expect(next.stats.dailyStreak).toBe(8);
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.streakShieldUsedThisWeek).toBe(false);
+    expect(next.stats.weeklyStreak).toBe(8);
   });
 
-  test('streakShieldUsedToday resets to false when streak resets', () => {
+  test('streakShieldUsedThisWeek resets to false when streak resets', () => {
     const state = makeState({
       stats: {
         ...initialState.stats,
-        lastPlayedDate: '2026-04-20',
-        dailyStreak: 7,
+        lastPlayedWeek: '2026-W10',
+        weeklyStreak: 7,
         streakShieldsAvailable: 0,
-        streakShieldUsedToday: true,
+        streakShieldUsedThisWeek: true,
       },
     });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.streakShieldUsedToday).toBe(false);
-    expect(next.stats.dailyStreak).toBe(1);
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.streakShieldUsedThisWeek).toBe(false);
+    expect(next.stats.weeklyStreak).toBe(1);
   });
 
   test('streakSavedBannerSeen flips to false when a shield is consumed', () => {
     const state = makeState({
       stats: {
         ...initialState.stats,
-        lastPlayedDate: '2026-04-20',
-        dailyStreak: 7,
+        lastPlayedWeek: '2026-W10',
+        weeklyStreak: 7,
         streakShieldsAvailable: 2,
-        streakShieldUsedToday: false,
+        streakShieldUsedThisWeek: false,
         streakSavedBannerSeen: true,
       },
     });
-    const next = reducer(state, action('2026-04-26'));
-    expect(next.stats.streakShieldUsedToday).toBe(true);
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.streakShieldUsedThisWeek).toBe(true);
     expect(next.stats.streakSavedBannerSeen).toBe(false);
   });
 
@@ -326,24 +326,24 @@ describe('reducer: UPDATE_DAILY_STREAK', () => {
     const state = makeState({
       stats: {
         ...initialState.stats,
-        lastPlayedDate: '2026-04-25',
-        dailyStreak: 3,
+        lastPlayedWeek: '2026-W16',
+        weeklyStreak: 3,
         streakSavedBannerSeen: true,
       },
     });
-    const next = reducer(state, action('2026-04-26'));
+    const next = reducer(state, action('2026-W17'));
     expect(next.stats.streakSavedBannerSeen).toBe(true);
   });
 
-  test('sets showStreakCelebration to true when daily streak increments', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', dailyStreak: 3 } });
-    const next = reducer(state, action('2026-04-26'));
+  test('sets showStreakCelebration to true when weekly streak increments', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2026-W16', weeklyStreak: 3 } });
+    const next = reducer(state, action('2026-W17'));
     expect(next.stats.showStreakCelebration).toBe(true);
   });
 
   test('does NOT set showStreakCelebration when streak resets to 1', () => {
-    const state = makeState({ stats: { ...initialState.stats, lastPlayedDate: '2026-04-20', dailyStreak: 7, streakShieldsAvailable: 0 } });
-    const next = reducer(state, action('2026-04-26'));
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2026-W10', weeklyStreak: 7, streakShieldsAvailable: 0 } });
+    const next = reducer(state, action('2026-W17'));
     expect(next.stats.showStreakCelebration).toBe(false);
   });
 
@@ -351,14 +351,21 @@ describe('reducer: UPDATE_DAILY_STREAK', () => {
     const state = makeState({
       stats: {
         ...initialState.stats,
-        lastPlayedDate: '2026-04-20',
-        dailyStreak: 7,
+        lastPlayedWeek: '2026-W10',
+        weeklyStreak: 7,
         streakShieldsAvailable: 1,
-        streakShieldUsedToday: false,
+        streakShieldUsedThisWeek: false,
       },
     });
-    const next = reducer(state, action('2026-04-26'));
+    const next = reducer(state, action('2026-W17'));
     expect(next.stats.showStreakCelebration).toBe(false);
+  });
+
+  test('handles year-boundary: W01 of new year follows W52 of previous year', () => {
+    // 2025 has 52 ISO weeks; W52 2025 → W01 2026 is consecutive
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: '2025-W52', weeklyStreak: 4 } });
+    const next = reducer(state, action('2026-W01'));
+    expect(next.stats.weeklyStreak).toBe(5);
   });
 });
 
@@ -481,32 +488,32 @@ describe('reducer: MERGE_FROM_SERVER (seen sync)', () => {
     expect(next.seen.spread).toEqual([]);
   });
 
-  test('server stats win when server lastPlayedDate is newer', () => {
+  test('server stats win when server lastPlayedWeek is newer', () => {
     const state = makeState({
-      stats: { ...initialState.stats, lastPlayedDate: '2026-04-20', dailyStreak: 3 },
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W10', weeklyStreak: 3 },
     });
     const serverStats: AppState['stats'] = {
       ...state.stats,
-      lastPlayedDate: '2026-04-25',
-      dailyStreak: 7,
+      lastPlayedWeek: '2026-W17',
+      weeklyStreak: 7,
     };
     const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
-    expect(next.stats.dailyStreak).toBe(7);
-    expect(next.stats.lastPlayedDate).toBe('2026-04-25');
+    expect(next.stats.weeklyStreak).toBe(7);
+    expect(next.stats.lastPlayedWeek).toBe('2026-W17');
   });
 
-  test('local stats kept when local lastPlayedDate is newer', () => {
+  test('local stats kept when local lastPlayedWeek is newer', () => {
     const state = makeState({
-      stats: { ...initialState.stats, lastPlayedDate: '2026-04-25', dailyStreak: 7 },
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W17', weeklyStreak: 7 },
     });
     const serverStats: AppState['stats'] = {
       ...state.stats,
-      lastPlayedDate: '2026-04-20',
-      dailyStreak: 3,
+      lastPlayedWeek: '2026-W10',
+      weeklyStreak: 3,
     };
     const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
-    expect(next.stats.dailyStreak).toBe(7);
-    expect(next.stats.lastPlayedDate).toBe('2026-04-25');
+    expect(next.stats.weeklyStreak).toBe(7);
+    expect(next.stats.lastPlayedWeek).toBe('2026-W17');
   });
 });
 

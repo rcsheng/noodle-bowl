@@ -22,9 +22,9 @@ export default function StatsScreen() {
     );
   }
   const {
-    dailyStreak,
-    bestDailyStreak,
-    totalDaysPlayed,
+    weeklyStreak,
+    bestWeeklyStreak,
+    totalWeeksPlayed,
     streakShieldsAvailable,
   } = state.stats;
 
@@ -42,17 +42,17 @@ export default function StatsScreen() {
           <View style={styles.cardInnerBorder} />
           <View style={styles.streakRow}>
             <View style={styles.streakBlock}>
-              <Text style={styles.streakValue}>{dailyStreak > 0 ? `🔥 ${dailyStreak}` : '—'}</Text>
-              <Text style={styles.streakLabel}>Daily Streak</Text>
+              <Text style={styles.streakValue}>{weeklyStreak > 0 ? `🔥 ${weeklyStreak}` : '—'}</Text>
+              <Text style={styles.streakLabel}>Weekly Streak</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.streakBlock}>
-              <Text style={styles.streakValue}>{totalDaysPlayed}</Text>
-              <Text style={styles.streakLabel}>Days Played</Text>
+              <Text style={styles.streakValue}>{totalWeeksPlayed}</Text>
+              <Text style={styles.streakLabel}>Weeks Played</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.streakBlock}>
-              <Text style={styles.streakValue}>{bestDailyStreak > 0 ? `🏆 ${bestDailyStreak}` : '—'}</Text>
+              <Text style={styles.streakValue}>{bestWeeklyStreak > 0 ? `🏆 ${bestWeeklyStreak}` : '—'}</Text>
               <Text style={styles.streakLabel}>Best Streak</Text>
             </View>
           </View>

@@ -1,4 +1,5 @@
 import { GameId } from '@/constants/data';
+import { getISOWeekYear, formatWeekId } from '@/lib/contentWeek';
 
 export interface FriendInteraction {
   id: string;
@@ -27,12 +28,12 @@ interface GameStats {
 
 interface AppState {
   stats: {
-    dailyStreak: number;
-    bestDailyStreak: number;
-    lastPlayedDate: string | null;
-    totalDaysPlayed: number;
+    weeklyStreak: number;
+    bestWeeklyStreak: number;
+    lastPlayedWeek: string | null;
+    totalWeeksPlayed: number;
     streakShieldsAvailable: number;
-    streakShieldUsedToday: boolean;
+    streakShieldUsedThisWeek: boolean;
     streakSavedBannerSeen: boolean;
     showStreakCelebration: boolean;
     lede: GameStats;
@@ -52,12 +53,12 @@ const defaultGameStats: GameStats = { played: 0, correct: 0, streak: 0, bestStre
 
 export const initialState: AppState = {
   stats: {
-    dailyStreak: 0,
-    bestDailyStreak: 0,
-    lastPlayedDate: null,
-    totalDaysPlayed: 0,
+    weeklyStreak: 0,
+    bestWeeklyStreak: 0,
+    lastPlayedWeek: null,
+    totalWeeksPlayed: 0,
     streakShieldsAvailable: 0,
-    streakShieldUsedToday: false,
+    streakShieldUsedThisWeek: false,
     streakSavedBannerSeen: true,
     showStreakCelebration: false,
     lede: { ...defaultGameStats },
@@ -71,16 +72,26 @@ export const initialState: AppState = {
   friendInteractions: [],
 };
 
-export function getPreviousDay(isoDate: string): string {
-  const d = new Date(isoDate + 'T00:00:00');
-  d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/** Returns the ISO week string for the week before the given ISO week string. */
+export function getPreviousWeek(isoWeek: string): string {
+  // Subtract 7 days from Monday of the given week, then re-derive the ISO week.
+  const [yearStr, weekStr] = isoWeek.split('-W');
+  const year = parseInt(yearStr, 10);
+  const week = parseInt(weekStr, 10);
+  // Jan 4 of the ISO year is always in week 1.
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const dow = jan4.getUTCDay() || 7; // 1=Mon … 7=Sun
+  const week1Mon = new Date(jan4.getTime() - (dow - 1) * 86_400_000);
+  const targetMon = new Date(week1Mon.getTime() + (week - 1) * 7 * 86_400_000);
+  const prevMon = new Date(targetMon.getTime() - 7 * 86_400_000);
+  const { year: prevYear, week: prevWeekNum } = getISOWeekYear(prevMon);
+  return formatWeekId(prevYear, prevWeekNum);
 }
 
 export type Action =
   | { type: 'LOAD'; payload: { stats?: Partial<AppState['stats']>; seen?: Partial<AppState['seen']>; seenWeek?: string; friendInteractions?: FriendInteraction[] }; activeWeek?: string }
   | { type: 'UPDATE_STATS'; game: GameId; correct: boolean; today: string }
-  | { type: 'UPDATE_DAILY_STREAK'; today: string }
+  | { type: 'UPDATE_WEEKLY_STREAK'; weekId: string }
   | { type: 'SET_SEEN'; game: GameId; seen: number[] }
   | { type: 'EARN_SHIELD' }
   | { type: 'DISMISS_STREAK_SAVED_BANNER' }
@@ -103,12 +114,12 @@ export function reducer(state: AppState, action: Action): AppState {
 
       const mergedStats = { ...initialState.stats };
       if (stats) {
-        mergedStats.dailyStreak = stats.dailyStreak ?? 0;
-        mergedStats.bestDailyStreak = stats.bestDailyStreak ?? 0;
-        mergedStats.lastPlayedDate = stats.lastPlayedDate ?? null;
-        mergedStats.totalDaysPlayed = stats.totalDaysPlayed ?? 0;
+        mergedStats.weeklyStreak = stats.weeklyStreak ?? 0;
+        mergedStats.bestWeeklyStreak = stats.bestWeeklyStreak ?? 0;
+        mergedStats.lastPlayedWeek = stats.lastPlayedWeek ?? null;
+        mergedStats.totalWeeksPlayed = stats.totalWeeksPlayed ?? 0;
         mergedStats.streakShieldsAvailable = stats.streakShieldsAvailable ?? 0;
-        mergedStats.streakShieldUsedToday = stats.streakShieldUsedToday ?? false;
+        mergedStats.streakShieldUsedThisWeek = stats.streakShieldUsedThisWeek ?? false;
         mergedStats.streakSavedBannerSeen = stats.streakSavedBannerSeen ?? true;
         // showStreakCelebration is a transient display flag — never restored from storage
         (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
@@ -148,40 +159,44 @@ export function reducer(state: AppState, action: Action): AppState {
         },
       };
     }
-    case 'UPDATE_DAILY_STREAK': {
-      const { today } = action;
+    case 'UPDATE_WEEKLY_STREAK': {
+      const { weekId } = action;
       const { stats } = state;
-      if (stats.lastPlayedDate === today) return state;
-      const yesterday = getPreviousDay(today);
-      let newDailyStreak = stats.dailyStreak;
+      // Idempotent: only update once per week.
+      if (stats.lastPlayedWeek === weekId) return state;
+      const prevWeek = getPreviousWeek(weekId);
+      let newWeeklyStreak = stats.weeklyStreak;
       let newShields = stats.streakShieldsAvailable;
-      let newShieldUsedToday = false;
+      let newShieldUsedThisWeek = false;
       let newBannerSeen = stats.streakSavedBannerSeen;
       let showStreakCelebration = false;
-      if (stats.lastPlayedDate === yesterday) {
-        newDailyStreak = stats.dailyStreak + 1;
+      if (stats.lastPlayedWeek === prevWeek) {
+        // Played last week too — consecutive streak continues.
+        newWeeklyStreak = stats.weeklyStreak + 1;
         showStreakCelebration = true;
       } else if (stats.streakShieldsAvailable > 0) {
-        // Note: !streakShieldUsedToday is intentionally omitted. The
-        // `lastPlayedDate === today` early-return above already ensures this
-        // branch runs at most once per day. A stale `true` from a previous
-        // play session must not block shield use on a new day.
+        // Missed a week but have a shield — streak is preserved.
+        // Note: streakShieldUsedThisWeek is not checked here. The
+        // `lastPlayedWeek === weekId` early-return above already ensures this
+        // branch runs at most once per week, so any stale `true` from a prior
+        // week must not block shield use on a new week.
         newShields = stats.streakShieldsAvailable - 1;
-        newShieldUsedToday = true;
+        newShieldUsedThisWeek = true;
         newBannerSeen = false;
       } else {
-        newDailyStreak = 1;
+        // No shield — streak resets.
+        newWeeklyStreak = 1;
       }
       return {
         ...state,
         stats: {
           ...stats,
-          dailyStreak: newDailyStreak,
-          bestDailyStreak: Math.max(stats.bestDailyStreak, newDailyStreak),
-          lastPlayedDate: today,
-          totalDaysPlayed: stats.totalDaysPlayed + 1,
+          weeklyStreak: newWeeklyStreak,
+          bestWeeklyStreak: Math.max(stats.bestWeeklyStreak, newWeeklyStreak),
+          lastPlayedWeek: weekId,
+          totalWeeksPlayed: stats.totalWeeksPlayed + 1,
           streakShieldsAvailable: newShields,
-          streakShieldUsedToday: newShieldUsedToday,
+          streakShieldUsedThisWeek: newShieldUsedThisWeek,
           streakSavedBannerSeen: newBannerSeen,
           showStreakCelebration,
         },
@@ -238,9 +253,9 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case 'MERGE_FROM_SERVER': {
       const { serverStats, serverSeen = {}, serverSeenWeek } = action;
-      const serverDate = serverStats.lastPlayedDate;
-      const localDate = state.stats.lastPlayedDate;
-      const serverWins = serverDate !== null && (localDate === null || serverDate >= localDate);
+      const serverWeek = serverStats.lastPlayedWeek;
+      const localWeek = state.stats.lastPlayedWeek;
+      const serverWins = serverWeek !== null && (localWeek === null || serverWeek >= localWeek);
       const baseStats = serverWins ? serverStats : state.stats;
       const mergedStats: AppState['stats'] = {
         ...baseStats,

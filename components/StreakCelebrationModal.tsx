@@ -5,17 +5,17 @@ import { useGame } from '@/context/GameContext';
 
 export function StreakCelebrationModal() {
   const { state, dismissStreakCelebration } = useGame();
-  const { showStreakCelebration, dailyStreak } = state.stats;
+  const { showStreakCelebration, weeklyStreak } = state.stats;
 
   return (
     <Modal visible={showStreakCelebration} transparent animationType="fade">
       <TouchableOpacity style={styles.overlay} onPress={dismissStreakCelebration} activeOpacity={1}>
         <View style={styles.card}>
           <View style={styles.innerBorder} pointerEvents="none" />
-          <Text style={styles.kicker}>Daily Streak</Text>
-          <Text style={styles.streakNumber}>{dailyStreak}</Text>
-          <Text style={styles.days}>day{dailyStreak !== 1 ? 's' : ''} in a row</Text>
-          <Text style={styles.message}>Keep the streak alive — come back tomorrow.</Text>
+          <Text style={styles.kicker}>Weekly Streak</Text>
+          <Text style={styles.streakNumber}>{weeklyStreak}</Text>
+          <Text style={styles.days}>week{weeklyStreak !== 1 ? 's' : ''} in a row</Text>
+          <Text style={styles.message}>Keep the streak alive — come back next week.</Text>
           <TouchableOpacity style={styles.btn} onPress={dismissStreakCelebration} activeOpacity={0.85}>
             <Text style={styles.btnText}>Keep it up!</Text>
           </TouchableOpacity>

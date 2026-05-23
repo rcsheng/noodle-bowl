@@ -5,7 +5,7 @@ jest.mock('@/context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('@/lib/authApi', () => ({ signOutAndGoAnonymous: jest.fn() }));
 jest.mock('@/context/GameContext', () => ({
   useGame: () => ({
-    state: { stats: { dailyStreak: 0, streakShieldsAvailable: 0 } },
+    state: { stats: { weeklyStreak: 0, streakShieldsAvailable: 0 } },
     isLoaded: true,
   }),
 }));

@@ -9,7 +9,7 @@ import { readSeen, writeSeen } from '@/lib/seenRepo';
 import { readStats, writeStats } from '@/lib/statsRepo';
 import { scheduleWrite } from '@/lib/syncQueue';
 import { useAuth } from '@/context/AuthContext';
-import { computeActiveWeek } from '@/lib/contentWeek';
+import { computeActiveWeek, computeCurrentWeek } from '@/lib/contentWeek';
 import { Action, AppState, FriendInteraction, initialState, reducer } from './gameReducer';
 
 export type { FriendInteraction };
@@ -30,7 +30,7 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | null>(null);
 
-const STORAGE_KEY = 'daily_state_v12';
+const STORAGE_KEY = 'weekly_state_v13';
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -148,8 +148,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const updateGameStats = useCallback((game: GameId, correct: boolean) => {
     const today = getTodayISODate();
+    const weekId = computeCurrentWeek();
     dispatch({ type: 'UPDATE_STATS', game, correct, today });
-    dispatch({ type: 'UPDATE_DAILY_STREAK', today });
+    dispatch({ type: 'UPDATE_WEEKLY_STREAK', weekId });
   }, []);
 
   const setSeen = useCallback((game: GameId, seen: number[]) => {

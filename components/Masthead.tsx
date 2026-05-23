@@ -9,7 +9,7 @@ export function Masthead() {
   const issueNum = getIssueNumber();
   const today = getTodayString();
   const { state } = useGame();
-  const { dailyStreak, streakShieldsAvailable } = state.stats;
+  const { weeklyStreak, streakShieldsAvailable } = state.stats;
   const { isOffline } = useNetworkStatus();
 
   return (
@@ -25,10 +25,10 @@ export function Masthead() {
           <Text style={styles.amp}>Bowl</Text>
         </View>
         <Text style={styles.tagline}>A Daily Mix Of Brain Games</Text>
-        {(dailyStreak > 0 || streakShieldsAvailable > 0) && (
+        {(weeklyStreak > 0 || streakShieldsAvailable > 0) && (
           <Text style={styles.streakLine}>
-            {dailyStreak > 0 ? `🔥 ${dailyStreak}` : ''}
-            {dailyStreak > 0 && streakShieldsAvailable > 0 ? '  ' : ''}
+            {weeklyStreak > 0 ? `🔥 ${weeklyStreak}` : ''}
+            {weeklyStreak > 0 && streakShieldsAvailable > 0 ? '  ' : ''}
             {streakShieldsAvailable > 0 ? `🛡 ${streakShieldsAvailable}` : ''}
           </Text>
         )}
