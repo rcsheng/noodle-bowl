@@ -33,7 +33,8 @@
     "pipeline:publish": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts",
     "pipeline:publish:emulator": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --emulator",
     "pipeline:recover": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/recover.ts",
-    "pipeline:status": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/status.ts"
+    "pipeline:status": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/status.ts",
+    "pipeline:fix-cross-game-dupes": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/fix-cross-game-dupes.ts"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

@@ -116,16 +116,31 @@ function main() {
 
   // Each story is used by exactly one game. Selection order determines priority:
   // Lede first (captures weird/high-score stories), then Spread, then SoF from remaining.
+  // Both ID and headline fingerprint are tracked so the same news story covered by two
+  // different URLs (different IDs) can't appear in multiple games on the same day.
   const usedIds = new Set<string>();
+  const usedFingerprints = new Set<string>();
+
+  function trackUsed(c: StoryCandidate) {
+    usedIds.add(c.id);
+    const fp = headlineFingerprint(c.headline);
+    if (fp) usedFingerprints.add(fp);
+  }
+
+  function isUnused(c: StoryCandidate): boolean {
+    if (usedIds.has(c.id)) return false;
+    const fp = headlineFingerprint(c.headline);
+    return !(fp && usedFingerprints.has(fp));
+  }
 
   const lede = sorted.slice(0, TARGET_LEDE);
-  lede.forEach((c) => usedIds.add(c.id));
+  lede.forEach(trackUsed);
 
-  const remaining1 = sorted.filter((c) => !usedIds.has(c.id));
+  const remaining1 = sorted.filter(isUnused);
   const spread = remaining1.filter((c) => c.hasNumber).slice(0, TARGET_SPREAD);
-  spread.forEach((c) => usedIds.add(c.id));
+  spread.forEach(trackUsed);
 
-  const remaining2 = sorted.filter((c) => !usedIds.has(c.id));
+  const remaining2 = sorted.filter(isUnused);
   const byDomain = new Map<string, StoryCandidate[]>();
   for (const c of remaining2) {
     const group = byDomain.get(c.domain) ?? [];
