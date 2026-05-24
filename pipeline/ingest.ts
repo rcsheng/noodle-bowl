@@ -75,7 +75,8 @@ async function main() {
   for (let i = 0; i < days; i++) {
     const date = isoDate(i);
     process.stdout.write(`  ${date}... `);
-    const newsItems = await ingestTheNewsAPI(date);
+    // Use /top (ranked by importance) for today; /all?published_on for historical dates
+    const newsItems = await ingestTheNewsAPI(i === 0 ? undefined : date);
     process.stdout.write(`${newsItems.length}\n`);
     allCandidates.push(...newsItems);
     if (i < days - 1) await sleep(250);
