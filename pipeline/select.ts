@@ -97,6 +97,8 @@ function main() {
   }
 
   const freshCandidates = allCandidates.filter((c) => {
+    // Drop non-English thenewsapi articles (scraped/researched have no language field — pass through)
+    if (c.sourceArticle && c.sourceArticle.language !== 'en') return false;
     if (previouslyUsedIds.has(c.id)) return false;
     // Reject if the headline fingerprint matches a previously used story.
     // This catches same-story-different-URL situations (e.g. viral news covered

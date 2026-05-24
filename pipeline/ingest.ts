@@ -60,7 +60,7 @@ async function fetchPage(url: string): Promise<StoryCandidate[]> {
 // Stops early if a page returns fewer than 3 results (end of available articles).
 // Each page costs 1 API call.
 async function ingestDate(token: string, date: string, maxPages: number): Promise<{ candidates: StoryCandidate[]; calls: number }> {
-  const base = `https://api.thenewsapi.com/v1/news/all?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=3&published_on=${date}`;
+  const base = `https://api.thenewsapi.com/v1/news/all?api_token=${token}&locale=us&language=en&categories=general,science,politics,tech&limit=3&published_on=${date}`;
   const candidates: StoryCandidate[] = [];
   let calls = 0;
 
