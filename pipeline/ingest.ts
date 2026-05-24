@@ -34,15 +34,9 @@ function isoDate(daysAgo: number): string {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
-  const token = requireEnv('THENEWSAPI_TOKEN');
-  // /top ranks by importance and only works for today; /all supports published_on for historical dates
-  const url = date
-    ? `https://api.thenewsapi.com/v1/news/all?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50&published_on=${date}`
-    : `https://api.thenewsapi.com/v1/news/top?api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50`;
+async function fetchFromUrl(url: string, token: string): Promise<StoryCandidate[]> {
   const raw = JSON.parse(await httpGet(url)) as { data?: TheNewsAPIArticle[] };
   const articles = raw.data ?? [];
-
   return articles.map((a): StoryCandidate => {
     const { hasNumber, domain } = classify(a.title, a.description ?? '');
     return {
@@ -61,6 +55,30 @@ async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
   });
 }
 
+async function ingestTheNewsAPI(date?: string): Promise<StoryCandidate[]> {
+  const token = requireEnv('THENEWSAPI_TOKEN');
+  const base = `api_token=${token}&locale=us&categories=general,science,politics,tech&limit=50`;
+
+  if (!date) {
+    // Today: call both /top (importance-ranked) and /all?published_on=today,
+    // then deduplicate by URL hash so we maximise volume without losing ranked articles.
+    const today = isoDate(0);
+    const [topItems, allItems] = await Promise.all([
+      fetchFromUrl(`https://api.thenewsapi.com/v1/news/top?${base}`, token),
+      fetchFromUrl(`https://api.thenewsapi.com/v1/news/all?${base}&published_on=${today}`, token),
+    ]);
+    const seen = new Set(topItems.map((a) => a.id));
+    const merged = [...topItems, ...allItems.filter((a) => !seen.has(a.id))];
+    return merged;
+  }
+
+  // Historical date: /all is the only option
+  return fetchFromUrl(
+    `https://api.thenewsapi.com/v1/news/all?${base}&published_on=${date}`,
+    token,
+  );
+}
+
 async function main() {
   const daysArg = process.argv.find((a) => a.startsWith('--days='));
   const days = daysArg ? parseInt(daysArg.split('=')[1], 10) : 1;
@@ -69,13 +87,13 @@ async function main() {
   const allCandidates: StoryCandidate[] = [];
 
   const label = days === 1 ? 'today' : `${days} days`;
-  // NOTE: bulk runs make N TheNewsAPI calls against the daily request limit (free tier: 100/day).
-  // --days=60 uses 60 calls, leaving 40 for the rest of the day.
+  // NOTE: today costs 2 TheNewsAPI calls (/top + /all); each historical day costs 1 (/all).
+  // Total for --days=N: N+1 calls. Free tier: 100/day, so --days=60 uses 61 calls.
   console.log(`Ingesting from TheNewsAPI for ${label}...`);
   for (let i = 0; i < days; i++) {
     const date = isoDate(i);
     process.stdout.write(`  ${date}... `);
-    // Use /top (ranked by importance) for today; /all?published_on for historical dates
+    // Today (i=0): calls both /top + /all and merges; historical dates: /all only
     const newsItems = await ingestTheNewsAPI(i === 0 ? undefined : date);
     process.stdout.write(`${newsItems.length}\n`);
     allCandidates.push(...newsItems);
