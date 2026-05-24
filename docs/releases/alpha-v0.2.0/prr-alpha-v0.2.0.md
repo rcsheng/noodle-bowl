@@ -91,7 +91,30 @@ Step details for Blocks 0–11: `docs/releases/archive/alpha-v0.1.1/prr-alpha-v0
 
 ---
 
-## 5. Post-release
+## 5. Build
+
+```bash
+eas build --platform ios --profile production
+```
+
+- [ ] Build submitted to EAS cloud
+- [ ] Build completed without errors
+- [ ] `.ipa` artifact visible in EAS dashboard
+
+---
+
+## 6. Submit to TestFlight
+
+```bash
+eas submit --platform ios --profile production --latest
+```
+
+- [ ] Submit completed — no errors
+- [ ] Build appears in App Store Connect → TestFlight tab
+
+---
+
+## 7. Post-release
 
 - [ ] Git tag: `git tag -a alpha-v0.2.0 -m "feat: content pipeline, attribution fixes"`
 - [ ] Push tag: `git push origin --tags`
@@ -106,4 +129,6 @@ Step details for Blocks 0–11: `docs/releases/archive/alpha-v0.1.1/prr-alpha-v0
 | Content pipeline | rcsheng | 2026-05-10 |
 | Attribution fixes | rcsheng | 2026-05-10 |
 | Smoke tests | | |
+| Build | | |
+| Submit | | |
 | Tag + RELEASES.md | | |
