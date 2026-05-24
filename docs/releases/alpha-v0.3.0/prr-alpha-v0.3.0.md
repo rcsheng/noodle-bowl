@@ -13,7 +13,7 @@ App Store public release.
 | Distribution channel | App Store (public) |
 | Target date | TBD |
 | Release owner | rcsheng |
-| What's new | First public App Store release — all alpha features, live content pipeline |
+| What's new | First public App Store release — landing screen privacy fix (no question number), all alpha features, live content pipeline |
 
 ---
 
@@ -56,6 +56,7 @@ Full regression against **production Firebase with QA collections** (`npm run st
 - [ ] Block 11 — Universal link deep linking
 - [ ] Block 12 — Live content (from alpha-v0.2.0 PRR)
 - [ ] Block 13 — Weekly streak & shields
+- [ ] Block 14 — Landing screen privacy (no question number)
 
 ---
 
@@ -138,6 +139,18 @@ Run against `npm run start:qa` (prod Firebase, QA collections). Use a signed-in 
 | 13.6 | Dismiss the shield saved banner | Banner disappears; does not reappear on reload or focus |
 | 13.7 | Simulate missed week + no shields | Streak resets to 1; no banner |
 | 13.8 | Home screen section header | Shows "GAMES BASED ON LAST WEEK'S NEWS · [month range]" |
+
+---
+
+## Block 14 — Landing screen privacy (no question number)
+
+Run against `npm run start:qa` (prod Firebase, QA collections). Use the challenge and help flows from Block 5 and Block 6.
+
+| # | Step | Expected |
+|---|---|---|
+| 14.1 | Open a challenge deep link on the recipient's device | Landing card shows "They challenged you to answer a question." — no "question #N" text |
+| 14.2 | Open a help deep link on the helper's device | Landing card shows "They're stuck and need your help." — no "question #N" text |
+| 14.3 | Tap Play on either landing screen | Game launches to the correct question (friend hint or challenge works normally) |
 
 ---
 
