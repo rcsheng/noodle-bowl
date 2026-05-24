@@ -19,7 +19,8 @@ const NUMBER_PATTERN =
   /\b\d[\d,.]*\s*(million|billion|trillion|thousand|percent|%|km|miles|kg|lbs|days|years|hours|seconds|mph)?\b/i;
 
 const DOMAIN_KEYWORDS: Record<string, string[]> = {
-  science: ['research', 'study', 'scientists', 'space', 'climate', 'medical', 'biology', 'physics', 'AI', 'genome', 'vaccine'],
+  science: ['research', 'study', 'scientists', 'space', 'climate', 'biology', 'physics', 'AI', 'genome'],
+  health: ['health', 'medical', 'vaccine', 'disease', 'cancer', 'treatment', 'therapy', 'hospital', 'patient', 'drug', 'medication', 'diet', 'nutrition', 'surgery', 'outbreak', 'epidemic', 'FDA', 'doctor', 'mental health', 'wellness'],
   nature: ['animal', 'species', 'ocean', 'forest', 'wildlife', 'plant', 'insect', 'whale', 'bird', 'coral'],
   politics: ['congress', 'senate', 'president', 'election', 'government', 'policy', 'law', 'court', 'vote'],
   business: ['company', 'CEO', 'stock', 'market', 'startup', 'economy', 'trade', 'merger', 'IPO'],

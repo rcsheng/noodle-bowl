@@ -142,7 +142,7 @@ function main() {
   spread.forEach(trackUsed);
 
   // SoF: science/nature/technology domain stories only (no weird)
-  const SOF_DOMAINS = new Set(['science', 'nature', 'technology']);
+  const SOF_DOMAINS = new Set(['science', 'health', 'nature', 'technology']);
   const remaining2 = sorted.filter(
     (c) => isUnused(c) && SOF_DOMAINS.has(c.domain) && !c.tags.includes('weird')
   );
