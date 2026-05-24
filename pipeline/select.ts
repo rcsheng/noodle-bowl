@@ -114,9 +114,9 @@ function main() {
 
   const sorted = [...freshCandidates].sort((a, b) => score(b) - score(a));
 
-  // Each story is used by exactly one game. Selection order determines priority:
-  // Lede first (all sources including weird), then Spread (standard ingest only, has number),
-  // then SoF from science/nature/technology stories only.
+  // Selection order: Spread → SoF → Lede.
+  // Spread and SoF have narrow source requirements, so they pick first.
+  // Lede then sweeps up everything left: weird stories + any unused standard news.
   // Both ID and headline fingerprint are tracked so the same news story covered by two
   // different URLs (different IDs) can't appear in multiple games on the same day.
   const usedIds = new Set<string>();
@@ -134,13 +134,9 @@ function main() {
     return !(fp && usedFingerprints.has(fp));
   }
 
-  // Lede: all sources (weird stories are high-value here)
-  const lede = sorted.slice(0, TARGET_LEDE);
-  lede.forEach(trackUsed);
-
   // Spread: standard ingest only (no weird), must have a number
-  const remaining1 = sorted.filter((c) => isUnused(c) && !c.tags.includes('weird'));
-  const spread = remaining1.filter((c) => c.hasNumber).slice(0, TARGET_SPREAD);
+  const spreadPool = sorted.filter((c) => !c.tags.includes('weird') && c.hasNumber);
+  const spread = spreadPool.slice(0, TARGET_SPREAD);
   spread.forEach(trackUsed);
 
   // SoF: science/nature/technology domain stories only (no weird)
@@ -172,6 +168,10 @@ function main() {
       }
     }
   }
+
+  // Lede: weird stories + any unused standard news (sweep after Spread and SoF)
+  const lede = sorted.filter(isUnused).slice(0, TARGET_LEDE);
+  lede.forEach(trackUsed);
 
   const out: SelectedFile = { date: today(), lede, spread, sofClusters };
   const outPath = dataPath('selected', `${today()}.json`);
