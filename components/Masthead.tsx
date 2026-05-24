@@ -24,7 +24,7 @@ export function Masthead() {
           <Text style={styles.title}>Noodle </Text>
           <Text style={styles.amp}>Bowl</Text>
         </View>
-        <Text style={styles.tagline}>A Daily Mix Of Brain Games</Text>
+        <Text style={styles.tagline}>Feed Your Curiosity</Text>
         {(weeklyStreak > 0 || streakShieldsAvailable > 0) && (
           <Text style={styles.streakLine}>
             {weeklyStreak > 0 ? `🔥 ${weeklyStreak}` : ''}

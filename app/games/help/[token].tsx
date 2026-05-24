@@ -41,7 +41,8 @@ export default function HelpScreen() {
       }
       // Stale-week check: if contentWeek is set and doesn't match the active week,
       // the question is no longer in this week's content bank — block the helper flow.
-      if (result.contentWeek !== '' && result.contentWeek !== computeActiveWeek()) {
+      // Guard against undefined (deployed helpGet may omit the field) and '' (legacy backward compat).
+      if (result.contentWeek && result.contentWeek !== computeActiveWeek()) {
         setError(
           'This question is from a previous week and is no longer available.\n\n' +
           'The person who sent this link may not have played yet — ask them to share a new link!',

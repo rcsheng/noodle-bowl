@@ -187,16 +187,22 @@ describe('SoF single-question mount', () => {
 
 describe('SoF Play Again', () => {
   let setSeen: jest.Mock;
+  let mathRandomSpy: jest.SpyInstance;
 
   beforeEach(() => {
     setSeen = jest.fn();
     useGame.mockReturnValue({ ...defaultGameState(), setSeen });
-    // Bank has two questions; first pick will be index 0 (Math.random returns 0 in first call)
+    // Pin Math.random to 0 so pickFromBank always picks available[0] — deterministic first pick.
+    mathRandomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
     useContent.mockReturnValue({
       banks: { sof: [makeQuestion(false, 0), makeQuestion(true, 1)], lede: [], spread: [], wave: [], quip: [] },
       contentWeek: '2026-W20',
       isLoading: false,
     });
+  });
+
+  afterEach(() => {
+    mathRandomSpy.mockRestore();
   });
 
   it('calls setSeen again after Play Again', async () => {

@@ -19,7 +19,9 @@ const ContentContext = createContext<ContentContextValue | null>(null);
 
 /**
  * Returns true when the cached version is for the current active content week.
- * If it is, we can immediately mark loading as done without waiting for Firestore.
+ * Used to decide whether the cache can unblock game screens while auth is still
+ * loading (before we can reach Firestore). When auth is already resolved, we
+ * always wait for a Firestore fetch to confirm the banks are complete.
  */
 function isCachedForActiveWeek(version: ContentVersion): boolean {
   return version.contentWeek !== '' && version.contentWeek === computeActiveWeek();
@@ -39,18 +41,33 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       const cached = await getCached();
 
       if (cached && !cancelled) {
+        // Always update the displayed version from cache (fast, good UX), but do NOT
+        // set isLoading=false from cache alone when auth is resolved — we're about
+        // to do a Firestore fetch that may have more-complete data than the cache
+        // (e.g. incremental weekly seeding). Game screens must wait for Firestore
+        // confirmation so that challenge/help indices are always valid.
+        //
+        // The one exception: if auth is still loading we cannot reach Firestore yet,
+        // and a current-week cache is good enough to unblock game screens immediately.
+        // The second effect run (after auth resolves) will always do a Firestore fetch
+        // and update the version in the background.
         setVersion(cached);
-        // Only mark loaded immediately if the cache is already for the active week —
-        // otherwise keep isLoading=true so game screens wait for Firestore to
-        // deliver current content before picking questions.
-        if (isCachedForActiveWeek(cached)) {
+        if (authLoading && isCachedForActiveWeek(cached)) {
           setIsLoading(false);
         }
       }
 
-      // Firestore read requires auth. Skip until a user is present.
-      if (authLoading || !isAuthed) {
-        if (!cached && !cancelled) setIsLoading(false);
+      // Firestore read requires auth. If auth is still resolving, wait — do not
+      // mark loading as done yet. Setting isLoading=false too early (with only
+      // bundled fallback content) causes help/challenge game screens to fail
+      // because question indices from the live bank are out of range in the
+      // tiny bundled bank.
+      if (authLoading) return;
+
+      // Auth resolved but no user (e.g. sign-out) — can't read Firestore.
+      // Fall back to cache or bundled content and unblock game screens.
+      if (!isAuthed) {
+        if (!cancelled) setIsLoading(false);
         return;
       }
 

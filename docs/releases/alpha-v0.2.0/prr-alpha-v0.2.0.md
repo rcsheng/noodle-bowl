@@ -40,13 +40,15 @@ Content pipeline + attribution consistency.
 
 - [x] All tests passing — `npm test` (357 tests, 34 suites)
 - [x] No TypeScript errors — `npx tsc --noEmit`
-- [ ] Functions tests passing — `cd functions && npm test`
+- [x] Functions tests passing — `cd functions && npm test`
 
 ---
 
 ## 3. Smoke test
 
 Run against **production Firebase with QA collections** using `npm run start:qa`.
+
+> **Cross-device blocks (5, 6, 11):** Use `npm run start:prod_smoke` on both devices instead of `start:qa`. Deep links don't carry the collection prefix, so `start:qa` causes a mismatch. `start:prod_smoke` hits prod Firebase with no prefix so links round-trip correctly. ⚠️ Writes real data to prod collections — use throwaway accounts.
 
 ### Block 12 — Live content
 
@@ -83,9 +85,9 @@ Step details for Blocks 0–11: `docs/releases/archive/alpha-v0.1.1/prr-alpha-v0
 - [x] Production Firebase project is the target (not emulator)
 - [x] Production `contentVersions` has exactly one doc with `active: true`
 - [x] `contentPacks` collection has a doc for the published date
-- [ ] Firestore security rules deployed (`contentPacks` read rule added for authenticated users)
+- [x] Firestore security rules deployed (`contentPacks` read rule added for authenticated users)
 - [x] Local `pipeline/data/history.db` confirmed written
-- [x] Cloud Functions unchanged — no redeploy needed
+- [x] Cloud Functions deployed — `helpCreate` + `helpGet` updated to store/return `contentWeek` field
 
 ---
 

@@ -40,6 +40,8 @@ App Store public release.
 
 Full regression against **production Firebase with QA collections** (`npm run start:qa`).
 
+> **Cross-device blocks (5, 6, 11):** Use `npm run start:prod_smoke` on both devices instead of `start:qa`. Deep links don't carry the collection prefix, so `start:qa` causes a mismatch. `start:prod_smoke` hits prod Firebase with no prefix so links round-trip correctly. ⚠️ Writes real data to prod collections — use throwaway accounts.
+
 - [ ] Block 0 — Q2 Redesign (home, Lede, Spread, SoF)
 - [ ] Block 1 — App launch / anonymous auth
 - [ ] Block 2 — Account creation

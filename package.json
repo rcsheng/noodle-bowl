@@ -7,6 +7,7 @@
     "start:dev": "cross-env EXPO_PUBLIC_USE_EMULATOR=true expo start --clear",
     "start:qa": "cross-env EXPO_PUBLIC_USE_EMULATOR=false EXPO_PUBLIC_COLLECTION_PREFIX=qa_ expo start --clear",
     "start:qa:tunnel": "cross-env EXPO_PUBLIC_USE_EMULATOR=false EXPO_PUBLIC_COLLECTION_PREFIX=qa_ expo start --clear --tunnel",
+    "start:prod_smoke": "cross-env EXPO_PUBLIC_USE_EMULATOR=false expo start --clear",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",

@@ -110,14 +110,30 @@ export default function LedeScreen() {
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
       const item = banks.lede[idx];
-      if (!item) { router.replace('/'); return; }
+      if (!item) {
+        logger.warn('[lede] challenge item not found — redirecting to home', {
+          idx,
+          ledeBankLength: banks.lede.length,
+          isLoaded,
+          contentLoading,
+        });
+        router.replace('/'); return;
+      }
       setQuestion(item);
       setQuestionIdx(idx);
       setOrder(shuffleIndices(item.panelists.length));
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.lede[idx];
-      if (!item) { router.replace('/'); return; }
+      if (!item) {
+        logger.warn('[lede] help item not found — redirecting to home', {
+          idx,
+          ledeBankLength: banks.lede.length,
+          isLoaded,
+          contentLoading,
+        });
+        router.replace('/'); return;
+      }
       setQuestion(item);
       setQuestionIdx(idx);
       setOrder(shuffleIndices(item.panelists.length));

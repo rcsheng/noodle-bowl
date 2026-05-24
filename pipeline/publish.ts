@@ -189,7 +189,14 @@ async function main() {
   const isProd = !emulator;
   const projectId = process.env.FIREBASE_PROJECT_ID ?? 'noodle-bowl';
 
-  const filePath = latestFile(dataPath('generated'), 'Run pipeline:generate first.');
+  const dateArg = process.env.PUBLISH_DATE ?? process.argv.find(a => a.startsWith('--date='))?.split('=')[1];
+  const filePath = dateArg
+    ? dataPath('generated', `${dateArg}.json`)
+    : latestFile(dataPath('generated'), 'Run pipeline:generate first.');
+  if (dateArg && !require('fs').existsSync(filePath)) {
+    console.error(`No generated file found for date ${dateArg} (expected: ${filePath})`);
+    process.exit(1);
+  }
   const date = path.basename(filePath, '.json'); // YYYY-MM-DD
   const banks = readJson<ContentBanks>(filePath);
   const weekId = getISOWeekId(date);

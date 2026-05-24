@@ -105,12 +105,28 @@ export default function SofScreen() {
     if (isChallengeMode && challengeQuestionIndex !== undefined) {
       const idx = parseInt(challengeQuestionIndex, 10);
       const item = banks.sof[idx];
-      if (!item) { router.replace('/'); return; }
+      if (!item) {
+        logger.warn('[sof] challenge item not found — redirecting to home', {
+          idx,
+          sofBankLength: banks.sof.length,
+          isLoaded,
+          contentLoading,
+        });
+        router.replace('/'); return;
+      }
       setSlot({ item, idx, claimOrder: shuffleIndices(item.claims.length) });
     } else if (isHelpMode && helpQuestionIndex !== undefined) {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.sof[idx];
-      if (!item) { router.replace('/'); return; }
+      if (!item) {
+        logger.warn('[sof] help item not found — redirecting to home', {
+          idx,
+          sofBankLength: banks.sof.length,
+          isLoaded,
+          contentLoading,
+        });
+        router.replace('/'); return;
+      }
       setSlot({ item, idx, claimOrder: shuffleIndices(item.claims.length) });
     } else if (isHintMode && hintQuestionIndex !== undefined) {
       const idx = parseInt(hintQuestionIndex, 10);
