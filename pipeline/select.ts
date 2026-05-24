@@ -5,7 +5,7 @@ import type { CandidatesFile, SelectedFile, SofCluster, StoryCandidate } from '.
 
 const BASE_LEDE = 30;
 const BASE_SPREAD = 30;
-// SoF uses 2 items per session (standard + weird), so 2× base needed for equal session count
+// SoF uses one story per session; 60 clusters → ~60 sessions
 const BASE_SOF_CLUSTERS = 60;
 const MIN_SUMMARY_LENGTH = 80;
 
@@ -16,7 +16,6 @@ function score(c: StoryCandidate): number {
   if (c.ingestSource === 'researched') s += 3;
   if (c.summary.length > MIN_SUMMARY_LENGTH) s += 1;
   if (c.hasNumber) s += 1;
-  if (c.tags.includes('weird')) s += 5;
   return s;
 }
 
@@ -115,7 +114,8 @@ function main() {
   const sorted = [...freshCandidates].sort((a, b) => score(b) - score(a));
 
   // Each story is used by exactly one game. Selection order determines priority:
-  // Lede first (captures weird/high-score stories), then Spread, then SoF from remaining.
+  // Lede first (standard ingest only), then Spread (standard ingest + has number),
+  // then SoF from science/nature/technology stories.
   // Both ID and headline fingerprint are tracked so the same news story covered by two
   // different URLs (different IDs) can't appear in multiple games on the same day.
   const usedIds = new Set<string>();
@@ -133,14 +133,21 @@ function main() {
     return !(fp && usedFingerprints.has(fp));
   }
 
-  const lede = sorted.slice(0, TARGET_LEDE);
+  // Lede and Spread: exclude weird/scraped stories (daily ingest only)
+  const standardSorted = sorted.filter((c) => !c.tags.includes('weird'));
+
+  const lede = standardSorted.slice(0, TARGET_LEDE);
   lede.forEach(trackUsed);
 
-  const remaining1 = sorted.filter(isUnused);
+  const remaining1 = standardSorted.filter(isUnused);
   const spread = remaining1.filter((c) => c.hasNumber).slice(0, TARGET_SPREAD);
   spread.forEach(trackUsed);
 
-  const remaining2 = sorted.filter(isUnused);
+  // SoF: science/nature/technology domain stories only (no weird)
+  const SOF_DOMAINS = new Set(['science', 'nature', 'technology']);
+  const remaining2 = sorted.filter(
+    (c) => isUnused(c) && SOF_DOMAINS.has(c.domain) && !c.tags.includes('weird')
+  );
   const byDomain = new Map<string, StoryCandidate[]>();
   for (const c of remaining2) {
     const group = byDomain.get(c.domain) ?? [];

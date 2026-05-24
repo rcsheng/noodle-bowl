@@ -16,7 +16,7 @@ function loadPrompt(name: string): string {
   return fs.readFileSync(path.join(__dirname, 'prompts', `${name}.txt`), 'utf-8');
 }
 
-const SYSTEM = `You are a trivia question writer for a daily news game called Noodle Bowl.
+const SYSTEM = `You are a trivia question writer for a weekly news game called Noodle Bowl.
 Generate factual content only. Never reproduce article text verbatim.
 Return ONLY valid JSON matching the schema. No markdown, no code blocks, no prose.`;
 
@@ -72,14 +72,14 @@ async function generateSpread(client: Anthropic, s: StoryCandidate): Promise<Spr
   }
 }
 
-async function generateSof(client: Anthropic, cluster: SofCluster, weird: boolean): Promise<SofItem | null> {
+async function generateSof(client: Anthropic, cluster: SofCluster): Promise<SofItem | null> {
   try {
     const s = cluster.stories[0];
     const storyText = `"${s.headline}" — ${s.summary} (source: ${s.source}, url: ${s.url})`;
     const raw = await callClaude(
       client,
       SONNET,
-      loadPrompt(weird ? 'sof-weird' : 'sof') + `Topic: ${cluster.domain}\n${storyText}`
+      loadPrompt('sof') + `Topic: ${cluster.domain}\n${storyText}`
     );
     if (raw && typeof raw === 'object' && 'skip' in raw) return null;
     const item = sofItemSchema.parse(raw) as SofItem;
@@ -123,8 +123,8 @@ async function main() {
 
   const ledeItems = await runBatch('Lede', ledeStories, (s) => generateLede(client, s));
   const spreadItems = await runBatch('Spread', spreadStories, (s) => generateSpread(client, s));
-  // Alternate weird/standard so the bank is ~50/50 weirdAndTrue across clusters
-  const sofItems = await runBatch('SoF', sofClusters, (c, i) => generateSof(client, c, i % 2 === 1));
+  // SoF now uses only science/nature/technology stories — standard prompt only
+  const sofItems = await runBatch('SoF', sofClusters, (c) => generateSof(client, c));
 
   // quip and wave are not yet generated — published as empty arrays so app reads [] not undefined
   const banks = { lede: ledeItems, spread: spreadItems, sof: sofItems, quip: [], wave: [] };
