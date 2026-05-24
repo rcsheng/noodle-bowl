@@ -16,6 +16,7 @@ function score(c: StoryCandidate): number {
   if (c.ingestSource === 'researched') s += 3;
   if (c.summary.length > MIN_SUMMARY_LENGTH) s += 1;
   if (c.hasNumber) s += 1;
+  if (c.tags.includes('weird')) s += 5;  // weird stories are high-value for Lede
   return s;
 }
 
@@ -114,8 +115,8 @@ function main() {
   const sorted = [...freshCandidates].sort((a, b) => score(b) - score(a));
 
   // Each story is used by exactly one game. Selection order determines priority:
-  // Lede first (standard ingest only), then Spread (standard ingest + has number),
-  // then SoF from science/nature/technology stories.
+  // Lede first (all sources including weird), then Spread (standard ingest only, has number),
+  // then SoF from science/nature/technology stories only.
   // Both ID and headline fingerprint are tracked so the same news story covered by two
   // different URLs (different IDs) can't appear in multiple games on the same day.
   const usedIds = new Set<string>();
@@ -133,13 +134,12 @@ function main() {
     return !(fp && usedFingerprints.has(fp));
   }
 
-  // Lede and Spread: exclude weird/scraped stories (daily ingest only)
-  const standardSorted = sorted.filter((c) => !c.tags.includes('weird'));
-
-  const lede = standardSorted.slice(0, TARGET_LEDE);
+  // Lede: all sources (weird stories are high-value here)
+  const lede = sorted.slice(0, TARGET_LEDE);
   lede.forEach(trackUsed);
 
-  const remaining1 = standardSorted.filter(isUnused);
+  // Spread: standard ingest only (no weird), must have a number
+  const remaining1 = sorted.filter((c) => isUnused(c) && !c.tags.includes('weird'));
   const spread = remaining1.filter((c) => c.hasNumber).slice(0, TARGET_SPREAD);
   spread.forEach(trackUsed);
 
