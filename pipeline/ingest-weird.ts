@@ -1,4 +1,4 @@
-// Scrapes "weird/offbeat" story headlines from curated aggregator pages,
+// Scrapes "weird/offbeat" story headlines from curated sources (RSS and HTML),
 // then resolves each to a real news article via TheNewsAPI keyword search.
 // Outputs CandidatesFile to pipeline/data/candidates/YYYY-MM-DD-weird.json.
 // select.ts automatically merges these when present and boosts their Lede score.
@@ -8,7 +8,10 @@ import type { StoryCandidate, CandidatesFile, TheNewsAPIArticle } from './types'
 
 loadEnv();
 
-const SCRAPER_UA = { 'User-Agent': 'NoodleBowlPipeline/1.0 (rcsheng@gmail.com)' };
+// Browser-like UA avoids 403s on sites that block obvious bot agents.
+const SCRAPER_UA = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+};
 
 // --- Domain classification (mirrors ingest.ts) ---
 
@@ -33,7 +36,7 @@ function classify(headline: string, summary: string): { hasNumber: boolean; doma
   return { hasNumber, domain: 'general' };
 }
 
-// --- Headline extraction ---
+// --- Text helpers ---
 
 const STOP_WORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from',
@@ -65,9 +68,13 @@ function decodeEntities(s: string): string {
     .trim();
 }
 
-function extractHTMLHeadlines(html: string, limit = 15): string[] {
+// --- Headline extractors ---
+
+type ScrapedHeadline = { headline: string; scrapedFrom: string };
+
+/** Extracts headlines from h2-h5 tags in HTML pages (e.g. AP News). */
+function extractHTMLHeadlines(html: string, limit = 20): string[] {
   const results: string[] = [];
-  // Match h2-h5 (covers AP News h2/h3, UPI h4/h5, etc.)
   const re = /<h[2-5][^>]*>([\s\S]*?)<\/h[2-5]>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
@@ -78,13 +85,34 @@ function extractHTMLHeadlines(html: string, limit = 15): string[] {
   return [...new Set(results)];
 }
 
-// --- Source scrapers ---
+/** Extracts headlines from RSS/Atom feeds. Handles both plain and CDATA-wrapped titles.
+ *  Skips the first <title> (the channel/feed title itself). */
+function extractRSSHeadlines(xml: string, limit = 20): string[] {
+  const results: string[] = [];
+  // Match each <item> or <entry> block
+  const itemRe = /<(?:item|entry)[\s>][\s\S]*?<\/(?:item|entry)>/gi;
+  let itemMatch: RegExpExecArray | null;
+  while ((itemMatch = itemRe.exec(xml)) !== null) {
+    const block = itemMatch[0];
+    // Extract <title>, handling optional CDATA wrapper
+    const titleMatch = /<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i.exec(block);
+    if (titleMatch) {
+      const text = decodeEntities(titleMatch[1].replace(/<[^>]+>/g, '').trim());
+      if (text.length >= 20 && text.length <= 200) results.push(text);
+    }
+    if (results.length >= limit) break;
+  }
+  return [...new Set(results)];
+}
 
-type ScrapedHeadline = { headline: string; scrapedFrom: string };
-
-async function fetchHTMLSource(url: string, scrapedFrom: string, limit = 15): Promise<ScrapedHeadline[]> {
+async function fetchHTMLSource(url: string, scrapedFrom: string, limit = 20): Promise<ScrapedHeadline[]> {
   const html = await httpGet(url, SCRAPER_UA);
   return extractHTMLHeadlines(html, limit).map((headline) => ({ headline, scrapedFrom }));
+}
+
+async function fetchRSSSource(url: string, scrapedFrom: string, limit = 20): Promise<ScrapedHeadline[]> {
+  const xml = await httpGet(url, SCRAPER_UA);
+  return extractRSSHeadlines(xml, limit).map((headline) => ({ headline, scrapedFrom }));
 }
 
 // --- TheNewsAPI resolver ---
@@ -93,7 +121,7 @@ async function resolveViaNewsAPI(headline: string, token: string): Promise<Story
   const terms = extractKeyTerms(headline);
   if (!terms) return null;
 
-  const url = `https://api.thenewsapi.com/v1/news/all?api_token=${token}&search=${encodeURIComponent(terms)}&locale=us&limit=1`;
+  const url = `https://api.thenewsapi.com/v1/news/all?api_token=${token}&search=${encodeURIComponent(terms)}&language=en&locale=us&limit=1`;
   const raw = JSON.parse(await httpGet(url)) as { data?: TheNewsAPIArticle[] };
   const articles = raw.data ?? [];
   if (!articles.length) return null;
@@ -120,12 +148,39 @@ async function resolveViaNewsAPI(headline: string, token: string): Promise<Story
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Reddit's public JSON API now requires OAuth; removed to avoid 403 errors.
+// Sources are tried in order; failures are non-fatal (logged and skipped).
+// RSS is preferred over HTML where available — more stable than page structure.
 const SOURCES: Array<{ name: string; fetch: () => Promise<ScrapedHeadline[]> }> = [
-  { name: 'apnews/oddities',  fetch: () => fetchHTMLSource('https://apnews.com/oddities', 'apnews/oddities') },
-  { name: 'npr/strange-news', fetch: () => fetchHTMLSource('https://www.npr.org/sections/strange-news/', 'npr/strange-news') },
-  { name: 'sky/offbeat',      fetch: () => fetchHTMLSource('https://news.sky.com/offbeat', 'sky/offbeat') },
-  { name: 'upi/odd-news',     fetch: () => fetchHTMLSource('https://www.upi.com/Odd_News/', 'upi/odd-news') },
+  // HTML scrapers
+  {
+    name: 'apnews/oddities',
+    fetch: () => fetchHTMLSource('https://apnews.com/oddities', 'apnews/oddities'),
+  },
+  // RSS feeds — more reliable than scraping HTML pages
+  {
+    name: 'npr/strange-news',
+    fetch: () => fetchRSSSource('https://feeds.npr.org/1146/rss.xml', 'npr/strange-news'),
+  },
+  {
+    name: 'sky/strange',
+    fetch: () => fetchRSSSource('http://feeds.skynews.com/feeds/rss/strange.xml', 'sky/strange'),
+  },
+  {
+    name: 'upi/odd-news',
+    fetch: () => fetchRSSSource('https://rss.upi.com/news/odd_news.rss', 'upi/odd-news'),
+  },
+  {
+    name: 'mentalfloss',
+    fetch: () => fetchRSSSource('https://mentalfloss.com/rss.xml', 'mentalfloss'),
+  },
+  {
+    name: 'neatorama',
+    fetch: () => fetchRSSSource('https://www.neatorama.com/feed/', 'neatorama'),
+  },
+  {
+    name: 'fark',
+    fetch: () => fetchRSSSource('https://www.fark.com/fark.rss', 'fark'),
+  },
 ];
 
 async function main() {
