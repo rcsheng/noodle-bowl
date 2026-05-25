@@ -1164,3 +1164,164 @@ describe('reducer: MERGE_FROM_SERVER — onboarding merge', () => {
     expect(next.stats.onboarding).toEqual(initialState.stats.onboarding);
   });
 });
+
+// ---------------------------------------------------------------------------
+// MERGE_FROM_SERVER — week-aware streak merge (auth merge bug + shield cap)
+// ---------------------------------------------------------------------------
+describe('reducer: MERGE_FROM_SERVER — week-aware streak merge', () => {
+  // --- Same-week cases (multi-device race) ---
+
+  test('same week: streak is Math.max of server and local — no double-count', () => {
+    // User played on two devices in the same ISO week.
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', weeklyStreak: 1, totalWeeksPlayed: 1 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W21',
+      weeklyStreak: 1,
+      totalWeeksPlayed: 1,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.weeklyStreak).toBe(1);          // not 2
+    expect(next.stats.totalWeeksPlayed).toBe(1);      // not 2
+    expect(next.stats.lastPlayedWeek).toBe('2026-W21');
+  });
+
+  test('same week: higher value wins when devices have diverged within the same week', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', weeklyStreak: 3 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W21',
+      weeklyStreak: 3,
+      totalWeeksPlayed: 3,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.weeklyStreak).toBe(3);
+  });
+
+  // --- Consecutive-week cases (primary auth merge bug) ---
+
+  test('local one week ahead (consecutive): streak = serverStreak + 1', () => {
+    // Anonymous user played W21; server has signed-in history up to W20 with streak=5.
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', weeklyStreak: 1, totalWeeksPlayed: 1 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W20',
+      weeklyStreak: 5,
+      totalWeeksPlayed: 10,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.weeklyStreak).toBe(6); // serverStreak (5) + 1 for local week
+    expect(next.stats.lastPlayedWeek).toBe('2026-W21');
+  });
+
+  test('local one week ahead (consecutive): totalWeeksPlayed = serverTotal + 1', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', weeklyStreak: 1, totalWeeksPlayed: 1 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W20',
+      weeklyStreak: 5,
+      totalWeeksPlayed: 10,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.totalWeeksPlayed).toBe(11); // serverTotal (10) + 1 for local week
+  });
+
+  test('local one week ahead (consecutive): recentPlayedWeeks = server history + localWeek (capped at 6)', () => {
+    const serverRecent = ['2026-W15', '2026-W16', '2026-W17', '2026-W18', '2026-W19', '2026-W20'];
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', weeklyStreak: 1, recentPlayedWeeks: ['2026-W21'] },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W20',
+      weeklyStreak: 5,
+      recentPlayedWeeks: serverRecent,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    // Oldest entry (W15) dropped; local week (W21) appended
+    expect(next.stats.recentPlayedWeeks).toEqual([
+      '2026-W16', '2026-W17', '2026-W18', '2026-W19', '2026-W20', '2026-W21',
+    ]);
+  });
+
+  test('local one week ahead (consecutive): bestWeeklyStreak updated when mergedStreak exceeds it', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', weeklyStreak: 1, bestWeeklyStreak: 5 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W20',
+      weeklyStreak: 5,
+      bestWeeklyStreak: 5,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.weeklyStreak).toBe(6);
+    expect(next.stats.bestWeeklyStreak).toBe(6); // updated to reflect the new merged streak
+  });
+
+  test('local one week ahead (consecutive): shieldSaveWeeks comes from server (not empty local)', () => {
+    const serverShieldSave = ['2026-W18'];
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', weeklyStreak: 1, shieldSaveWeeks: [] },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W20',
+      weeklyStreak: 5,
+      shieldSaveWeeks: serverShieldSave,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.shieldSaveWeeks).toEqual(serverShieldSave);
+  });
+
+  // --- Non-consecutive / gap cases ---
+
+  test('local non-consecutive (large gap, no shields): preserves local streak via Math.max', () => {
+    // User has been playing many weeks on this device; server has old/stale data.
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W17', weeklyStreak: 7, totalWeeksPlayed: 7 },
+    });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      lastPlayedWeek: '2026-W10',
+      weeklyStreak: 3,
+      totalWeeksPlayed: 3,
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.weeklyStreak).toBe(7); // local streak preserved (it's higher)
+  });
+
+  // --- Shield cap ---
+
+  test('streakShieldsAvailable is capped at MAX_SHIELDS (3) even when server has old uncapped value', () => {
+    const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 2 } });
+    const serverStats: AppState['stats'] = {
+      ...initialState.stats,
+      streakShieldsAvailable: 5, // legacy value written before cap was introduced
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.streakShieldsAvailable).toBe(3); // capped at MAX_SHIELDS
+  });
+
+  test('streakShieldsAvailable stays at 3 when both server and local are already at cap', () => {
+    const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 3 } });
+    const serverStats: AppState['stats'] = { ...initialState.stats, streakShieldsAvailable: 3 };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.streakShieldsAvailable).toBe(3);
+  });
+
+  test('streakShieldsAvailable takes Math.max of server and local before cap (local higher)', () => {
+    const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 2 } });
+    const serverStats: AppState['stats'] = { ...initialState.stats, streakShieldsAvailable: 1 };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.streakShieldsAvailable).toBe(2);
+  });
+});

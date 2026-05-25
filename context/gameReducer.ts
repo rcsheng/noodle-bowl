@@ -342,18 +342,76 @@ export function reducer(state: AppState, action: Action): AppState {
       const { serverStats, serverSeen = {}, serverSeenWeek } = action;
       const serverWeek = serverStats.lastPlayedWeek;
       const localWeek = state.stats.lastPlayedWeek;
+
+      // --- Week-aware streak merge ---
+      // When an anonymous user plays a game and then signs in, the local streak (1)
+      // reflects a fresh-start calculation that doesn't know about the user's server
+      // history. We detect the "consecutive week" pattern (local week directly follows
+      // server's last played week) and reconstruct the correct streak from server data.
+      const isLocalConsecutiveAfterServer =
+        localWeek !== null &&
+        serverWeek !== null &&
+        localWeek > serverWeek &&
+        getPreviousWeek(localWeek) === serverWeek;
+
+      let mergedWeeklyStreak: number;
+      let mergedTotalWeeksPlayed: number;
+      let mergedLastPlayedWeek: string | null;
+      let mergedRecentPlayedWeeks: string[];
+      let mergedShieldSaveWeeks: string[];
+
+      if (isLocalConsecutiveAfterServer) {
+        // Local week directly follows server's last played week — the user played on an
+        // anonymous device this week, then signed in. Reconstruct the correct streak by
+        // continuing from server history: serverStreak + 1 for the current (local) week.
+        const serverRecent = Array.isArray(serverStats.recentPlayedWeeks) ? serverStats.recentPlayedWeeks : [];
+        mergedWeeklyStreak = safeNum(serverStats.weeklyStreak, 0) + 1;
+        mergedTotalWeeksPlayed = safeNum(serverStats.totalWeeksPlayed, 0) + 1;
+        mergedLastPlayedWeek = localWeek;
+        mergedRecentPlayedWeeks = [...serverRecent, localWeek].slice(-6);
+        mergedShieldSaveWeeks = Array.isArray(serverStats.shieldSaveWeeks) ? serverStats.shieldSaveWeeks : [];
+      } else {
+        // Same week, server ahead, or non-consecutive gap: use Math.max for streak fields
+        // so a multi-device race never downgrades a value already earned in this session.
+        const serverWinsForStreak = serverWeek !== null && (localWeek === null || serverWeek >= localWeek);
+        mergedWeeklyStreak = Math.max(
+          safeNum(serverStats.weeklyStreak, 0),
+          safeNum(state.stats.weeklyStreak, 0),
+        );
+        mergedTotalWeeksPlayed = Math.max(
+          safeNum(serverStats.totalWeeksPlayed, 0),
+          safeNum(state.stats.totalWeeksPlayed, 0),
+        );
+        mergedLastPlayedWeek = serverWinsForStreak ? serverWeek : localWeek;
+        // recentPlayedWeeks and shieldSaveWeeks: defer to the base-stats spread below,
+        // which picks server or local arrays based on serverWins.
+        mergedRecentPlayedWeeks = serverWinsForStreak
+          ? (Array.isArray(serverStats.recentPlayedWeeks) ? serverStats.recentPlayedWeeks : [])
+          : (Array.isArray(state.stats.recentPlayedWeeks) ? state.stats.recentPlayedWeeks : []);
+        mergedShieldSaveWeeks = serverWinsForStreak
+          ? (Array.isArray(serverStats.shieldSaveWeeks) ? serverStats.shieldSaveWeeks : [])
+          : (Array.isArray(state.stats.shieldSaveWeeks) ? state.stats.shieldSaveWeeks : []);
+      }
+
+      // Shield cap: enforce MAX_SHIELDS regardless of what's stored in Firestore.
+      // Old documents written before the cap was introduced may have values > 3.
+      const mergedShields = Math.min(
+        Math.max(
+          safeNum(serverStats.streakShieldsAvailable, 0),
+          safeNum(state.stats.streakShieldsAvailable, 0),
+        ),
+        MAX_SHIELDS,
+      );
+
+      // For per-game stats (lede, spread, etc.) and other non-streak fields, the
+      // "newer week wins" heuristic selects the most current snapshot as the base.
       const serverWins = serverWeek !== null && (localWeek === null || serverWeek >= localWeek);
       const baseStats = serverWins ? serverStats : state.stats;
-      // Spread initialState.stats first so any field absent from an old Firestore
-      // document gets a safe default, then baseStats overlays the actual data.
-      // Numeric streak fields are then re-assigned explicitly with safeNum so that
-      // NaN values stored by the old bug cannot survive into state. We take the
-      // max of server and local for each count so a multi-device race never
-      // downgrades a value that was already earned in this session.
-      const serverOnboarding: OnboardingFlags = (serverStats as any).onboarding ?? defaultOnboarding;
-      const localOnboarding: OnboardingFlags = state.stats.onboarding ?? defaultOnboarding;
+
       // "Any-true-wins" merge: once a user has seen an onboarding surface on any
       // device, we never show it again. atRiskWeekDismissed takes the later weekId.
+      const serverOnboarding: OnboardingFlags = (serverStats as any).onboarding ?? defaultOnboarding;
+      const localOnboarding: OnboardingFlags = state.stats.onboarding ?? defaultOnboarding;
       const mergedOnboarding: OnboardingFlags = {
         streakIntroSeen: localOnboarding.streakIntroSeen || serverOnboarding.streakIntroSeen,
         shieldPrimerSeen: localOnboarding.shieldPrimerSeen || serverOnboarding.shieldPrimerSeen,
@@ -367,22 +425,17 @@ export function reducer(state: AppState, action: Action): AppState {
       const mergedStats: AppState['stats'] = {
         ...initialState.stats,
         ...baseStats,
-        weeklyStreak: Math.max(
-          safeNum(serverStats.weeklyStreak, 0),
-          safeNum(state.stats.weeklyStreak, 0),
-        ),
+        weeklyStreak: mergedWeeklyStreak,
         bestWeeklyStreak: Math.max(
           safeNum(serverStats.bestWeeklyStreak, 0),
           safeNum(state.stats.bestWeeklyStreak, 0),
+          mergedWeeklyStreak, // ensure best reflects the newly computed streak
         ),
-        totalWeeksPlayed: Math.max(
-          safeNum(serverStats.totalWeeksPlayed, 0),
-          safeNum(state.stats.totalWeeksPlayed, 0),
-        ),
-        streakShieldsAvailable: Math.max(
-          safeNum(serverStats.streakShieldsAvailable, 0),
-          safeNum(state.stats.streakShieldsAvailable, 0),
-        ),
+        lastPlayedWeek: mergedLastPlayedWeek,
+        totalWeeksPlayed: mergedTotalWeeksPlayed,
+        streakShieldsAvailable: mergedShields,
+        recentPlayedWeeks: mergedRecentPlayedWeeks,
+        shieldSaveWeeks: mergedShieldSaveWeeks,
         // showStreakCelebration is a transient session flag — never restore from server,
         // even if old Firestore data has it set to true.
         showStreakCelebration: false,
