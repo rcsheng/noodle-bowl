@@ -4,10 +4,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Masthead } from '@/components/Masthead';
 import { AuthGateTab } from '@/components/AuthGateTab';
+import { ShieldIcon } from '@/components/ui/ShieldIcon';
 import { C, F, cardShadow } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
+
+const MAX_SHIELDS = 3;
+const WEEK_CHAIN_LENGTH = 6;
+
+/** Return the short label for a weekId, e.g. "W21" */
+function weekLabel(weekId: string): string {
+  const m = weekId.match(/W(\d+)$/);
+  return m ? `W${m[1]}` : weekId.slice(-3);
+}
 
 export default function StatsScreen() {
   const { isAnonymous } = useAuth();
@@ -26,7 +36,13 @@ export default function StatsScreen() {
     bestWeeklyStreak,
     totalWeeksPlayed,
     streakShieldsAvailable,
+    recentPlayedWeeks,
+    shieldSaveWeeks,
   } = state.stats;
+
+  // Build the week-chain display: last N played weeks, most-recent last
+  const chainWeeks = (Array.isArray(recentPlayedWeeks) ? recentPlayedWeeks : []).slice(-WEEK_CHAIN_LENGTH);
+  const shieldWeekSet = new Set(Array.isArray(shieldSaveWeeks) ? shieldSaveWeeks : []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -40,6 +56,8 @@ export default function StatsScreen() {
 
         <View style={styles.streakCard}>
           <View style={styles.cardInnerBorder} />
+
+          {/* Top row: streak numbers */}
           <View style={styles.streakRow}>
             <View style={styles.streakBlock}>
               <Text style={styles.streakValue}>{weeklyStreak > 0 ? `🔥 ${weeklyStreak}` : '—'}</Text>
@@ -56,16 +74,71 @@ export default function StatsScreen() {
               <Text style={styles.streakLabel}>Best Streak</Text>
             </View>
           </View>
+
+          {/* Shield slot row */}
           <View style={styles.shieldCardDivider} />
-          <View style={styles.shieldCardRow}>
-            <Text style={styles.shieldCardValue}>
-              {streakShieldsAvailable === 0 ? '—' : `🛡 ${streakShieldsAvailable}`}
-            </Text>
-            <Text style={styles.shieldCardLabel}>
-              {streakShieldsAvailable === 1 ? 'Shield Available' : 'Shields Available'}
+          <Text style={styles.shieldSlotLabel}>SHIELDS</Text>
+          <View style={styles.shieldSlotRow}>
+            {Array.from({ length: MAX_SHIELDS }).map((_, i) => (
+              <ShieldIcon
+                key={i}
+                size={26}
+                variant={i < streakShieldsAvailable ? 'filled' : 'outline'}
+              />
+            ))}
+            <Text style={styles.shieldCount}>
+              {streakShieldsAvailable}/{MAX_SHIELDS}
             </Text>
           </View>
+          <Text style={styles.shieldHint}>
+            {streakShieldsAvailable === 0
+              ? 'Help a friend or answer a challenge to earn one.'
+              : `${streakShieldsAvailable} protect${streakShieldsAvailable > 1 ? ' your' : 's your'} streak if you miss a week.`}
+          </Text>
         </View>
+
+        {/* Week-chain card */}
+        {chainWeeks.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Last {WEEK_CHAIN_LENGTH} Weeks</Text>
+              <View style={styles.sectionLine} />
+            </View>
+            <View style={styles.weekChainCard}>
+              <View style={styles.cardInnerBorder} />
+              <View style={styles.weekChain}>
+                {chainWeeks.map((weekId, i) => {
+                  const isShield = shieldWeekSet.has(weekId);
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.weekBrick,
+                        isShield ? styles.weekBrickShield : styles.weekBrickDone,
+                      ]}
+                    >
+                      <Text style={[styles.weekBrickLabel, isShield && styles.weekBrickLabelGold]}>
+                        {weekLabel(weekId)}
+                      </Text>
+                      {isShield && (
+                        <ShieldIcon size={10} variant="gold" />
+                      )}
+                    </View>
+                  );
+                })}
+                {/* Placeholder for future weeks up to chain length */}
+                {Array.from({ length: Math.max(0, WEEK_CHAIN_LENGTH - chainWeeks.length) }).map((_, i) => (
+                  <View key={`future-${i}`} style={[styles.weekBrick, styles.weekBrickFuture]}>
+                    <Text style={styles.weekBrickLabelMuted}>—</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.weekChainCaption}>
+                🛡 = shield saved your streak that week
+              </Text>
+            </View>
+          </>
+        )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>Per-Game Breakdown</Text>
@@ -193,24 +266,92 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 14,
   },
-  shieldCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  shieldCardValue: {
-    fontFamily: F.frauncesXBold,
-    fontSize: 18,
-    color: C.ink,
-    lineHeight: 22,
-  },
-  shieldCardLabel: {
+  shieldSlotLabel: {
     fontFamily: F.mono,
     fontSize: 9,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: C.muted,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  shieldSlotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  shieldCount: {
+    fontFamily: F.monoBold,
+    fontSize: 13,
+    color: C.muted,
+    marginLeft: 4,
+  },
+  shieldHint: {
+    fontFamily: F.mono,
+    fontSize: 11,
+    color: C.muted,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 16,
+  },
+  weekChainCard: {
+    borderWidth: 1,
+    borderColor: C.rule,
+    backgroundColor: C.paper,
+    padding: 20,
+    marginBottom: 12,
+    ...cardShadow,
+  },
+  weekChain: {
+    flexDirection: 'row',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  weekBrick: {
+    flex: 1,
+    minWidth: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 4,
+  },
+  weekBrickDone: {
+    backgroundColor: C.ink,
+  },
+  weekBrickShield: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#C9A24A',
+  },
+  weekBrickFuture: {
+    backgroundColor: C.paperDarker,
+    borderWidth: 1,
+    borderStyle: 'dashed' as const,
+    borderColor: C.rule,
+  },
+  weekBrickLabel: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 1,
+    color: '#FAF8F3',
+    textTransform: 'uppercase',
+  },
+  weekBrickLabelGold: {
+    color: '#C9A24A',
+  },
+  weekBrickLabelMuted: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    color: C.rule,
+  },
+  weekChainCaption: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    color: C.muted,
+    marginTop: 12,
+    textAlign: 'center',
   },
   gameCard: {
     borderWidth: 1,

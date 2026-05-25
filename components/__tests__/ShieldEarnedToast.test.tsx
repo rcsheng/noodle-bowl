@@ -15,7 +15,8 @@ describe('ShieldEarnedToast', () => {
 
   test('renders the shield-earned label text when visible', () => {
     const { getByText } = render(<ShieldEarnedToast visible={true} />);
-    expect(getByText('🛡 Shield earned')).toBeTruthy();
+    // Emoji replaced by ShieldIcon SVG; text node now reads 'Shield earned'
+    expect(getByText('Shield earned')).toBeTruthy();
   });
 
   test('when visible=false, does not trigger Animated.sequence', () => {

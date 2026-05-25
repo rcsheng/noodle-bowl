@@ -1,13 +1,23 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 
 import { C, F } from '@/constants/theme';
+import { ShieldIcon } from '@/components/ui/ShieldIcon';
 
-export function ShieldEarnedToast({ visible }: { visible: boolean }) {
+// Animated.Text is needed to animate the text alongside the container.
+const AnimatedText = Animated.Text;
+
+interface Props {
+  visible: boolean;
+  /** When true the toast is suppressed — the caller shows FirstShieldEarnedModal instead. */
+  suppressed?: boolean;
+}
+
+export function ShieldEarnedToast({ visible, suppressed = false }: Props) {
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (visible) {
+    if (visible && !suppressed) {
       opacity.setValue(0);
       Animated.sequence([
         Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
@@ -15,12 +25,15 @@ export function ShieldEarnedToast({ visible }: { visible: boolean }) {
         Animated.timing(opacity, { toValue: 0, duration: 280, useNativeDriver: true }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, suppressed, opacity]);
+
+  if (suppressed) return null;
 
   return (
     <Animated.View style={[styles.wrapper, { opacity }]} pointerEvents="none">
       <View style={styles.toast}>
-        <Text style={styles.text}>🛡 Shield earned</Text>
+        <ShieldIcon size={14} variant="filled" />
+        <AnimatedText style={styles.text}>Shield earned</AnimatedText>
       </View>
     </Animated.View>
   );
@@ -37,6 +50,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: C.ink,
     paddingHorizontal: 24,
     paddingVertical: 14,

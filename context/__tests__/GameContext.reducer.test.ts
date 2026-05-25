@@ -13,6 +13,7 @@ function makeState(overrides: Partial<AppState> = {}): AppState {
       sof: { ...initialState.stats.sof, ...(overrides.stats?.sof ?? {}) },
       quip: { ...initialState.stats.quip, ...(overrides.stats?.quip ?? {}) },
       wave: { ...initialState.stats.wave, ...(overrides.stats?.wave ?? {}) },
+      onboarding: { ...(initialState.stats.onboarding ?? {}), ...(overrides.stats?.onboarding ?? {}) },
     },
     seen: {
       ...initialState.seen,
@@ -634,24 +635,24 @@ describe('reducer: EARN_SHIELD', () => {
     expect(next.stats.streakShieldsAvailable).toBe(2);
   });
 
-  test('has no cap — increments past 3', () => {
+  test('clamps at MAX_SHIELDS (3) — will not exceed cap', () => {
     const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 3 } });
     const next = reducer(state, action);
-    expect(next.stats.streakShieldsAvailable).toBe(4);
+    expect(next.stats.streakShieldsAvailable).toBe(3); // capped at MAX_SHIELDS
   });
 
-  test('keeps incrementing on repeated dispatches (e.g., reaches 12)', () => {
+  test('stays at cap when dispatched repeatedly past 3', () => {
     let state: AppState = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 0 } });
-    for (let i = 0; i < 12; i++) state = reducer(state, action);
-    expect(state.stats.streakShieldsAvailable).toBe(12);
+    for (let i = 0; i < 5; i++) state = reducer(state, action);
+    expect(state.stats.streakShieldsAvailable).toBe(3); // cap = MAX_SHIELDS
   });
 
   test('reducer is auth-agnostic — same increment regardless of any external auth state', () => {
     // Reducer takes no auth context; regression guard against re-introducing
     // a "skip earn for anonymous" gate inside the reducer itself.
-    const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 5 } });
+    const state = makeState({ stats: { ...initialState.stats, streakShieldsAvailable: 1 } });
     const next = reducer(state, action);
-    expect(next.stats.streakShieldsAvailable).toBe(6);
+    expect(next.stats.streakShieldsAvailable).toBe(2);
   });
 });
 
@@ -872,5 +873,294 @@ describe('reducer: immutability', () => {
     const state = makeState();
     const next = reducer(state, { type: 'UPDATE_STATS', game: 'lede', correct: true, today: '2026-04-26' });
     expect(next.stats).not.toBe(state.stats);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// initialState — onboarding defaults
+// ---------------------------------------------------------------------------
+describe('initialState: onboarding field', () => {
+  test('onboarding defaults all boolean flags to false', () => {
+    expect(initialState.stats.onboarding.streakIntroSeen).toBe(false);
+    expect(initialState.stats.onboarding.shieldPrimerSeen).toBe(false);
+    expect(initialState.stats.onboarding.firstShieldEarnedSeen).toBe(false);
+    expect(initialState.stats.onboarding.firstShieldSaveSeen).toBe(false);
+  });
+
+  test('atRiskWeekDismissed defaults to null', () => {
+    expect(initialState.stats.onboarding.atRiskWeekDismissed).toBeNull();
+  });
+
+  test('recentPlayedWeeks defaults to empty array', () => {
+    expect(initialState.stats.recentPlayedWeeks).toEqual([]);
+  });
+
+  test('shieldSaveWeeks defaults to empty array', () => {
+    expect(initialState.stats.shieldSaveWeeks).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DISMISS_ONBOARDING_FLAG
+// ---------------------------------------------------------------------------
+describe('reducer: DISMISS_ONBOARDING_FLAG', () => {
+  test('sets streakIntroSeen to true', () => {
+    const state = makeState();
+    const next = reducer(state, { type: 'DISMISS_ONBOARDING_FLAG', flag: 'streakIntroSeen' });
+    expect(next.stats.onboarding.streakIntroSeen).toBe(true);
+  });
+
+  test('sets shieldPrimerSeen to true', () => {
+    const state = makeState();
+    const next = reducer(state, { type: 'DISMISS_ONBOARDING_FLAG', flag: 'shieldPrimerSeen' });
+    expect(next.stats.onboarding.shieldPrimerSeen).toBe(true);
+  });
+
+  test('sets firstShieldEarnedSeen to true', () => {
+    const state = makeState();
+    const next = reducer(state, { type: 'DISMISS_ONBOARDING_FLAG', flag: 'firstShieldEarnedSeen' });
+    expect(next.stats.onboarding.firstShieldEarnedSeen).toBe(true);
+  });
+
+  test('sets firstShieldSaveSeen to true', () => {
+    const state = makeState();
+    const next = reducer(state, { type: 'DISMISS_ONBOARDING_FLAG', flag: 'firstShieldSaveSeen' });
+    expect(next.stats.onboarding.firstShieldSaveSeen).toBe(true);
+  });
+
+  test('is a no-op when flag is already true', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        onboarding: { ...initialState.stats.onboarding, streakIntroSeen: true },
+      },
+    });
+    const next = reducer(state, { type: 'DISMISS_ONBOARDING_FLAG', flag: 'streakIntroSeen' });
+    expect(next).toBe(state);
+  });
+
+  test('does not mutate other onboarding flags', () => {
+    const state = makeState();
+    const next = reducer(state, { type: 'DISMISS_ONBOARDING_FLAG', flag: 'streakIntroSeen' });
+    expect(next.stats.onboarding.shieldPrimerSeen).toBe(false);
+    expect(next.stats.onboarding.firstShieldEarnedSeen).toBe(false);
+    expect(next.stats.onboarding.firstShieldSaveSeen).toBe(false);
+    expect(next.stats.onboarding.atRiskWeekDismissed).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DISMISS_AT_RISK
+// ---------------------------------------------------------------------------
+describe('reducer: DISMISS_AT_RISK', () => {
+  test('sets atRiskWeekDismissed to the given weekId', () => {
+    const state = makeState();
+    const next = reducer(state, { type: 'DISMISS_AT_RISK', weekId: '2026-W22' });
+    expect(next.stats.onboarding.atRiskWeekDismissed).toBe('2026-W22');
+  });
+
+  test('is a no-op when already dismissed for the same weekId', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        onboarding: { ...initialState.stats.onboarding, atRiskWeekDismissed: '2026-W22' },
+      },
+    });
+    const next = reducer(state, { type: 'DISMISS_AT_RISK', weekId: '2026-W22' });
+    expect(next).toBe(state);
+  });
+
+  test('updates when weekId changes (new week)', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        onboarding: { ...initialState.stats.onboarding, atRiskWeekDismissed: '2026-W21' },
+      },
+    });
+    const next = reducer(state, { type: 'DISMISS_AT_RISK', weekId: '2026-W22' });
+    expect(next.stats.onboarding.atRiskWeekDismissed).toBe('2026-W22');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UPDATE_WEEKLY_STREAK — week history tracking
+// ---------------------------------------------------------------------------
+describe('reducer: UPDATE_WEEKLY_STREAK — week history', () => {
+  const action = (weekId: string): Action => ({ type: 'UPDATE_WEEKLY_STREAK', weekId });
+
+  test('appends weekId to recentPlayedWeeks on first play', () => {
+    const state = makeState({ stats: { ...initialState.stats, lastPlayedWeek: null } });
+    const next = reducer(state, action('2026-W22'));
+    expect(next.stats.recentPlayedWeeks).toContain('2026-W22');
+  });
+
+  test('appends weekId to recentPlayedWeeks on consecutive play', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', recentPlayedWeeks: ['2026-W21'] },
+    });
+    const next = reducer(state, action('2026-W22'));
+    expect(next.stats.recentPlayedWeeks).toContain('2026-W22');
+  });
+
+  test('recentPlayedWeeks is capped at 6 entries (oldest dropped)', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedWeek: '2026-W21',
+        recentPlayedWeeks: ['2026-W16', '2026-W17', '2026-W18', '2026-W19', '2026-W20', '2026-W21'],
+      },
+    });
+    const next = reducer(state, action('2026-W22'));
+    expect(next.stats.recentPlayedWeeks).toHaveLength(6);
+    expect(next.stats.recentPlayedWeeks).not.toContain('2026-W16');
+    expect(next.stats.recentPlayedWeeks[5]).toBe('2026-W22');
+  });
+
+  test('appends weekId to shieldSaveWeeks when a shield is consumed', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedWeek: '2026-W10',
+        weeklyStreak: 5,
+        streakShieldsAvailable: 1,
+        shieldSaveWeeks: [],
+      },
+    });
+    const next = reducer(state, action('2026-W17'));
+    expect(next.stats.shieldSaveWeeks).toContain('2026-W17');
+  });
+
+  test('does NOT append to shieldSaveWeeks on normal consecutive play', () => {
+    const state = makeState({
+      stats: { ...initialState.stats, lastPlayedWeek: '2026-W21', shieldSaveWeeks: [] },
+    });
+    const next = reducer(state, action('2026-W22'));
+    expect(next.stats.shieldSaveWeeks).toHaveLength(0);
+  });
+
+  test('is a no-op for recentPlayedWeeks when same-week guard fires (streak > 0)', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        lastPlayedWeek: '2026-W22',
+        weeklyStreak: 3,
+        recentPlayedWeeks: ['2026-W22'],
+      },
+    });
+    const next = reducer(state, action('2026-W22'));
+    expect(next).toBe(state); // no-op — same reference
+  });
+});
+
+// ---------------------------------------------------------------------------
+// LOAD — onboarding field compatibility
+// ---------------------------------------------------------------------------
+describe('reducer: LOAD — onboarding compatibility', () => {
+  test('defaults onboarding to all-false when absent from stored payload', () => {
+    const next = reducer(makeState(), { type: 'LOAD', payload: {} });
+    expect(next.stats.onboarding).toEqual({
+      streakIntroSeen: false,
+      shieldPrimerSeen: false,
+      firstShieldEarnedSeen: false,
+      firstShieldSaveSeen: false,
+      atRiskWeekDismissed: null,
+    });
+  });
+
+  test('restores onboarding flags from stored payload', () => {
+    const next = reducer(makeState(), {
+      type: 'LOAD',
+      payload: {
+        stats: {
+          onboarding: {
+            streakIntroSeen: true,
+            shieldPrimerSeen: false,
+            firstShieldEarnedSeen: true,
+            firstShieldSaveSeen: false,
+            atRiskWeekDismissed: '2026-W20',
+          },
+        } as any,
+      },
+    });
+    expect(next.stats.onboarding.streakIntroSeen).toBe(true);
+    expect(next.stats.onboarding.firstShieldEarnedSeen).toBe(true);
+    expect(next.stats.onboarding.atRiskWeekDismissed).toBe('2026-W20');
+  });
+
+  test('defaults recentPlayedWeeks to [] when absent from stored payload', () => {
+    const next = reducer(makeState(), { type: 'LOAD', payload: {} });
+    expect(next.stats.recentPlayedWeeks).toEqual([]);
+  });
+
+  test('restores recentPlayedWeeks from stored payload', () => {
+    const next = reducer(makeState(), {
+      type: 'LOAD',
+      payload: { stats: { recentPlayedWeeks: ['2026-W20', '2026-W21'] } as any },
+    });
+    expect(next.stats.recentPlayedWeeks).toEqual(['2026-W20', '2026-W21']);
+  });
+
+  test('defaults shieldSaveWeeks to [] when absent', () => {
+    const next = reducer(makeState(), { type: 'LOAD', payload: {} });
+    expect(next.stats.shieldSaveWeeks).toEqual([]);
+  });
+
+  test('restores shieldSaveWeeks from stored payload', () => {
+    const next = reducer(makeState(), {
+      type: 'LOAD',
+      payload: { stats: { shieldSaveWeeks: ['2026-W15'] } as any },
+    });
+    expect(next.stats.shieldSaveWeeks).toEqual(['2026-W15']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MERGE_FROM_SERVER — onboarding merge
+// ---------------------------------------------------------------------------
+describe('reducer: MERGE_FROM_SERVER — onboarding merge', () => {
+  test('any-true-wins: server true overrides local false', () => {
+    const state = makeState();
+    const serverStats: AppState['stats'] = {
+      ...state.stats,
+      onboarding: {
+        ...initialState.stats.onboarding,
+        streakIntroSeen: true,
+      },
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.onboarding.streakIntroSeen).toBe(true);
+  });
+
+  test('any-true-wins: local true preserved when server is false', () => {
+    const state = makeState({
+      stats: {
+        ...initialState.stats,
+        onboarding: { ...initialState.stats.onboarding, shieldPrimerSeen: true },
+      },
+    });
+    const serverStats: AppState['stats'] = {
+      ...state.stats,
+      onboarding: { ...initialState.stats.onboarding, shieldPrimerSeen: false },
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.onboarding.shieldPrimerSeen).toBe(true);
+  });
+
+  test('uses server atRiskWeekDismissed when local is null', () => {
+    const state = makeState();
+    const serverStats: AppState['stats'] = {
+      ...state.stats,
+      onboarding: { ...initialState.stats.onboarding, atRiskWeekDismissed: '2026-W21' },
+    };
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.onboarding.atRiskWeekDismissed).toBe('2026-W21');
+  });
+
+  test('defaults onboarding to all-false when serverStats lacks the field (old Firestore data)', () => {
+    const state = makeState();
+    const serverStats = { ...state.stats } as any;
+    delete serverStats.onboarding;
+    const next = reducer(state, { type: 'MERGE_FROM_SERVER', serverStats });
+    expect(next.stats.onboarding).toEqual(initialState.stats.onboarding);
   });
 });

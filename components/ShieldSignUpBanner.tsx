@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { C, F, cardShadow } from '@/constants/theme';
+import { ShieldIcon } from '@/components/ui/ShieldIcon';
 
 interface Props {
   onCreateAccount: () => void;
@@ -21,7 +22,10 @@ export function ShieldSignUpBanner({ onCreateAccount, onSignIn, onDismiss, helpS
           <View style={styles.divider} />
         </>
       )}
-      <Text style={styles.heading}>🛡 Sign up to keep your shield</Text>
+      <View style={styles.headingRow}>
+        <ShieldIcon size={18} variant="filled" />
+        <Text style={styles.heading}>Sign up to keep your shield</Text>
+      </View>
       <Text style={styles.body}>
         Help a friend or answer a challenge to earn a streak shield. Each shield protects your
         streak for one missed day — but you need an account to keep them.
@@ -73,11 +77,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(42,36,29,0.15)',
     pointerEvents: 'none',
   },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
   heading: {
     fontFamily: F.frauncesBold,
     fontSize: 18,
     color: C.ink,
-    marginBottom: 8,
+    flex: 1,
   },
   helpSentHeading: {
     fontFamily: F.frauncesBold,

@@ -1,0 +1,2088 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Streak &amp; Shield Onboarding — Noodle Bowl Design Doc</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,600;1,9..144,700;1,9..144,800&family=JetBrains+Mono:wght@400;500;700&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* === Tokens (from constants/theme.ts) ============================== */
+  :root {
+    --ink: #1a2030;
+    --paper: #e8eef3;
+    --paper-dark: #d8e1ea;
+    --paper-darker: #c4d0dc;
+    --rule: #2a3548;
+    --accent: #b84a35;
+    --accent-warm: #d97a3c;
+    --gold: #b8902c;
+    --green: #4a7a3e;
+    --blue: #3a5a7a;
+    --muted: #5a6878;
+    --on-dark: #e8eef3;
+
+    --serif: 'Fraunces', Georgia, serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* duolingo reference palette */
+    --duo-green: #58cc02;
+    --duo-green-dark: #58a700;
+    --duo-blue: #1cb0f6;
+    --duo-purple: #ce82ff;
+    --duo-yellow: #ffc800;
+    --duo-orange: #ff9600;
+    --duo-red: #ff4b4b;
+    --duo-ink: #3c3c3c;
+    --duo-muted: #777;
+    --duo-bg: #fff;
+    --duo-paper: #f7f7f7;
+    --duo-rule: #e5e5e5;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === Top masthead bar ============================================== */
+  .doc-bar {
+    border-bottom: 2px solid var(--rule);
+    padding: 14px 36px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 24px;
+    background: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .doc-bar .crumb {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .doc-bar .crumb b { color: var(--ink); }
+  .doc-bar .status {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+  }
+
+  /* === Page width =================================================== */
+  .page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 36px;
+  }
+  .page--narrow {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 36px;
+  }
+
+  /* === Hero ========================================================== */
+  .hero {
+    padding: 88px 0 64px;
+    border-bottom: 1px solid var(--paper-darker);
+  }
+  .hero .kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2.6px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 22px;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 78px;
+    line-height: 0.96;
+    letter-spacing: -1.5px;
+    margin: 0 0 28px;
+    color: var(--ink);
+    max-width: 980px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+    font-weight: 800;
+  }
+  .hero .lede {
+    font-family: var(--serif);
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--muted);
+    max-width: 720px;
+    margin: 0;
+  }
+  .hero .meta {
+    margin-top: 40px;
+    display: flex;
+    gap: 32px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .hero .meta span b { color: var(--ink); display: block; margin-top: 4px; font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 14px; letter-spacing: 0; text-transform: none; }
+
+  /* === TL;DR pull box =============================================== */
+  .tldr {
+    border: 1px solid var(--rule);
+    background: var(--paper-dark);
+    padding: 32px 36px;
+    margin: 56px 0 0;
+    position: relative;
+  }
+  .tldr::before, .tldr::after { content: ''; position: absolute; left: 4px; right: 4px; border: 1px solid rgba(42,53,72,0.18); pointer-events: none; }
+  .tldr::before { top: 4px; bottom: 4px; }
+  .tldr .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .tldr h2 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.3;
+    margin: 0;
+    color: var(--ink);
+  }
+  .tldr ul {
+    margin: 18px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .tldr li {
+    border-top: 1px solid rgba(42,53,72,0.25);
+    padding-top: 12px;
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .tldr li b {
+    display: block;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  /* === Section scaffolding ========================================== */
+  section { padding: 88px 0; border-bottom: 1px solid var(--paper-darker); }
+  section.dark { background: var(--ink); color: var(--on-dark); border-bottom-color: var(--rule); }
+  section.dark .section-kicker { color: var(--accent-warm); }
+  section.dark .section-title { color: var(--on-dark); }
+  section.dark .section-intro { color: #b8c4d4; }
+
+  .section-head { max-width: 920px; margin-bottom: 56px; }
+  .section-kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2.6px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .section-num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--muted);
+    margin-left: 10px;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-weight: 800;
+    font-style: italic;
+    font-size: 52px;
+    line-height: 1.02;
+    letter-spacing: -0.8px;
+    margin: 0 0 24px;
+    color: var(--ink);
+  }
+  .section-intro {
+    font-family: var(--serif);
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 680px;
+    margin: 0;
+  }
+  .section-intro b { color: var(--ink); font-weight: 600; }
+
+  h3.sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 28px;
+    margin: 64px 0 18px;
+    color: var(--ink);
+  }
+  section.dark h3.sub { color: var(--on-dark); }
+
+  p.body {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink);
+    max-width: 680px;
+  }
+  section.dark p.body { color: #c8d4e4; }
+
+  /* === Current state audit grid ===================================== */
+  .audit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 32px;
+  }
+  .audit-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 18px 18px 20px;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .audit-card::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(42,53,72,0.15); pointer-events: none; }
+  .audit-card .a-kicker {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .audit-card .a-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink);
+    margin: 0 0 14px;
+    line-height: 1.2;
+  }
+  .audit-card .a-mock {
+    background: var(--paper-dark);
+    border: 1px solid var(--paper-darker);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .audit-card .a-note {
+    font-family: var(--serif);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  .audit-card .a-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    margin-top: 12px;
+  }
+  .audit-card .a-tag.ok { border-color: var(--green); color: var(--green); }
+  .audit-card .a-tag.warn { border-color: var(--accent-warm); color: var(--accent-warm); }
+
+  /* mini mocks inside audit cards */
+  .mini-masthead-chip { font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--ink); letter-spacing: 0.8px; }
+  .mini-toast { background: var(--ink); color: var(--on-dark); padding: 9px 14px; font-family: var(--mono); font-weight: 700; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; border: 1px solid var(--accent); }
+  .mini-banner { width: 100%; border: 1px solid var(--accent); background: var(--paper); padding: 10px 12px; text-align: left; }
+  .mini-banner .b-l { font-family: var(--mono); font-weight: 700; font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+  .mini-banner .b-t { font-family: var(--serif); font-size: 12px; color: var(--ink); }
+  .mini-modal {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 14px 8px 12px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 2px 2px 0 var(--rule);
+  }
+  .mini-modal .m-k { font-family: var(--mono); font-size: 8px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--muted); }
+  .mini-modal .m-n { font-family: var(--serif); font-style: italic; font-weight: 800; font-size: 36px; color: var(--ink); line-height: 1; margin: 2px 0; }
+  .mini-modal .m-d { font-family: var(--serif); font-style: italic; font-size: 10px; color: var(--muted); }
+
+  /* === Duolingo reference frame ==================================== */
+  .duo-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-top: 16px;
+  }
+  .duo-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .duo-frame-wrap {
+    background: linear-gradient(180deg, #fff7d6 0%, #ffe9c0 100%);
+    border: 1px solid var(--rule);
+    padding: 14px;
+    box-shadow: 3px 3px 0 var(--rule);
+    position: relative;
+  }
+  .duo-frame-wrap::after {
+    content: 'REF · DUOLINGO';
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    background: var(--paper);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 8px;
+    letter-spacing: 1.4px;
+    color: var(--accent);
+    padding: 2px 8px;
+    border: 1px solid var(--accent);
+  }
+
+  .duo-screen {
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: var(--duo-ink);
+    background: var(--duo-bg);
+    border-radius: 24px;
+    overflow: hidden;
+    aspect-ratio: 9 / 19.5;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ddd;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.04) inset;
+  }
+  .duo-screen .duo-status {
+    height: 16px;
+    background: var(--duo-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 7px;
+    color: var(--duo-muted);
+  }
+  .duo-screen .duo-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px 16px;
+    text-align: center;
+  }
+  .duo-screen .duo-close {
+    text-align: left;
+    color: var(--duo-muted);
+    font-size: 16px;
+    font-weight: 900;
+    margin-bottom: 6px;
+  }
+  .duo-screen .duo-flame {
+    font-size: 56px;
+    margin: 18px 0 8px;
+  }
+  .duo-screen .duo-num {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--duo-orange);
+  }
+  .duo-screen .duo-num.small { font-size: 38px; }
+  .duo-screen .duo-label {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--duo-ink);
+    margin-top: 4px;
+  }
+  .duo-screen .duo-headline {
+    font-weight: 900;
+    font-size: 15px;
+    line-height: 1.25;
+    color: var(--duo-ink);
+    margin: 14px 0 8px;
+  }
+  .duo-screen .duo-sub {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--duo-muted);
+    margin-bottom: 14px;
+  }
+  .duo-screen .duo-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    margin: 8px 0 14px;
+  }
+  .duo-screen .duo-day {
+    aspect-ratio: 1;
+    border: 1.5px dashed #e5e5e5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    color: var(--duo-muted);
+    font-weight: 800;
+  }
+  .duo-screen .duo-day.done {
+    background: var(--duo-orange);
+    border-color: var(--duo-orange);
+    color: white;
+  }
+  .duo-screen .duo-day.today {
+    border: 1.5px solid var(--duo-orange);
+    color: var(--duo-orange);
+    background: #fff7e6;
+  }
+  .duo-screen .duo-btn {
+    margin-top: auto;
+    background: var(--duo-green);
+    color: white;
+    text-transform: uppercase;
+    font-weight: 900;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 11px 0;
+    border-radius: 12px;
+    box-shadow: 0 3px 0 var(--duo-green-dark);
+  }
+  .duo-screen .duo-ice {
+    width: 70px; height: 70px;
+    margin: 22px auto 8px;
+    background: var(--duo-blue);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 32px;
+    box-shadow: 0 4px 0 #1690cc;
+  }
+  .duo-screen .duo-freeze-slot {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 12px 0 8px;
+  }
+  .duo-screen .duo-freeze-slot .slot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--duo-paper);
+    border: 1.5px solid var(--duo-rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+  .duo-screen .duo-freeze-slot .slot.filled {
+    background: var(--duo-blue);
+    border-color: var(--duo-blue);
+    color: white;
+  }
+  .duo-screen .duo-pill {
+    display: inline-block;
+    background: #e8f6ff;
+    color: var(--duo-blue);
+    font-weight: 800;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    margin-bottom: 10px;
+  }
+
+  .duo-card .duo-notes {
+    color: var(--on-dark);
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .duo-card .duo-notes .nk {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--accent-warm);
+    display: block;
+    margin: 8px 0 4px;
+  }
+  .duo-card .duo-notes b { color: var(--on-dark); font-weight: 600; }
+  .duo-card .duo-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--on-dark);
+    margin: 0;
+  }
+
+  /* === "What we steal" table ======================================== */
+  .takeaways {
+    margin-top: 64px;
+    border: 1px solid #4a5468;
+  }
+  .takeaways .row {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    border-bottom: 1px solid #38425a;
+  }
+  .takeaways .row:last-child { border-bottom: 0; }
+  .takeaways .row.head {
+    background: rgba(255,255,255,0.04);
+  }
+  .takeaways .cell {
+    padding: 18px 22px;
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.45;
+    color: #c8d4e4;
+    border-right: 1px solid #38425a;
+  }
+  .takeaways .cell:last-child { border-right: 0; }
+  .takeaways .cell.k {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--accent-warm);
+  }
+  .takeaways .row.head .cell {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--on-dark);
+  }
+  .takeaways .cell b { color: var(--on-dark); font-weight: 600; }
+
+  /* === Principles =================================================== */
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+  }
+  .principle {
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 32px 36px;
+    background: var(--paper);
+    position: relative;
+  }
+  .principle .p-num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 800;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .principle h4 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 24px;
+    margin: 0 0 14px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .principle p {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .principle .vs {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--paper-darker);
+  }
+  .principle .vs b { color: var(--ink); font-weight: 700; }
+
+  /* === Trigger map (timeline) ====================================== */
+  .timeline {
+    margin-top: 40px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 36px 28px 28px;
+    overflow-x: auto;
+    box-shadow: 3px 3px 0 var(--rule);
+    position: relative;
+  }
+  .timeline::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(42,53,72,0.15); pointer-events: none; }
+  .timeline .track {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    position: relative;
+    padding-top: 28px;
+  }
+  .timeline .week-rail {
+    position: absolute;
+    top: 14px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--ink);
+  }
+  .timeline .week-tick {
+    text-align: center;
+    position: relative;
+    padding-top: 18px;
+  }
+  .timeline .week-tick::before {
+    content: '';
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px; height: 12px;
+    background: var(--ink);
+    border-radius: 50%;
+    border: 3px solid var(--paper);
+    box-shadow: 0 0 0 2px var(--ink);
+  }
+  .timeline .week-tick .week-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .timeline .week-tick .week-event {
+    background: var(--paper-dark);
+    border: 1px solid var(--rule);
+    padding: 10px 8px;
+    font-family: var(--serif);
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--ink);
+    text-align: left;
+    min-height: 100px;
+  }
+  .timeline .week-tick .week-event b {
+    display: block;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .timeline .week-tick.empty .week-event {
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--paper-darker);
+    color: var(--muted);
+    font-style: italic;
+  }
+  .timeline .week-tick.empty::before { background: var(--paper); border-color: var(--paper); box-shadow: 0 0 0 2px var(--muted); }
+
+  /* === Phone mock framework ========================================= */
+  .mock-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 56px 40px;
+    margin-top: 40px;
+  }
+  .mock {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  .mock--wide { grid-column: span 2; grid-template-columns: 320px 1fr; }
+
+  .phone {
+    width: 280px;
+    aspect-ratio: 9 / 19.5;
+    background: var(--ink);
+    border-radius: 38px;
+    padding: 8px;
+    box-shadow: 6px 6px 0 var(--rule);
+    position: relative;
+  }
+  .phone--big { width: 320px; }
+  .phone .screen {
+    width: 100%;
+    height: 100%;
+    background: var(--paper);
+    border-radius: 30px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .phone .notch {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px; height: 22px;
+    background: var(--ink);
+    border-radius: 14px;
+    z-index: 5;
+  }
+  .phone .status {
+    height: 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 22px 4px;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 9px;
+    color: var(--ink);
+    letter-spacing: 0.6px;
+  }
+  .phone .scr-body { flex: 1; padding: 14px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+
+  /* small masthead in phone screens */
+  .mh {
+    border-top: 1.5px solid var(--rule);
+    border-bottom: 1.5px solid var(--rule);
+    padding: 8px 0;
+    text-align: center;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .mh::before, .mh::after { content: ''; position: absolute; left: 0; right: 0; height: 1.5px; background: var(--rule); }
+  .mh::before { top: -3px; }
+  .mh::after { bottom: -3px; }
+  .mh .mh-date { font-family: var(--mono); font-size: 6.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .mh .mh-title { font-family: var(--serif); font-style: italic; font-weight: 800; font-size: 22px; line-height: 1.05; }
+  .mh .mh-title em { color: var(--accent); font-style: italic; font-weight: 400; }
+  .mh .mh-streak { font-family: var(--mono); font-weight: 700; font-size: 8px; color: var(--ink); margin-top: 4px; letter-spacing: 0.6px; }
+
+  /* dim overlay for modal screens */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(26,32,48,0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    border-radius: 30px;
+  }
+  .modal-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 20px 16px 18px;
+    width: 100%;
+    box-shadow: 3px 3px 0 var(--rule);
+    position: relative;
+    text-align: center;
+  }
+  .modal-card::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(42,53,72,0.18); pointer-events: none; }
+  .modal-card .kicker { font-family: var(--mono); font-size: 8px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .modal-card .big-num { font-family: var(--serif); font-style: italic; font-weight: 800; font-size: 64px; line-height: 1; color: var(--ink); margin: 0 0 4px; }
+  .modal-card .label { font-family: var(--serif); font-style: italic; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .modal-card .msg { font-family: var(--serif); font-size: 11px; line-height: 1.45; color: var(--ink); margin-bottom: 14px; padding: 0 4px; }
+  .modal-card .pri-btn { display: block; background: var(--ink); color: var(--on-dark); font-family: var(--mono); font-weight: 700; font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; padding: 9px 0; margin: 0 0 6px; text-align: center; }
+  .modal-card .sec-btn { display: block; color: var(--muted); font-family: var(--mono); font-size: 8px; letter-spacing: 1.2px; text-transform: uppercase; padding: 6px 0; text-align: center; }
+
+  /* progress dots */
+  .dots {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin: 0 0 12px;
+  }
+  .dots .d {
+    width: 6px; height: 6px;
+    background: var(--paper-darker);
+    border-radius: 50%;
+  }
+  .dots .d.on { background: var(--accent); width: 18px; border-radius: 4px; }
+
+  /* week-chain visualization */
+  .week-chain {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin: 8px 0 14px;
+  }
+  .week-chain .wk {
+    width: 22px; height: 22px;
+    border: 1px solid var(--paper-darker);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .week-chain .wk.done { background: var(--ink); color: var(--on-dark); border-color: var(--ink); }
+  .week-chain .wk.now { background: var(--accent); color: var(--on-dark); border-color: var(--accent); }
+  .week-chain .wk.shield { background: var(--paper); border-color: var(--gold); color: var(--gold); }
+  .week-chain .wk.future { border-style: dashed; }
+
+  /* shield slot row */
+  .slot-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px 0 12px;
+  }
+  .shield-slot {
+    width: 30px; height: 36px;
+    border: 1.5px solid var(--paper-darker);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
+    background: var(--paper-dark);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .shield-slot.filled { background: var(--accent); border-color: var(--accent); color: var(--on-dark); }
+  .shield-slot.filled svg { display: block; }
+  .shield-slot.empty { color: var(--paper-darker); }
+
+  /* annotation block right of phone */
+  .annot { padding-top: 8px; }
+  .annot .a-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .annot h4 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.15;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+  .annot p { font-family: var(--serif); font-size: 15px; line-height: 1.55; color: var(--ink); margin: 0 0 14px; }
+  .annot .meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-top: 1px dashed var(--paper-darker);
+    padding-top: 12px;
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 6px 14px;
+  }
+  .annot .meta b { color: var(--ink); font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; }
+
+  /* generic 'home row' inside phone for context */
+  .game-row {
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .game-row:first-of-type { border-top: 1px solid var(--rule); }
+  .game-row .gr-num { font-family: var(--mono); font-size: 7px; color: var(--muted); width: 18px; padding-top: 2px; letter-spacing: 0.6px; }
+  .game-row .gr-mid { flex: 1; }
+  .game-row .gr-title { font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 12px; line-height: 1.1; color: var(--ink); }
+  .game-row .gr-meta { font-family: var(--mono); font-size: 6px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .game-row .gr-play { background: var(--ink); color: var(--on-dark); font-family: var(--mono); font-weight: 700; font-size: 7px; letter-spacing: 1px; padding: 3px 6px; align-self: flex-start; margin-top: 6px; }
+
+  /* in-screen 'inline' banner */
+  .inline-banner {
+    border: 1.5px solid var(--accent);
+    background: var(--paper);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .inline-banner::before { content: ''; position: absolute; inset: 3px; border: 1px solid rgba(184,74,53,0.25); pointer-events: none; }
+  .inline-banner .ib-l { font-family: var(--mono); font-weight: 700; font-size: 8px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+  .inline-banner .ib-t { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 13px; line-height: 1.25; color: var(--ink); margin-bottom: 8px; }
+  .inline-banner .ib-row { display: flex; gap: 6px; }
+  .inline-banner .ib-btn { flex: 1; background: var(--ink); color: var(--on-dark); font-family: var(--mono); font-weight: 700; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; padding: 6px 0; text-align: center; }
+  .inline-banner .ib-btn.outline { background: var(--paper); color: var(--ink); border: 1px solid var(--ink); }
+
+  /* shield SVG component reused */
+  .shield-svg { display: inline-block; }
+
+  /* icon explorations */
+  .icon-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .icon-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 36px 24px 22px;
+    text-align: center;
+    box-shadow: 3px 3px 0 var(--rule);
+    position: relative;
+  }
+  .icon-card::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(42,53,72,0.15); pointer-events: none; }
+  .icon-card .demo { height: 88px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; font-size: 56px; }
+  .icon-card .name { font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 20px; color: var(--ink); margin-bottom: 4px; }
+  .icon-card .kind { font-family: var(--mono); font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .icon-card .pros, .icon-card .cons {
+    font-family: var(--serif); font-size: 13px; color: var(--ink); text-align: left; line-height: 1.45;
+    padding: 8px 0; border-top: 1px dashed var(--paper-darker);
+  }
+  .icon-card .pros b, .icon-card .cons b {
+    font-family: var(--mono); font-weight: 700; font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; display: block; margin-bottom: 4px;
+  }
+  .icon-card .pros b { color: var(--green); }
+  .icon-card .cons b { color: var(--accent); }
+
+  /* open questions */
+  .questions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+  }
+  .q {
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 24px 28px;
+    background: var(--paper);
+  }
+  .q .qq {
+    font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 19px; color: var(--ink); margin: 0 0 8px;
+  }
+  .q p { font-family: var(--serif); font-size: 14px; line-height: 1.5; color: var(--muted); margin: 0; }
+  .q .q-num {
+    font-family: var(--mono); font-weight: 700; font-size: 10px; letter-spacing: 1.6px; color: var(--accent); margin-bottom: 6px; display: block;
+  }
+
+  /* footer */
+  footer {
+    padding: 56px 0 64px;
+    text-align: center;
+    background: var(--ink);
+    color: var(--on-dark);
+  }
+  footer .next {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--accent-warm); margin-bottom: 14px;
+  }
+  footer h4 {
+    font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 28px; margin: 0 0 18px;
+  }
+  footer ol {
+    text-align: left;
+    max-width: 560px;
+    margin: 0 auto;
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.6;
+    color: #c8d4e4;
+    padding-left: 24px;
+  }
+  footer ol b { color: var(--on-dark); }
+</style>
+</head>
+<body>
+
+<!-- ============================ TOP BAR ============================ -->
+<div class="doc-bar">
+  <div class="crumb">noodle-bowl &nbsp;/&nbsp; docs &nbsp;/&nbsp; base-game &nbsp;/&nbsp; design &nbsp;/&nbsp; <b>streak-shield-onboarding.v0</b></div>
+  <div class="status">Draft · For review</div>
+</div>
+
+<!-- ============================ HERO =============================== -->
+<header class="hero">
+  <div class="page">
+    <div class="kicker">Design Proposal · 2026.05.25</div>
+    <h1>Players don&rsquo;t know what <em>shields</em> are, or why they should care about their <em>streak</em>.</h1>
+    <p class="lede">Both mechanics are central to the social loop &mdash; but right now they appear as a 13&nbsp;px emoji in the masthead and a 2.2&nbsp;second toast. This doc tears down how Duolingo solves the same problem, extracts what we steal (and what we don&rsquo;t), and proposes seven new surfaces tailored to a weekly-cadence editorial product.</p>
+    <div class="meta">
+      <span>Author<b>Claude (design)</b></span>
+      <span>Status<b>Draft &mdash; pre-PRD</b></span>
+      <span>Target<b>alpha-v0.4.0 candidate</b></span>
+      <span>Effort<b>~1 release</b></span>
+    </div>
+
+    <div class="tldr">
+      <div class="label">TL;DR</div>
+      <h2>Add seven just-in-time education surfaces around the existing streak / shield mechanics. No mechanic changes. Lean on a <em>&ldquo;shields are gifts from friends&rdquo;</em> framing &mdash; the social DNA is the differentiator.</h2>
+      <ul>
+        <li><b>Problem</b>The system works, but it&rsquo;s invisible. New players never form a mental model of what a streak is worth or how a shield gets earned.</li>
+        <li><b>Approach</b>Duolingo&rsquo;s pattern: short story-card modals at the exact moment each concept becomes relevant, never upfront.</li>
+        <li><b>Risk</b>Modal fatigue. We mitigate by capping at one modal per session and using inline banners for the rest.</li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<!-- =============== 01 · Current state audit ===================== -->
+<section>
+  <div class="page">
+    <div class="section-head">
+      <div class="section-kicker">01 &nbsp;·&nbsp; Current state audit</div>
+      <h2 class="section-title">Six surfaces. None of them <em>teach</em>.</h2>
+      <p class="section-intro">Here&rsquo;s every place a player encounters streaks or shields today. Three are passive counters, two are one-shot celebrations, one is reactive copy that only fires for anonymous users. Nothing primes a player ahead of time.</p>
+    </div>
+
+    <div class="audit-grid">
+
+      <!-- 1 -->
+      <div class="audit-card">
+        <div class="a-kicker">Masthead — every screen</div>
+        <h4 class="a-title">🔥 / 🛡 counter chip</h4>
+        <div class="a-mock">
+          <div class="mini-masthead-chip">🔥 3&nbsp;&nbsp;🛡 1</div>
+        </div>
+        <p class="a-note">13&nbsp;px mono characters, hidden when both are zero. No tap target. New players gloss past it &mdash; the masthead reads as decoration.</p>
+        <div class="a-tag warn">Passive · Invisible to new players</div>
+      </div>
+
+      <!-- 2 -->
+      <div class="audit-card">
+        <div class="a-kicker">End of game — first 2.2s</div>
+        <h4 class="a-title">Shield earned toast</h4>
+        <div class="a-mock">
+          <div class="mini-toast">🛡 Shield earned</div>
+        </div>
+        <p class="a-note">Fires the instant a friend interaction resolves. Reads like a system log entry. No explanation of <em>what was earned</em> or what it does.</p>
+        <div class="a-tag">Celebration · Too brief</div>
+      </div>
+
+      <!-- 3 -->
+      <div class="audit-card">
+        <div class="a-kicker">Home — after shield absorbs a miss</div>
+        <h4 class="a-title">Streak saved banner</h4>
+        <div class="a-mock">
+          <div class="mini-banner">
+            <div class="b-l">🛡 Streak saved</div>
+            <div class="b-t">A shield kept your streak alive.</div>
+          </div>
+        </div>
+        <p class="a-note">Good copy, but it&rsquo;s the <em>only</em> time the player learns the shield mechanic actually fires. By then it&rsquo;s too late to feel earned.</p>
+        <div class="a-tag warn">Reactive · Learning after the fact</div>
+      </div>
+
+      <!-- 4 -->
+      <div class="audit-card">
+        <div class="a-kicker">Streak Celebration modal</div>
+        <h4 class="a-title">Weekly streak +1</h4>
+        <div class="a-mock">
+          <div class="mini-modal">
+            <div class="m-k">Weekly Streak</div>
+            <div class="m-n">3</div>
+            <div class="m-d">weeks in a row</div>
+          </div>
+        </div>
+        <p class="a-note">Triggers every week. The first time it fires there&rsquo;s no extra context &mdash; just a number. No reference to what loses it, what extends it, or how shields fit in.</p>
+        <div class="a-tag">Recurring · One-note</div>
+      </div>
+
+      <!-- 5 -->
+      <div class="audit-card">
+        <div class="a-kicker">Friends tab</div>
+        <h4 class="a-title">Streak Shields card</h4>
+        <div class="a-mock">
+          <div style="background: var(--paper); border: 1px solid var(--rule); padding: 10px; width: 100%; text-align: center;">
+            <div style="font-family: var(--mono); font-size: 9px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 6px;">No shields yet</div>
+            <div style="font-family: var(--serif); font-size: 10px; color: var(--muted); line-height: 1.4;">Help a friend or take their challenge to earn a shield...</div>
+          </div>
+        </div>
+        <p class="a-note">Best existing copy, but buried in a tab anon users can&rsquo;t even reach. Doesn&rsquo;t show a slot/cap, doesn&rsquo;t link to action.</p>
+        <div class="a-tag ok">Explanation exists · Wrong place</div>
+      </div>
+
+      <!-- 6 -->
+      <div class="audit-card">
+        <div class="a-kicker">End of game — anon only</div>
+        <h4 class="a-title">Shield sign-up banner</h4>
+        <div class="a-mock">
+          <div style="background: var(--paper); border: 1px solid var(--rule); padding: 10px; width: 100%;">
+            <div style="font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 11px; color: var(--ink); margin-bottom: 6px;">🛡 Sign up to keep your shield</div>
+            <div style="font-family: var(--serif); font-size: 9px; color: var(--muted); line-height: 1.35;">Help a friend or answer a challenge to earn a streak shield...</div>
+          </div>
+        </div>
+        <p class="a-note">Conflates two messages: &ldquo;here&rsquo;s what a shield does&rdquo; AND &ldquo;sign up to keep it.&rdquo; The education only fires <em>after</em> the user has already done the eligible action.</p>
+        <div class="a-tag warn">Double-duty · Education lost to upsell</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- =============== 02 · DUOLINGO TEARDOWN (DARK) ================= -->
+<section class="dark">
+  <div class="page">
+    <div class="section-head">
+      <div class="section-kicker">02 &nbsp;·&nbsp; Reference teardown</div>
+      <h2 class="section-title">How Duolingo onboards <em>their</em> streak &amp; freeze.</h2>
+      <p class="section-intro">Four screens. Each one fires <b>only when the concept becomes relevant</b> &mdash; never upfront, never bundled with the tutorial. Same playbook we want, in their visual language. (Reproduced here as homages, not screenshots.)</p>
+    </div>
+
+    <div class="duo-row">
+
+      <!-- DUO 1 -->
+      <div class="duo-card">
+        <div class="duo-frame-wrap">
+          <div class="duo-screen">
+            <div class="duo-status"><span>9:41</span><span>● ●</span></div>
+            <div class="duo-body">
+              <div class="duo-close">✕</div>
+              <div class="duo-flame">🔥</div>
+              <div class="duo-num">1</div>
+              <div class="duo-label">DAY STREAK!</div>
+              <div class="duo-headline">You did it! You started a streak.</div>
+              <div class="duo-sub">Practice tomorrow to keep it going.</div>
+              <div class="duo-week">
+                <div class="duo-day done">M</div>
+                <div class="duo-day">T</div>
+                <div class="duo-day">W</div>
+                <div class="duo-day">T</div>
+                <div class="duo-day">F</div>
+                <div class="duo-day">S</div>
+                <div class="duo-day">S</div>
+              </div>
+              <div class="duo-btn">Continue</div>
+            </div>
+          </div>
+        </div>
+        <p class="duo-title">A. Streak ignition (day 1)</p>
+        <div class="duo-notes">
+          <span class="nk">What they do</span>
+          Full-screen takeover the <b>instant the first lesson ends</b>. Big number, visual week chain, single CTA.
+          <span class="nk">Why it works</span>
+          The streak goes from abstract to <b>visibly fragile</b> in one screen. The empty dots are doing the work.
+          <span class="nk">What we take</span>
+          The <b>week-grid mental model</b>. Adapted to our weekly cadence: filled brick = week played, gold = shield, dashed = future.
+        </div>
+      </div>
+
+      <!-- DUO 2 -->
+      <div class="duo-card">
+        <div class="duo-frame-wrap">
+          <div class="duo-screen">
+            <div class="duo-status"><span>9:41</span><span>● ●</span></div>
+            <div class="duo-body">
+              <div class="duo-close">✕</div>
+              <div class="duo-ice">❄</div>
+              <div class="duo-pill">NEW</div>
+              <div class="duo-headline">Meet Streak Freeze</div>
+              <div class="duo-sub">A Streak Freeze keeps your streak going when you miss a day. We&rsquo;ll equip up to 2 for you.</div>
+              <div class="duo-freeze-slot">
+                <div class="slot filled">❄</div>
+                <div class="slot">+</div>
+              </div>
+              <div class="duo-btn">Got it</div>
+            </div>
+          </div>
+        </div>
+        <p class="duo-title">B. Freeze primer (day ~3)</p>
+        <div class="duo-notes">
+          <span class="nk">What they do</span>
+          Introduce the <b>safety mechanic before the player needs it</b>. Gift a free one to make it tangible.
+          <span class="nk">Why it works</span>
+          Reduces churn anxiety. The slot UI implies a cap and shows there&rsquo;s an empty one to fill &mdash; a soft pull toward earning more.
+          <span class="nk">What we take</span>
+          The <b>slot visualization with empty placeholders</b>. The pre-emptive intro. (We <em>don&rsquo;t</em> gift one &mdash; ours must be earned.)
+        </div>
+      </div>
+
+      <!-- DUO 3 -->
+      <div class="duo-card">
+        <div class="duo-frame-wrap">
+          <div class="duo-screen">
+            <div class="duo-status"><span>9:41</span><span>● ●</span></div>
+            <div class="duo-body">
+              <div class="duo-close">✕</div>
+              <div class="duo-ice" style="background:#ff9600;box-shadow:0 4px 0 #cc7700;">⚡</div>
+              <div class="duo-num small" style="color:var(--duo-orange);">12</div>
+              <div class="duo-label">HOURS LEFT</div>
+              <div class="duo-headline">Don&rsquo;t lose your streak!</div>
+              <div class="duo-sub">You&rsquo;re 12 hours away from losing your 14-day streak.</div>
+              <div class="duo-btn" style="background:var(--duo-orange);box-shadow:0 3px 0 #cc7700;">Practice now</div>
+            </div>
+          </div>
+        </div>
+        <p class="duo-title">C. Streak at risk (late day)</p>
+        <div class="duo-notes">
+          <span class="nk">What they do</span>
+          A push, an in-app banner, and (sometimes) a full-screen reminder &mdash; all hammering the <b>countdown</b>.
+          <span class="nk">Why it works</span>
+          Pure loss aversion. The longer the streak, the heavier the prompt.
+          <span class="nk">What we take</span>
+          The <b>at-risk nudge</b> &mdash; but weekly. Late-week banner on home + push, gentler in tone (no countdown timer; it&rsquo;s a hobby, not homework).
+        </div>
+      </div>
+
+      <!-- DUO 4 -->
+      <div class="duo-card">
+        <div class="duo-frame-wrap">
+          <div class="duo-screen">
+            <div class="duo-status"><span>9:41</span><span>● ●</span></div>
+            <div class="duo-body">
+              <div class="duo-close">✕</div>
+              <div class="duo-ice">❄</div>
+              <div class="duo-num small" style="color:var(--duo-blue);">14</div>
+              <div class="duo-label">DAY STREAK</div>
+              <div class="duo-headline">Streak Freeze used!</div>
+              <div class="duo-sub">A Streak Freeze kept your 14-day streak alive after a missed day.</div>
+              <div class="duo-freeze-slot">
+                <div class="slot">❄</div>
+                <div class="slot">+</div>
+              </div>
+              <div class="duo-btn">Keep practicing</div>
+            </div>
+          </div>
+        </div>
+        <p class="duo-title">D. Freeze saved you (post-miss)</p>
+        <div class="duo-notes">
+          <span class="nk">What they do</span>
+          Full takeover the next session after a freeze absorbs a miss. Visibly <b>shows the slot empty now</b>.
+          <span class="nk">Why it works</span>
+          Closes the loop. Player sees the mechanic actually triggered, sees the consumable depleted, knows to earn another.
+          <span class="nk">What we take</span>
+          Almost everything. Promote our existing <code style="background:rgba(255,255,255,0.06);padding:1px 4px;font-size:11px;">ShieldSavedBanner</code> from inline strip to first-class modal on first occurrence, with the slot visualization.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAKEAWAYS TABLE -->
+    <div class="takeaways">
+      <div class="row head">
+        <div class="cell">Duolingo&nbsp;does</div>
+        <div class="cell">We&nbsp;steal&nbsp;it</div>
+        <div class="cell">We&nbsp;don&rsquo;t</div>
+      </div>
+      <div class="row">
+        <div class="cell k">Just-in-time<br>modals</div>
+        <div class="cell"><b>Yes.</b> Education fires the moment a concept first becomes relevant. Never bundled into a single onboarding tour.</div>
+        <div class="cell">No tutorial-style walkthrough at first launch.</div>
+      </div>
+      <div class="row">
+        <div class="cell k">Slot<br>visualization</div>
+        <div class="cell"><b>Yes.</b> Show 0&ndash;3 shield slots with empties visible so the cap and the pull-to-fill is legible.</div>
+        <div class="cell">No icon-grid &ldquo;collection&rdquo; metaphor. We&rsquo;re editorial, not RPG.</div>
+      </div>
+      <div class="row">
+        <div class="cell k">Loss-aversion<br>framing</div>
+        <div class="cell"><b>Partially.</b> &ldquo;Don&rsquo;t lose what you&rsquo;ve built&rdquo; is honest for a long streak. Use it sparingly.</div>
+        <div class="cell">No countdown timers, no red exclamation marks, no &ldquo;your streak ends in 4 hours&rdquo;. A week game shouldn&rsquo;t feel like a chore.</div>
+      </div>
+      <div class="row">
+        <div class="cell k">Gift the<br>first one</div>
+        <div class="cell"><em>Inverted.</em> The first shield is the strongest demonstration that <b>your friends gave it to you</b>. Don&rsquo;t cheapen it.</div>
+        <div class="cell">No free starter shield. Earning rate is already social-friction-light.</div>
+      </div>
+      <div class="row">
+        <div class="cell k">Streak<br>celebration</div>
+        <div class="cell"><b>Keep ours.</b> Add a one-time variant the first week that explains what the streak is.</div>
+        <div class="cell">No confetti. No animated mascot. Big italic Fraunces numeral does plenty.</div>
+      </div>
+      <div class="row">
+        <div class="cell k">Shop /<br>purchase</div>
+        <div class="cell"><b>No.</b> Earning is the design constraint. Don&rsquo;t introduce a currency screen.</div>
+        <div class="cell">Sacred ground &mdash; the gem economy is the thing Duolingo players resent most.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- =============== 03 · PRINCIPLES =============================== -->
+<section>
+  <div class="page">
+    <div class="section-head">
+      <div class="section-kicker">03 &nbsp;·&nbsp; Design principles</div>
+      <h2 class="section-title">Six constraints we&rsquo;ll hold the new surfaces to.</h2>
+      <p class="section-intro">Every proposed screen later in this doc traces back to one of these. If a surface can&rsquo;t justify itself against this list, it doesn&rsquo;t ship.</p>
+    </div>
+
+    <div class="principles">
+      <div class="principle">
+        <div class="p-num">1</div>
+        <h4>Teach only what&rsquo;s about to happen.</h4>
+        <p>No mechanic gets explained until the player is one tap away from using it. The shield primer fires the first time the user opens &ldquo;Ask a friend.&rdquo; Not before.</p>
+        <div class="vs"><b>vs.</b> a first-launch tutorial that everyone skips.</div>
+      </div>
+      <div class="principle">
+        <div class="p-num">2</div>
+        <h4>Shields are gifts, not insurance.</h4>
+        <p>Every shield in the system was earned because <em>another human</em> answered a question for you, or accepted yours. Foreground that. The hero copy is &ldquo;Mei gave you a shield,&rdquo; not &ldquo;you earned a shield.&rdquo;</p>
+        <div class="vs"><b>vs.</b> Duolingo&rsquo;s &ldquo;your streak might die&rdquo; framing.</div>
+      </div>
+      <div class="principle">
+        <div class="p-num">3</div>
+        <h4>One modal per session, max.</h4>
+        <p>If two education moments would fire in one session, the second downgrades to an inline banner. Modal fatigue kills retention faster than poor education.</p>
+        <div class="vs"><b>vs.</b> back-to-back takeovers.</div>
+      </div>
+      <div class="principle">
+        <div class="p-num">4</div>
+        <h4>Visible cap, visible slots.</h4>
+        <p>Wherever a shield count appears, show the empty slots too. The mental model has to be &ldquo;I have <em>n of 3</em>&rdquo; &mdash; not just &ldquo;I have 1.&rdquo; Empty slots create gentle pull without nagging.</p>
+        <div class="vs"><b>vs.</b> a bare numeral that conveys no progress shape.</div>
+      </div>
+      <div class="principle">
+        <div class="p-num">5</div>
+        <h4>Weekly rhythm, not daily anxiety.</h4>
+        <p>This is a weekly product. The streak language stays calm. No countdowns, no flame multipliers, no &ldquo;practice now or else.&rdquo; Late-week nudges read as <em>reminders</em>, not <em>threats</em>.</p>
+        <div class="vs"><b>vs.</b> Duolingo&rsquo;s heat-of-the-moment urgency UI.</div>
+      </div>
+      <div class="principle">
+        <div class="p-num">6</div>
+        <h4>Anon users get the same education, different ending.</h4>
+        <p>Don&rsquo;t hide the lesson behind a sign-up wall. Show the full primer to guests &mdash; the sign-up ask comes only after they&rsquo;ve <em>earned</em> something worth keeping.</p>
+        <div class="vs"><b>vs.</b> the current pattern where the educational copy is glued to the upsell.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- =============== 04 · TRIGGER MAP ============================== -->
+<section>
+  <div class="page">
+    <div class="section-head">
+      <div class="section-kicker">04 &nbsp;·&nbsp; Trigger map</div>
+      <h2 class="section-title">When each surface fires, across one player&rsquo;s first 7 weeks.</h2>
+      <p class="section-intro">Drawn against a realistic <b>second-week-skip</b> arc. Eight new surfaces, never more than one modal per session.</p>
+    </div>
+
+    <div class="timeline">
+      <div class="track">
+        <div class="week-rail"></div>
+
+        <div class="week-tick">
+          <div class="week-label">Wk 1 · Mon</div>
+          <div class="week-event"><b>① Streak ignition</b>First-ever game finished. Full-screen modal explains the weekly streak.</div>
+        </div>
+
+        <div class="week-tick">
+          <div class="week-label">Wk 1 · Tue</div>
+          <div class="week-event"><b>② Shield primer</b>First time the player taps &ldquo;Ask a friend&rdquo;. Slot visualization, no shields yet.</div>
+        </div>
+
+        <div class="week-tick">
+          <div class="week-label">Wk 1 · Fri</div>
+          <div class="week-event"><b>③ Shield earned</b>Friend answers. Promotes today&rsquo;s 2.2&nbsp;s toast to a first-time modal: &ldquo;Mei gave you a shield.&rdquo;</div>
+        </div>
+
+        <div class="week-tick empty">
+          <div class="week-label">Wk 2</div>
+          <div class="week-event">Player misses the week entirely. <em>No nudge fires after Sunday</em> &mdash; the shield will quietly do its job.</div>
+        </div>
+
+        <div class="week-tick">
+          <div class="week-label">Wk 3 · Mon</div>
+          <div class="week-event"><b>④ Shield saved you</b>Modal on first return: &ldquo;A shield kept your streak alive. 1 shield left.&rdquo;</div>
+        </div>
+
+        <div class="week-tick">
+          <div class="week-label">Wk 4 · Sat</div>
+          <div class="week-event"><b>⑤ Streak at risk</b>Home banner appears if the player hasn&rsquo;t played by Saturday. Calm copy, no timer.</div>
+        </div>
+
+        <div class="week-tick">
+          <div class="week-label">Wk 7</div>
+          <div class="week-event"><b>⑥ Milestone</b>4-week streak achieved &mdash; small embellishment on the celebration modal. No new modal.</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="body" style="margin-top: 32px;">
+      Surfaces <b>⑦ Stats redesign</b> and <b>⑧ Friends empty state</b> aren&rsquo;t triggered &mdash; they&rsquo;re always-on improvements to the standing surfaces. Both are detailed in the next section.
+    </p>
+  </div>
+</section>
+
+
+<!-- =============== 05 · PROPOSED SCREENS ========================= -->
+<section style="background: var(--paper-dark);">
+  <div class="page">
+    <div class="section-head">
+      <div class="section-kicker">05 &nbsp;·&nbsp; Proposed surfaces</div>
+      <h2 class="section-title">Eight screens that earn their pixels.</h2>
+      <p class="section-intro">All mocks in the actual NB design language: Fraunces italic, JetBrains Mono caps, double-rule borders, 4&nbsp;px inset accent border on every card. Iconography options are explored in §06.</p>
+    </div>
+
+    <div class="mock-grid">
+
+      <!-- =============== MOCK 1 — STREAK IGNITION ============ -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper);">
+              <!-- background context (faded game-end) -->
+              <div style="opacity: 0.3; flex: 1; padding: 6px;">
+                <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 4px;">RESULT · THE LEDE</div>
+                <div style="font-family: var(--serif); font-style: italic; font-weight: 800; font-size: 26px; line-height: 1; color: var(--ink); margin-bottom: 6px;">7 / 10</div>
+                <div style="font-family: var(--serif); font-size: 10px; color: var(--muted);">Sharp read on this week.</div>
+              </div>
+              <!-- modal overlay -->
+              <div class="overlay">
+                <div class="modal-card">
+                  <div class="dots"><span class="d on"></span><span class="d"></span><span class="d"></span></div>
+                  <div class="kicker">Weekly Streak — Established</div>
+                  <div class="big-num">1</div>
+                  <div class="label">week in a row</div>
+                  <!-- week chain -->
+                  <div class="week-chain">
+                    <div class="wk now">W1</div>
+                    <div class="wk future">W2</div>
+                    <div class="wk future">W3</div>
+                    <div class="wk future">W4</div>
+                  </div>
+                  <p class="msg">Each week you play <b>at least one game</b>, your streak grows. Play next week to keep it going &mdash; you have until <b>Sunday night</b>.</p>
+                  <a class="pri-btn">Got it</a>
+                  <a class="sec-btn">Tell me more</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">① &nbsp; Streak ignition</div>
+          <h4>The first time the streak makes sense.</h4>
+          <p>Fires <b>once</b>, after the player&rsquo;s first-ever game completes. Replaces the existing <code>StreakCelebrationModal</code> for the v1 case. Big &ldquo;1,&rdquo; visible empty week-chain, the only piece of copy that explains the weekly cadence.</p>
+          <p><em>&ldquo;Tell me more&rdquo;</em> advances to a 2nd card explaining shields (only shown if user hasn&rsquo;t already seen the primer).</p>
+          <div class="meta">
+            <span>Trigger</span><b>First game completed, ever</b>
+            <span>Frequency</span><b>Once per user</b>
+            <span>Owner</span><b>GameContext + flag <code>streakIntroSeen</code></b>
+            <span>Replaces</span><b>v1 of StreakCelebrationModal</b>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- =============== MOCK 2 — SHIELD PRIMER =============== -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper);">
+              <div style="opacity: 0.25; flex: 1; padding: 6px;">
+                <div style="font-family: var(--mono); font-size: 7px; color: var(--muted); margin-bottom: 4px;">QUESTION 4 OF 10</div>
+                <div style="font-family: var(--serif); font-size: 11px; line-height: 1.3; color: var(--ink); margin-bottom: 10px;">Which of these headlines actually ran in <em>The Times</em> last week?</div>
+              </div>
+              <div class="overlay">
+                <div class="modal-card">
+                  <div class="dots"><span class="d on"></span><span class="d"></span></div>
+                  <div class="kicker">Streak Shields</div>
+                  <!-- shield slot row, all empty -->
+                  <div class="slot-row">
+                    <div class="shield-slot empty">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                    <div class="shield-slot empty">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                    <div class="shield-slot empty">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                  </div>
+                  <div class="label" style="margin-bottom: 14px;">0 of 3 shields</div>
+                  <p class="msg"><b>A shield is a gift from a friend.</b> Ask one for help with this question &mdash; when they answer, you earn a shield that protects your streak for a missed week.</p>
+                  <a class="pri-btn">Ask a friend →</a>
+                  <a class="sec-btn">Not now</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">② &nbsp; Shield primer</div>
+          <h4>The mechanic explained the moment it becomes usable.</h4>
+          <p>Fires when the player taps &ldquo;Ask a friend for help&rdquo; for the <b>first time</b>. Three empty shield slots, the gift framing in plain English, and a CTA that <em>is</em> the action they were about to take. Dismiss just returns them to the question.</p>
+          <p>This is the foundational education surface &mdash; the one most users will see. Everything after this assumes the slot model.</p>
+          <div class="meta">
+            <span>Trigger</span><b>First &ldquo;Ask a friend&rdquo; tap</b>
+            <span>Frequency</span><b>Once per user</b>
+            <span>Owner</span><b>Game screens, flag <code>shieldPrimerSeen</code></b>
+            <span>Anon?</span><b>Yes &mdash; identical, no auth gate</b>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- =============== MOCK 3 — FIRST SHIELD EARNED ========= -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper);">
+              <div style="opacity: 0.25; flex: 1; padding: 6px;">
+                <div style="font-family: var(--mono); font-size: 7px; color: var(--muted); margin-bottom: 4px;">HOME · NO. 0042</div>
+                <div style="font-family: var(--serif); font-style: italic; font-weight: 800; font-size: 18px; color: var(--ink); margin-bottom: 6px;">Noodle <span style="color:var(--accent);font-style:italic;font-weight:400;">Bowl</span></div>
+              </div>
+              <div class="overlay">
+                <div class="modal-card">
+                  <div class="kicker">Your first shield</div>
+                  <!-- big shield -->
+                  <div style="display:flex;justify-content:center;margin:4px 0 6px;">
+                    <svg width="74" height="84" viewBox="0 0 24 28" fill="var(--accent)" stroke="var(--ink)" stroke-width="0.6">
+                      <path d="M12 1 L22 4 L22 14 C22 20 17 25 12 27 C7 25 2 20 2 14 L2 4 Z"/>
+                      <path d="M9 14 L11.5 16.5 L16 11" stroke="var(--on-dark)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="label" style="font-style: italic; font-size: 13px; color: var(--ink); margin-bottom: 4px;"><b style="font-weight:700;">Mei</b> gave you a shield.</div>
+                  <div style="font-family: var(--mono); font-size: 8px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">She answered your Spread question</div>
+
+                  <div class="slot-row">
+                    <div class="shield-slot filled">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                    <div class="shield-slot empty">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                    <div class="shield-slot empty">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                  </div>
+                  <div class="label" style="margin-bottom: 12px;">1 of 3 · Protects 1 missed week</div>
+                  <p class="msg">Miss a week? This shield absorbs it &mdash; your streak stays intact.</p>
+                  <a class="pri-btn">Nice</a>
+                  <a class="sec-btn">See how shields work</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">③ &nbsp; First shield earned</div>
+          <h4>Promote the toast. Just for the first one.</h4>
+          <p>Replaces the 2.2&nbsp;s <code>ShieldEarnedToast</code> for the player&rsquo;s <em>very first shield only</em>. Subsequent shields keep the existing toast &mdash; we don&rsquo;t want modal fatigue every time a friend answers.</p>
+          <p>Gift framing front-and-center: <b>friend&rsquo;s name</b> + what they did, slot count, and the mechanic restated in one sentence.</p>
+          <div class="meta">
+            <span>Trigger</span><b>First-ever shield earned</b>
+            <span>Frequency</span><b>Once per user</b>
+            <span>Anon flow</span><b>Replace primary CTA with &ldquo;Sign up to keep it&rdquo;</b>
+            <span>Replaces</span><b>1st instance of ShieldEarnedToast</b>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- =============== MOCK 4 — SHIELD SAVED YOUR STREAK ==== -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper);">
+              <div style="opacity: 0.25; flex: 1; padding: 6px;">
+                <div style="font-family: var(--mono); font-size: 7px; color: var(--muted); margin-bottom: 4px;">HOME · NO. 0044</div>
+              </div>
+              <div class="overlay">
+                <div class="modal-card">
+                  <div class="kicker" style="color: var(--gold);">🛡 Shield triggered</div>
+                  <!-- shield with crack -->
+                  <div style="display:flex;justify-content:center;margin:4px 0 8px;">
+                    <svg width="74" height="84" viewBox="0 0 24 28" fill="var(--gold)" stroke="var(--ink)" stroke-width="0.6">
+                      <path d="M12 1 L22 4 L22 14 C22 20 17 25 12 27 C7 25 2 20 2 14 L2 4 Z"/>
+                      <path d="M9 6 L13 12 L10 16 L14 22" stroke="var(--ink)" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div style="font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 16px; color: var(--ink); margin-bottom: 4px;">Your streak survived.</div>
+                  <div style="font-family: var(--mono); font-size: 8px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">A shield covered last week</div>
+
+                  <div class="week-chain">
+                    <div class="wk done">W1</div>
+                    <div class="wk shield">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                    <div class="wk now">W3</div>
+                    <div class="wk future">W4</div>
+                  </div>
+
+                  <p class="msg"><b>Weekly streak:</b> 3 &nbsp;·&nbsp; <b>Shields:</b> 0 of 3</p>
+                  <p class="msg" style="font-style: italic; color: var(--muted);">Help a friend or take a challenge to earn another.</p>
+                  <a class="pri-btn">Continue</a>
+                  <a class="sec-btn">Find a friend to help →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">④ &nbsp; Shield saved your streak</div>
+          <h4>Close the loop on the mechanic that just fired.</h4>
+          <p>Modal on the player&rsquo;s next session after a shield absorbed a miss. The current <code>ShieldSavedBanner</code> stays for repeat saves &mdash; this is the <em>first-time</em> version that shows the week-chain (with a gold shield brick where W2 should have been), and emphasizes the now-empty slots.</p>
+          <p>Secondary CTA routes to the Friends tab to start earning another shield &mdash; closing the action loop.</p>
+          <div class="meta">
+            <span>Trigger</span><b>First shield-save, ever</b>
+            <span>Frequency</span><b>Once per user</b>
+            <span>Owner</span><b>Home screen, flag <code>firstShieldSaveSeen</code></b>
+            <span>Subsequent</span><b>Existing inline ShieldSavedBanner</b>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- =============== MOCK 5 — AT-RISK NUDGE =============== -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper);">
+              <div class="mh">
+                <div class="mh-date">SAT · MAY 24</div>
+                <div class="mh-title">Noodle <em>Bowl</em></div>
+                <div class="mh-streak">🔥 4&nbsp;&nbsp;🛡 0</div>
+              </div>
+
+              <!-- AT-RISK INLINE BANNER — this is the new surface -->
+              <div class="inline-banner">
+                <div class="ib-l">⏳ Streak ends Sunday</div>
+                <div class="ib-t">Play one game by tomorrow night to keep your <em>4-week streak</em>.</div>
+                <div class="ib-row">
+                  <div class="ib-btn">Play now</div>
+                  <div class="ib-btn outline">Later</div>
+                </div>
+              </div>
+
+              <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 6px;">GAMES BASED ON LAST WEEK&rsquo;S NEWS</div>
+              <div class="game-row">
+                <div class="gr-num">01</div>
+                <div class="gr-mid">
+                  <div class="gr-title">The Lede</div>
+                  <div class="gr-meta">10Q · 3 MIN</div>
+                </div>
+                <div class="gr-play">PLAY</div>
+              </div>
+              <div class="game-row">
+                <div class="gr-num">02</div>
+                <div class="gr-mid">
+                  <div class="gr-title">The Spread</div>
+                  <div class="gr-meta">10Q · 3 MIN</div>
+                </div>
+                <div class="gr-play">PLAY</div>
+              </div>
+              <div class="game-row">
+                <div class="gr-num">03</div>
+                <div class="gr-mid">
+                  <div class="gr-title">Sci or Fiction</div>
+                  <div class="gr-meta">10Q · 4 MIN</div>
+                </div>
+                <div class="gr-play">PLAY</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">⑤ &nbsp; Streak at risk</div>
+          <h4>A calm reminder, never a threat.</h4>
+          <p>Inline banner at the top of the home tab, <b>only on Saturday and Sunday</b> if the player hasn&rsquo;t played the current week and their streak is ≥&nbsp;2. Disappears the second they play.</p>
+          <p>No countdown timer. No red. The accent border is enough to register as a system message. The hourglass glyph carries the urgency.</p>
+          <div class="meta">
+            <span>Trigger</span><b>Sat/Sun, no play this week, streak ≥ 2</b>
+            <span>Frequency</span><b>1× per week, dismissible</b>
+            <span>Anon?</span><b>Yes &mdash; identical</b>
+            <span>Push</span><b>Optional partner notification, same copy</b>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- =============== MOCK 6 — STATS REDESIGN ============== -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper); padding: 12px 12px 8px;">
+              <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;">STREAK & HISTORY ━━━━━</div>
+
+              <!-- HERO STREAK CARD with shield slots -->
+              <div style="border: 1px solid var(--rule); background: var(--paper-dark); padding: 14px 12px 12px; margin-bottom: 10px; box-shadow: 2px 2px 0 var(--rule); position: relative;">
+                <div style="position:absolute;inset:3px;border:1px solid rgba(42,53,72,0.15);"></div>
+
+                <!-- big streak -->
+                <div style="text-align: center; padding-bottom: 10px; border-bottom: 1px solid var(--paper-darker);">
+                  <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 2px;">WEEKLY STREAK</div>
+                  <div style="font-family: var(--serif); font-style: italic; font-weight: 800; font-size: 38px; line-height: 1; color: var(--ink);">🔥 4</div>
+                </div>
+
+                <!-- shield slots — the new bit -->
+                <div style="padding-top: 12px; text-align: center;">
+                  <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 8px;">SHIELDS</div>
+                  <div class="slot-row" style="margin: 4px 0 8px;">
+                    <div class="shield-slot filled">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                    <div class="shield-slot filled">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                    <div class="shield-slot empty">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                    </div>
+                  </div>
+                  <div style="font-family: var(--serif); font-style: italic; font-size: 10px; color: var(--muted);">2 of 3 &middot; <span style="color: var(--ink); font-weight: 600;">1 slot open</span></div>
+                </div>
+              </div>
+
+              <!-- week chain history -->
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 10px 12px; margin-bottom: 10px;">
+                <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 8px;">LAST 6 WEEKS</div>
+                <div class="week-chain" style="margin: 0; justify-content: flex-start;">
+                  <div class="wk done">W17</div>
+                  <div class="wk done">W18</div>
+                  <div class="wk shield">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                  </div>
+                  <div class="wk done">W20</div>
+                  <div class="wk done">W21</div>
+                  <div class="wk now">W22</div>
+                </div>
+              </div>
+
+              <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-top: 6px;">PER-GAME ━━━━━━━━━━━━</div>
+              <div style="border-bottom: 1px solid var(--rule); padding: 8px 0;">
+                <div style="font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 12px;">The Lede</div>
+                <div style="font-family: var(--mono); font-size: 6px; color: var(--muted); letter-spacing: 0.6px;">28 PLAYED · 82% ACCURACY</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">⑥ &nbsp; Stats tab redesign</div>
+          <h4>Standing surface that holds the mental model in place.</h4>
+          <p>Replaces today&rsquo;s tiny <code>🛡 1 Shield Available</code> line at the bottom of the streak card. The slot row makes <em>capacity</em> legible at a glance, and the &ldquo;LAST 6 WEEKS&rdquo; row shows the week chain &mdash; including any historical shield saves &mdash; in the same visual language as the modals.</p>
+          <p>The Stats tab is currently the only place where shields are explained out of context. After this redesign, it becomes the canonical reference.</p>
+          <div class="meta">
+            <span>Trigger</span><b>Always-on</b>
+            <span>Effort</span><b>Style refactor of existing card</b>
+            <span>Owner</span><b>app/(tabs)/explore.tsx</b>
+            <span>Risk</span><b>Low &mdash; no data model changes</b>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- =============== MOCK 7 — FRIENDS EMPTY STATE ========= -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper); padding: 12px;">
+              <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 6px;">STREAK SHIELDS ━━━━━━</div>
+
+              <!-- new empty state card -->
+              <div style="border: 1px solid var(--rule); background: var(--paper-dark); padding: 16px 14px; margin-bottom: 14px; position: relative;">
+                <div style="position:absolute;inset:3px;border:1px solid rgba(42,53,72,0.15);"></div>
+
+                <!-- 3 empty slots, large, centerpiece -->
+                <div class="slot-row" style="margin: 4px 0 10px;">
+                  <div class="shield-slot empty" style="width:42px;height:50px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                  </div>
+                  <div class="shield-slot empty" style="width:42px;height:50px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                  </div>
+                  <div class="shield-slot empty" style="width:42px;height:50px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L20 5 L20 11 C20 16 16 20 12 22 C8 20 4 16 4 11 L4 5 Z"/></svg>
+                  </div>
+                </div>
+                <div style="text-align: center; font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 6px;">Three empty slots, waiting.</div>
+                <div style="text-align: center; font-family: var(--serif); font-size: 11px; line-height: 1.4; color: var(--muted); margin-bottom: 12px;">Shields are given to you by friends &mdash; when they answer a question you asked, or accept a challenge you sent.</div>
+
+                <!-- two equal CTAs reflecting both earn paths -->
+                <div style="display: flex; gap: 6px;">
+                  <div style="flex:1; background: var(--ink); color: var(--on-dark); font-family: var(--mono); font-weight: 700; font-size: 8px; letter-spacing: 1.2px; text-transform: uppercase; padding: 8px 0; text-align: center;">Ask for help</div>
+                  <div style="flex:1; background: var(--paper); border: 1px solid var(--ink); color: var(--ink); font-family: var(--mono); font-weight: 700; font-size: 8px; letter-spacing: 1.2px; text-transform: uppercase; padding: 8px 0; text-align: center;">Challenge friend</div>
+                </div>
+              </div>
+
+              <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 6px;">HOW IT WORKS</div>
+              <div style="font-family: var(--serif); font-size: 11px; line-height: 1.5; color: var(--ink); padding-left: 14px; position: relative;">
+                <span style="position: absolute; left: 0; top: 0; font-family: var(--mono); font-weight: 700; font-size: 9px; color: var(--accent);">1</span>
+                You ask a friend or send a challenge.
+              </div>
+              <div style="font-family: var(--serif); font-size: 11px; line-height: 1.5; color: var(--ink); padding-left: 14px; position: relative; margin-top: 6px;">
+                <span style="position: absolute; left: 0; top: 0; font-family: var(--mono); font-weight: 700; font-size: 9px; color: var(--accent);">2</span>
+                They answer (no answers spoiled either way).
+              </div>
+              <div style="font-family: var(--serif); font-size: 11px; line-height: 1.5; color: var(--ink); padding-left: 14px; position: relative; margin-top: 6px;">
+                <span style="position: absolute; left: 0; top: 0; font-family: var(--mono); font-weight: 700; font-size: 9px; color: var(--accent);">3</span>
+                You get a shield. It absorbs one missed week.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">⑦ &nbsp; Friends tab — empty state</div>
+          <h4>Slot visualization + a 3-step explainer that ends in action.</h4>
+          <p>Replaces today&rsquo;s small &ldquo;No shields yet&rdquo; card. Three large empty slots make the cap immediate. The numbered &ldquo;HOW IT WORKS&rdquo; row teaches the loop without needing a modal.</p>
+          <p>Two equal-weight CTAs (Ask / Challenge) acknowledge that <b>both paths earn a shield</b> &mdash; a fact buried in today&rsquo;s copy.</p>
+          <div class="meta">
+            <span>Trigger</span><b>Always-on, while shields = 0</b>
+            <span>State when filled</span><b>Collapses to compact slot row</b>
+            <span>Owner</span><b>app/(tabs)/friends.tsx</b>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- =============== MOCK 8 — MASTHEAD CHIP TAP =========== -->
+      <div class="mock">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="status"><span>9:41</span><span>•••</span></div>
+            <div class="scr-body" style="background:var(--paper); padding: 12px;">
+              <div class="mh">
+                <div class="mh-date">MON · MAY 26</div>
+                <div class="mh-title">Noodle <em>Bowl</em></div>
+                <!-- ENHANCED STREAK CHIP with shield slots inline -->
+                <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 6px;">
+                  <div style="font-family: var(--mono); font-weight: 700; font-size: 10px; color: var(--ink); letter-spacing: 0.6px;">🔥 4</div>
+                  <div style="width: 1px; height: 12px; background: var(--paper-darker);"></div>
+                  <!-- mini slots inline -->
+                  <div style="display: flex; gap: 3px;">
+                    <span style="display:inline-block;width:11px;height:13px;background:var(--accent);clip-path:polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);"></span>
+                    <span style="display:inline-block;width:11px;height:13px;background:var(--accent);clip-path:polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);"></span>
+                    <span style="display:inline-block;width:11px;height:13px;background:transparent;border:1px solid var(--paper-darker);clip-path:polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- tooltip popover that appears on chip tap -->
+              <div style="position: relative; margin-top: 4px;">
+                <div style="border: 1px solid var(--rule); background: var(--paper-dark); padding: 12px; box-shadow: 2px 2px 0 var(--rule); position: relative;">
+                  <div style="position:absolute;inset:3px;border:1px solid rgba(42,53,72,0.15);"></div>
+                  <!-- caret -->
+                  <div style="position: absolute; top: -7px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 12px; height: 12px; background: var(--paper-dark); border-left: 1px solid var(--rule); border-top: 1px solid var(--rule);"></div>
+
+                  <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 4px;">YOUR STATUS</div>
+                  <div style="font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 8px;">4-week streak, 2 shields banked.</div>
+                  <div style="font-family: var(--serif); font-size: 11px; line-height: 1.45; color: var(--muted); margin-bottom: 10px;">Each shield absorbs one missed week. Earn more by helping friends or sending challenges.</div>
+                  <div style="background: var(--ink); color: var(--on-dark); font-family: var(--mono); font-weight: 700; font-size: 8px; letter-spacing: 1.2px; text-transform: uppercase; padding: 7px 0; text-align: center;">See stats</div>
+                </div>
+              </div>
+
+              <div style="opacity: 0.4; margin-top: 12px;">
+                <div style="font-family: var(--mono); font-size: 7px; letter-spacing: 1.4px; color: var(--muted); margin-bottom: 6px;">GAMES BASED ON LAST WEEK&rsquo;S NEWS</div>
+                <div class="game-row"><div class="gr-num">01</div><div class="gr-mid"><div class="gr-title">The Lede</div></div></div>
+                <div class="game-row"><div class="gr-num">02</div><div class="gr-mid"><div class="gr-title">The Spread</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="annot">
+          <div class="a-num">⑧ &nbsp; Tappable masthead chip</div>
+          <h4>The smallest surface, made educational.</h4>
+          <p>Today&rsquo;s <code>🔥 3 🛡 1</code> chip becomes:&nbsp;a flame count + a mini slot row (filled = shield, outline = empty). It&rsquo;s now a <em>tap target</em>; tapping opens a tooltip with a one-sentence status + a link to Stats.</p>
+          <p>Side benefit: when the player has shields the row is &ldquo;full&rdquo; visually &mdash; when they don&rsquo;t, the empty slots create gentle pull every time they look at the masthead.</p>
+          <div class="meta">
+            <span>Trigger</span><b>Always visible after first play</b>
+            <span>Tap</span><b>Tooltip + Stats deep-link</b>
+            <span>Owner</span><b>components/Masthead.tsx</b>
+            <span>Effort</span><b>~½ day</b>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- =============== 06 · SHIELD ICONOGRAPHY ====================== -->
+<section>
+  <div class="page">
+    <div class="section-head">
+      <div class="section-kicker">06 &nbsp;·&nbsp; Shield iconography</div>
+      <h2 class="section-title">Three options for the shield mark itself.</h2>
+      <p class="section-intro">All of the mocks above use option B. Pick a direction before we land any of this; the choice flows through every other surface.</p>
+    </div>
+
+    <div class="icon-row">
+
+      <!-- A: emoji (status quo) -->
+      <div class="icon-card">
+        <div class="demo">🛡</div>
+        <div class="name">A. Emoji 🛡</div>
+        <div class="kind">Status quo</div>
+        <div class="pros"><b>Pros</b>Zero work. Renders everywhere. Universally legible.</div>
+        <div class="cons"><b>Cons</b>System emoji clashes with the editorial type system. Renders differently on iOS / Android / web. Reads as &ldquo;casual game&rdquo; rather than &ldquo;newspaper.&rdquo;</div>
+      </div>
+
+      <!-- B: monoline SVG (used in mocks) -->
+      <div class="icon-card">
+        <div class="demo">
+          <svg width="68" height="78" viewBox="0 0 24 28" fill="var(--accent)" stroke="var(--ink)" stroke-width="0.6">
+            <path d="M12 1 L22 4 L22 14 C22 20 17 25 12 27 C7 25 2 20 2 14 L2 4 Z"/>
+            <path d="M9 14 L11.5 16.5 L16 11" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="name">B. Monoline shield</div>
+        <div class="kind">Recommended · used in mocks</div>
+        <div class="pros"><b>Pros</b>Custom SVG, matches the accent color. Reads at any scale. Slot empty/filled states are clearly distinct. Pairs cleanly with the existing 4&nbsp;px inner-border treatment.</div>
+        <div class="cons"><b>Cons</b>Adds an SVG asset to maintain (still ~30 lines).</div>
+      </div>
+
+      <!-- C: engraved / letterpress -->
+      <div class="icon-card">
+        <div class="demo">
+          <div style="position: relative;">
+            <svg width="68" height="78" viewBox="0 0 24 28" fill="var(--paper-dark)" stroke="var(--rule)" stroke-width="0.6">
+              <path d="M12 1 L22 4 L22 14 C22 20 17 25 12 27 C7 25 2 20 2 14 L2 4 Z"/>
+              <path d="M12 1 L22 4 L22 14 C22 20 17 25 12 27 C7 25 2 20 2 14 L2 4 Z" fill="none" stroke="var(--rule)" stroke-width="0.4" transform="translate(0.4 0.4)" opacity="0.4"/>
+              <text x="12" y="17" font-family="Fraunces, serif" font-size="11" font-style="italic" font-weight="800" fill="var(--ink)" text-anchor="middle">N</text>
+            </svg>
+          </div>
+        </div>
+        <div class="name">C. Engraved monogram</div>
+        <div class="kind">Newspaper&ndash;maximal</div>
+        <div class="pros"><b>Pros</b>Strongly on-brand. Feels like a printer&rsquo;s mark. The italic <em>N</em> ties to the masthead.</div>
+        <div class="cons"><b>Cons</b>Hard to read empty/filled state at thumbnail sizes. Could look fussy in the slot row. Probably better reserved for the milestone celebration.</div>
+      </div>
+    </div>
+
+    <div class="page--narrow" style="margin-top: 56px; padding: 0;">
+      <p class="body"><b>Recommendation:</b> ship with <b>B (monoline)</b> as the working icon throughout the app, and reserve <b>C (engraved monogram)</b> for the streak-milestone celebration where the typography can breathe. Drop A entirely &mdash; the cross-platform emoji rendering is the worst part of the current surfaces.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- =============== 07 · EDGE CASES + QUESTIONS ================== -->
+<section style="background: var(--paper-dark);">
+  <div class="page">
+    <div class="section-head">
+      <div class="section-kicker">07 &nbsp;·&nbsp; Open questions</div>
+      <h2 class="section-title">Things to settle before this becomes a PRD.</h2>
+      <p class="section-intro">Each of these is a small decision with downstream consequences. Marking them now so they don&rsquo;t turn into &ldquo;we&rsquo;ll figure it out in implementation.&rdquo;</p>
+    </div>
+
+    <div class="questions">
+
+      <div class="q">
+        <span class="q-num">Q1</span>
+        <h5 class="qq">What&rsquo;s the cap on shields visible in the slot UI?</h5>
+        <p>The reducer caps internal shields at 12. But the slot row visualizes 3. Do we hard-cap at 3 in the data model, or keep 12 internally and visualize the first 3 + a &ldquo;+9&rdquo; chip? Recommend: <b>visualize 3, allow up to 3 in the model</b>. More than 3 cheapens each one.</p>
+      </div>
+
+      <div class="q">
+        <span class="q-num">Q2</span>
+        <h5 class="qq">Does the &ldquo;at-risk&rdquo; nudge ever fire for week-1 players?</h5>
+        <p>If a player just started Monday, should Saturday show them the at-risk banner? Recommend: <b>no &mdash; only fires once a streak ≥ 2 weeks exists</b>. Otherwise it&rsquo;s a guilt trip about a one-week habit they haven&rsquo;t formed yet.</p>
+      </div>
+
+      <div class="q">
+        <span class="q-num">Q3</span>
+        <h5 class="qq">Anonymous &ldquo;first shield earned&rdquo; flow &mdash; what&rsquo;s the CTA?</h5>
+        <p>Three options: (a) same modal, primary CTA is &ldquo;Sign up to keep it&rdquo;; (b) same modal, dismiss reveals the sign-up banner inline; (c) skip the modal entirely for anon, route straight to the existing <code>ShieldSignUpBanner</code>. Recommend <b>(a)</b> &mdash; the gift framing is too valuable to skip.</p>
+      </div>
+
+      <div class="q">
+        <span class="q-num">Q4</span>
+        <h5 class="qq">What does &ldquo;Tell me more&rdquo; do on the streak-ignition modal?</h5>
+        <p>Two options: opens a 2nd card that previews shields (chain-teach), or scrolls down inside the same modal. Recommend: <b>2nd card</b> &mdash; matches the dot pattern, and most users will tap the primary CTA without ever seeing it.</p>
+      </div>
+
+      <div class="q">
+        <span class="q-num">Q5</span>
+        <h5 class="qq">Milestone celebrations: which weeks?</h5>
+        <p>Duolingo celebrates 7, 14, 30, 50, 100, 365. Weekly cadence suggests <b>4, 12, 26, 52</b>. Recommend small embellishment (gold inner border + engraved shield icon at the top) rather than a separate modal &mdash; the existing celebration already fires every week.</p>
+      </div>
+
+      <div class="q">
+        <span class="q-num">Q6</span>
+        <h5 class="qq">Should the shield primer block the &ldquo;Ask a friend&rdquo; flow?</h5>
+        <p>If the player taps Ask, sees the primer, and dismisses &mdash; do they end up on the share sheet or back on the question? Recommend: <b>primary CTA proceeds to the share sheet</b>; &ldquo;Not now&rdquo; returns to the question. The primer is education <em>during</em> the action, not before it.</p>
+      </div>
+
+      <div class="q">
+        <span class="q-num">Q7</span>
+        <h5 class="qq">How do we track which user has seen which surface?</h5>
+        <p>Today the gameReducer holds <code>streakSavedBannerSeen</code>, <code>showStreakCelebration</code>, etc. Recommend a single <code>onboarding</code> map: <code>{ streakIntroSeen, shieldPrimerSeen, firstShieldEarnedSeen, firstShieldSaveSeen }</code>. Persisted via the same AsyncStorage + Firestore merge path as existing flags.</p>
+      </div>
+
+      <div class="q">
+        <span class="q-num">Q8</span>
+        <h5 class="qq">Push notifications for at-risk?</h5>
+        <p>CLAUDE.md says push notifications are &ldquo;permanently deferred.&rdquo; So &mdash; in-app banner only for now, optional re-evaluation later. Worth noting that the at-risk banner only helps players who already open the app on Sat/Sun.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================ FOOTER ============================ -->
+<footer>
+  <div class="page--narrow" style="padding: 0;">
+    <div class="next">Next</div>
+    <h4>If this direction lands, here&rsquo;s the path to PRD.</h4>
+    <ol>
+      <li><b>Review with team</b> &mdash; circulate this doc, settle Q1&ndash;Q8, pick an icon direction.</li>
+      <li><b>Trim or expand</b> &mdash; if scope is too big, surfaces ⑥&ndash;⑧ can land in a follow-up release. The four modals (①&ndash;④) + at-risk banner (⑤) are the minimum viable education set.</li>
+      <li><b>PRD update</b> &mdash; fold the agreed surfaces into the v0.4.0 PRD as a new section: <em>&ldquo;Streak &amp; Shield Onboarding.&rdquo;</em></li>
+      <li><b>Tasks</b> &mdash; break out per-surface so they can ship incrementally behind a feature flag.</li>
+    </ol>
+  </div>
+</footer>
+
+</body>
+</html>

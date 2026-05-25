@@ -16,7 +16,9 @@ import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
 import { CompactMasthead } from '@/components/masthead/CompactMasthead';
 import { Masthead } from '@/components/Masthead';
+import { FirstShieldEarnedModal } from '@/components/FirstShieldEarnedModal';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
+import { ShieldPrimerModal } from '@/components/ShieldPrimerModal';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { LedeItem, LedePanelist } from '@/constants/data';
 import { C, F, cardShadow } from '@/constants/theme';
@@ -52,7 +54,7 @@ interface RevealData {
 
 export default function LedeScreen() {
   const { user, isAnonymous } = useAuth();
-  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer, dismissOnboardingFlag } = useGame();
   const { banks, contentWeek, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
@@ -100,6 +102,8 @@ export default function LedeScreen() {
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
+  const [firstShieldModalVisible, setFirstShieldModalVisible] = useState(false);
+  const [shieldPrimerVisible, setShieldPrimerVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
   const [bankExhausted, setBankExhausted] = useState(false);
   const [hintUnavailable, setHintUnavailable] = useState(false);
@@ -180,9 +184,7 @@ export default function LedeScreen() {
           questionIndex: questionIdx,
           shieldEarned: true,
         });
-        earnStreakShield();
-        setShieldToastVisible(true);
-        setTimeout(() => setShieldToastVisible(false), 2200);
+        handleShieldEarned();
       } catch {
         // ignore — user still sees their result
       }
@@ -199,9 +201,7 @@ export default function LedeScreen() {
           questionIndex: questionIdx,
           shieldEarned: true,
         });
-        earnStreakShield();
-        setShieldToastVisible(true);
-        setTimeout(() => setShieldToastVisible(false), 2200);
+        handleShieldEarned();
       } catch {
         // ignore
       }
@@ -228,6 +228,29 @@ export default function LedeScreen() {
     setHelpError(false);
     setHelpToken(null);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
+
+  /** Earns a shield and shows the right feedback (first-time modal vs. repeat toast). */
+  const handleShieldEarned = () => {
+    const isFirst =
+      state.stats.streakShieldsAvailable === 0 &&
+      !state.stats.onboarding.firstShieldEarnedSeen;
+    earnStreakShield();
+    if (isFirst) {
+      setFirstShieldModalVisible(true);
+    } else {
+      setShieldToastVisible(true);
+      setTimeout(() => setShieldToastVisible(false), 2200);
+    }
+  };
+
+  /** Opens "Ask a Friend" modal — shows primer first if not yet seen. */
+  const handleAskFriend = () => {
+    if (!state.stats.onboarding.shieldPrimerSeen) {
+      setShieldPrimerVisible(true);
+    } else {
+      requireAuth(handleOpenHelp);
+    }
   };
 
   const handleOpenHelp = async () => {
@@ -449,7 +472,7 @@ export default function LedeScreen() {
             {!isChallengeMode && !isHelpMode && !isHintMode && (
               <TouchableOpacity
                 style={styles.helpLink}
-                onPress={() => requireAuth(handleOpenHelp)}
+                onPress={handleAskFriend}
                 activeOpacity={0.7}
               >
                 <Text style={styles.helpLinkText}>Stuck? Ask a friend</Text>
@@ -614,8 +637,28 @@ export default function LedeScreen() {
         </View>
       </Modal>
 
-      <ShieldEarnedToast visible={shieldToastVisible} />
+      <ShieldEarnedToast visible={shieldToastVisible} suppressed={firstShieldModalVisible} />
       <StreakCelebrationModal />
+
+      {/* §1b Shield Primer — shown before first ask-a-friend tap */}
+      <ShieldPrimerModal
+        visible={shieldPrimerVisible}
+        onContinue={() => {
+          setShieldPrimerVisible(false);
+          dismissOnboardingFlag('shieldPrimerSeen');
+          requireAuth(handleOpenHelp);
+        }}
+        onDismiss={() => setShieldPrimerVisible(false)}
+      />
+
+      {/* §1c First Shield Earned Modal */}
+      <FirstShieldEarnedModal
+        visible={firstShieldModalVisible}
+        onDismiss={() => {
+          setFirstShieldModalVisible(false);
+          dismissOnboardingFlag('firstShieldEarnedSeen');
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Masthead } from '@/components/Masthead';
 import { AuthGateTab } from '@/components/AuthGateTab';
+import { ShieldIcon } from '@/components/ui/ShieldIcon';
 import { C, F, cardShadow } from '@/constants/theme';
 import { GAME_META } from '@/constants/data';
 import { useContent } from '@/context/ContentContext';
@@ -58,20 +59,42 @@ export default function FriendsScreen() {
 
         <View style={styles.shieldCard}>
           <View style={styles.cardInnerBorder} />
-          {streakShieldsAvailable === 0 ? (
-            <Text style={styles.shieldCount}>No shields yet</Text>
-          ) : (
-            <View style={styles.shieldCounterRow}>
-              <Text style={styles.shieldCounterIcon}>🛡</Text>
-              <Text style={styles.shieldCounterValue}>{streakShieldsAvailable}</Text>
-              <Text style={styles.shieldCounterLabel}>
-                {streakShieldsAvailable === 1 ? 'shield' : 'shields'}
-              </Text>
-            </View>
-          )}
-          <Text style={styles.shieldExplainer}>
-            Help a friend or take their challenge to earn a shield. Each shield protects your streak for one missed day.
+          <Text style={styles.shieldTitle}>Your shields</Text>
+
+          {/* 3 large shield slots */}
+          <View style={styles.shieldSlotRow}>
+            {[0, 1, 2].map(i => (
+              <View key={i} style={styles.shieldSlot}>
+                <ShieldIcon
+                  size={36}
+                  variant={i < streakShieldsAvailable ? 'filled' : 'outline'}
+                />
+              </View>
+            ))}
+          </View>
+          <Text style={styles.shieldSlotCaption}>
+            {streakShieldsAvailable === 0
+              ? 'No shields yet'
+              : `${streakShieldsAvailable} of 3 shields`}
           </Text>
+
+          <Text style={styles.shieldExplainer}>
+            Each shield protects your streak for one missed week.
+          </Text>
+
+          {/* HOW IT WORKS */}
+          <View style={styles.howDivider} />
+          <Text style={styles.howTitle}>HOW IT WORKS</Text>
+          {[
+            'Ask a friend for help on a question →',
+            'Friend answers your question →',
+            'Friend earns a shield',
+          ].map((step, i) => (
+            <View key={i} style={styles.howStep}>
+              <Text style={styles.howNum}>{i + 1}</Text>
+              <Text style={styles.howText}>{step}</Text>
+            </View>
+          ))}
         </View>
 
         <View style={styles.sectionHeader}>
@@ -250,42 +273,67 @@ const styles = StyleSheet.create({
     backgroundColor: C.paperDark,
     padding: 24,
     marginBottom: 24,
+    gap: 12,
     ...cardShadow,
   },
-  shieldCounterRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 10,
-    marginBottom: 12,
-  },
-  shieldCounterIcon: {
-    fontSize: 32,
-    lineHeight: 36,
-  },
-  shieldCounterValue: {
-    fontFamily: F.frauncesXBold,
-    fontSize: 36,
-    color: C.ink,
-    lineHeight: 40,
-  },
-  shieldCounterLabel: {
-    fontFamily: F.mono,
-    fontSize: 12,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: C.muted,
-  },
-  shieldCount: {
-    fontFamily: F.frauncesSemiBold,
+  shieldTitle: {
+    fontFamily: F.frauncesBold,
     fontSize: 18,
+    color: C.ink,
+    textAlign: 'center',
+  },
+  shieldSlotRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  shieldSlot: {
+    alignItems: 'center',
+  },
+  shieldSlotCaption: {
+    fontFamily: F.mono,
+    fontSize: 11,
     color: C.muted,
-    marginBottom: 12,
+    textAlign: 'center',
+    letterSpacing: 1,
   },
   shieldExplainer: {
     fontFamily: F.fraunces,
     fontSize: 14,
     color: C.muted,
     lineHeight: 20,
+    textAlign: 'center',
+  },
+  howDivider: {
+    height: 1,
+    backgroundColor: C.paperDarker,
+    marginVertical: 4,
+  },
+  howTitle: {
+    fontFamily: F.mono,
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: C.muted,
+    textAlign: 'center',
+  },
+  howStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  howNum: {
+    fontFamily: F.monoBold,
+    fontSize: 12,
+    color: C.muted,
+    width: 16,
+  },
+  howText: {
+    fontFamily: F.mono,
+    fontSize: 12,
+    color: C.ink,
+    flex: 1,
+    lineHeight: 18,
   },
   emptyCard: {
     borderWidth: 1,

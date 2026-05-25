@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { C, F, cardShadow } from '@/constants/theme';
+import { ShieldIcon } from '@/components/ui/ShieldIcon';
 
 interface Props {
   visible: boolean;
@@ -22,8 +23,12 @@ export function ShieldSavedBanner({ visible, onDismiss }: Props) {
       >
         <Text style={styles.closeBtnText}>×</Text>
       </TouchableOpacity>
-      <Text style={styles.label}>🛡 Streak saved</Text>
+      <View style={styles.labelRow}>
+        <ShieldIcon size={13} variant="filled" />
+        <Text style={styles.label}>Streak saved</Text>
+      </View>
       <Text style={styles.title}>A shield kept your streak alive.</Text>
+      <Text style={styles.sub}>Earn another by helping a friend or answering a challenge.</Text>
     </View>
   );
 }
@@ -61,18 +66,30 @@ const styles = StyleSheet.create({
     color: C.muted,
     lineHeight: 26,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
   label: {
     fontFamily: F.monoBold,
     fontSize: 11,
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: C.accent,
-    marginBottom: 8,
   },
   title: {
     fontFamily: F.fraunces,
     fontSize: 16,
     color: C.ink,
     lineHeight: 22,
+    marginBottom: 6,
+  },
+  sub: {
+    fontFamily: F.mono,
+    fontSize: 12,
+    color: C.muted,
+    lineHeight: 18,
   },
 });

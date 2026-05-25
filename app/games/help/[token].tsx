@@ -90,7 +90,7 @@ export default function HelpScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardInnerBorder} />
-          <Text style={styles.cardLabel}>They're stuck on question #{payload.questionIndex + 1}.</Text>
+          <Text style={styles.cardLabel}>They're stuck and need your help.</Text>
           <Text style={styles.cardBody}>
             Play the game — your answer will be sent back to {askerLabel} so they can see what you picked.
           </Text>

@@ -12,7 +12,8 @@ describe('ShieldSignUpBanner', () => {
         onDismiss={jest.fn()}
       />,
     );
-    expect(getByText('🛡 Sign up to keep your shield')).toBeTruthy();
+    // Emoji replaced by ShieldIcon SVG; text node now reads without the emoji prefix
+    expect(getByText('Sign up to keep your shield')).toBeTruthy();
     // Body should mention helping friends and challenges
     expect(getByText(/help a friend|answer a challenge|streak shield/i)).toBeTruthy();
   });

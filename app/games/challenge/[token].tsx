@@ -147,7 +147,7 @@ export default function ChallengeScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardInnerBorder} />
-          <Text style={styles.cardLabel}>They challenged you to answer question #{payload.questionIndex + 1}.</Text>
+          <Text style={styles.cardLabel}>They challenged you to answer a question.</Text>
           <Text style={styles.cardBody}>
             Play the game to see how you do — then come back to compare your answer with {payload.senderName}.
           </Text>

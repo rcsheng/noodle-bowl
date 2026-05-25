@@ -35,6 +35,14 @@ interface GameStats {
   lastPlayed?: string;
 }
 
+export interface OnboardingFlags {
+  streakIntroSeen: boolean;       // §1a: StreakIgnitionModal shown
+  shieldPrimerSeen: boolean;      // §1b: ShieldPrimerModal shown
+  firstShieldEarnedSeen: boolean; // §1c: FirstShieldEarnedModal shown
+  firstShieldSaveSeen: boolean;   // §1d: ShieldSavedModal shown
+  atRiskWeekDismissed: string | null; // §1e: weekId of last dismissed at-risk banner
+}
+
 interface AppState {
   stats: {
     weeklyStreak: number;
@@ -45,6 +53,9 @@ interface AppState {
     streakShieldUsedThisWeek: boolean;
     streakSavedBannerSeen: boolean;
     showStreakCelebration: boolean;
+    onboarding: OnboardingFlags;
+    recentPlayedWeeks: string[]; // last ≤6 weekIds when user played; for week-chain UI
+    shieldSaveWeeks: string[];   // weekIds when a shield saved the streak; for week-chain UI
     lede: GameStats;
     spread: GameStats;
     sof: GameStats;
@@ -58,7 +69,18 @@ interface AppState {
 
 export type { AppState, GameStats };
 
+/** Maximum shields a player can hold at one time. */
+const MAX_SHIELDS = 3;
+
 const defaultGameStats: GameStats = { played: 0, correct: 0, streak: 0, bestStreak: 0 };
+
+const defaultOnboarding: OnboardingFlags = {
+  streakIntroSeen: false,
+  shieldPrimerSeen: false,
+  firstShieldEarnedSeen: false,
+  firstShieldSaveSeen: false,
+  atRiskWeekDismissed: null,
+};
 
 export const initialState: AppState = {
   stats: {
@@ -70,6 +92,9 @@ export const initialState: AppState = {
     streakShieldUsedThisWeek: false,
     streakSavedBannerSeen: true,
     showStreakCelebration: false,
+    onboarding: { ...defaultOnboarding },
+    recentPlayedWeeks: [],
+    shieldSaveWeeks: [],
     lede: { ...defaultGameStats },
     spread: { ...defaultGameStats },
     sof: { ...defaultGameStats },
@@ -105,6 +130,8 @@ export type Action =
   | { type: 'EARN_SHIELD' }
   | { type: 'DISMISS_STREAK_SAVED_BANNER' }
   | { type: 'DISMISS_STREAK_CELEBRATION' }
+  | { type: 'DISMISS_ONBOARDING_FLAG'; flag: keyof Omit<OnboardingFlags, 'atRiskWeekDismissed'> }
+  | { type: 'DISMISS_AT_RISK'; weekId: string }
   | { type: 'ADD_FRIEND_INTERACTION'; interaction: FriendInteraction }
   | { type: 'SET_FRIEND_INTERACTIONS'; interactions: FriendInteraction[] }
   | { type: 'REMOVE_FRIEND_INTERACTION'; id: string }
@@ -131,6 +158,9 @@ export function reducer(state: AppState, action: Action): AppState {
         mergedStats.streakShieldUsedThisWeek = stats.streakShieldUsedThisWeek ?? false;
         mergedStats.streakSavedBannerSeen = stats.streakSavedBannerSeen ?? true;
         // showStreakCelebration is a transient display flag — never restored from storage
+        mergedStats.onboarding = { ...defaultOnboarding, ...(stats.onboarding ?? {}) };
+        mergedStats.recentPlayedWeeks = Array.isArray(stats.recentPlayedWeeks) ? stats.recentPlayedWeeks : [];
+        mergedStats.shieldSaveWeeks = Array.isArray(stats.shieldSaveWeeks) ? stats.shieldSaveWeeks : [];
         (['lede', 'spread', 'sof', 'quip', 'wave'] as GameId[]).forEach(g => {
           const saved = stats[g];
           if (saved) mergedStats[g] = { ...defaultGameStats, ...(saved as GameStats) };
@@ -201,6 +231,7 @@ export function reducer(state: AppState, action: Action): AppState {
       let newShieldUsedThisWeek = false;
       let newBannerSeen = stats.streakSavedBannerSeen;
       let showStreakCelebration = false;
+      let shieldUsedThisPlay = false;
       if (stats.lastPlayedWeek === prevWeek) {
         // Played last week too — consecutive streak continues.
         newWeeklyStreak = currentStreak + 1;
@@ -210,10 +241,15 @@ export function reducer(state: AppState, action: Action): AppState {
         newShields = newShields - 1;
         newShieldUsedThisWeek = true;
         newBannerSeen = false;
+        shieldUsedThisPlay = true;
       } else {
         // No shield — streak resets.
         newWeeklyStreak = 1;
       }
+      const prevRecent = Array.isArray(stats.recentPlayedWeeks) ? stats.recentPlayedWeeks : [];
+      const newRecentPlayed = [...prevRecent, weekId].slice(-6);
+      const prevShieldSave = Array.isArray(stats.shieldSaveWeeks) ? stats.shieldSaveWeeks : [];
+      const newShieldSaveWeeks = shieldUsedThisPlay ? [...prevShieldSave, weekId] : prevShieldSave;
       return {
         ...state,
         stats: {
@@ -226,6 +262,8 @@ export function reducer(state: AppState, action: Action): AppState {
           streakShieldUsedThisWeek: newShieldUsedThisWeek,
           streakSavedBannerSeen: newBannerSeen,
           showStreakCelebration,
+          recentPlayedWeeks: newRecentPlayed,
+          shieldSaveWeeks: newShieldSaveWeeks,
         },
       };
     }
@@ -236,7 +274,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         stats: {
           ...state.stats,
-          streakShieldsAvailable: state.stats.streakShieldsAvailable + 1,
+          streakShieldsAvailable: Math.min(state.stats.streakShieldsAvailable + 1, MAX_SHIELDS),
         },
       };
     case 'DISMISS_STREAK_SAVED_BANNER':
@@ -251,6 +289,28 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         stats: { ...state.stats, showStreakCelebration: false },
       };
+    case 'DISMISS_ONBOARDING_FLAG': {
+      const { flag } = action;
+      if (state.stats.onboarding[flag]) return state; // already true
+      return {
+        ...state,
+        stats: {
+          ...state.stats,
+          onboarding: { ...state.stats.onboarding, [flag]: true },
+        },
+      };
+    }
+    case 'DISMISS_AT_RISK': {
+      const { weekId } = action;
+      if (state.stats.onboarding.atRiskWeekDismissed === weekId) return state;
+      return {
+        ...state,
+        stats: {
+          ...state.stats,
+          onboarding: { ...state.stats.onboarding, atRiskWeekDismissed: weekId },
+        },
+      };
+    }
     case 'ADD_FRIEND_INTERACTION':
       return { ...state, friendInteractions: [action.interaction, ...state.friendInteractions] };
     case 'SET_FRIEND_INTERACTIONS':
@@ -290,6 +350,20 @@ export function reducer(state: AppState, action: Action): AppState {
       // NaN values stored by the old bug cannot survive into state. We take the
       // max of server and local for each count so a multi-device race never
       // downgrades a value that was already earned in this session.
+      const serverOnboarding: OnboardingFlags = (serverStats as any).onboarding ?? defaultOnboarding;
+      const localOnboarding: OnboardingFlags = state.stats.onboarding ?? defaultOnboarding;
+      // "Any-true-wins" merge: once a user has seen an onboarding surface on any
+      // device, we never show it again. atRiskWeekDismissed takes the later weekId.
+      const mergedOnboarding: OnboardingFlags = {
+        streakIntroSeen: localOnboarding.streakIntroSeen || serverOnboarding.streakIntroSeen,
+        shieldPrimerSeen: localOnboarding.shieldPrimerSeen || serverOnboarding.shieldPrimerSeen,
+        firstShieldEarnedSeen: localOnboarding.firstShieldEarnedSeen || serverOnboarding.firstShieldEarnedSeen,
+        firstShieldSaveSeen: localOnboarding.firstShieldSaveSeen || serverOnboarding.firstShieldSaveSeen,
+        atRiskWeekDismissed: [serverOnboarding.atRiskWeekDismissed, localOnboarding.atRiskWeekDismissed]
+          .filter((w): w is string => w !== null && w !== undefined)
+          .sort()
+          .pop() ?? null,
+      };
       const mergedStats: AppState['stats'] = {
         ...initialState.stats,
         ...baseStats,
@@ -312,6 +386,7 @@ export function reducer(state: AppState, action: Action): AppState {
         // showStreakCelebration is a transient session flag — never restore from server,
         // even if old Firestore data has it set to true.
         showStreakCelebration: false,
+        onboarding: mergedOnboarding,
       };
       const mergedSeen = { ...state.seen };
       // Only apply server seen if it was written for the same week as the local seenWeek.

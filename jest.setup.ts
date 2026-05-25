@@ -42,3 +42,32 @@ jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(() => jest.fn()),
   fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true }),
 }));
+
+// react-native-svg: lightweight no-op stubs for all SVG primitives
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  const makeStub = (displayName: string) => {
+    const Stub = ({ children, ...rest }: any) =>
+      React.createElement('View', { testID: displayName, ...rest }, children);
+    Stub.displayName = displayName;
+    return Stub;
+  };
+  return {
+    __esModule: true,
+    default: makeStub('Svg'),
+    Svg: makeStub('Svg'),
+    Path: makeStub('Path'),
+    G: makeStub('G'),
+    Circle: makeStub('Circle'),
+    Rect: makeStub('Rect'),
+    Line: makeStub('Line'),
+    Polygon: makeStub('Polygon'),
+    Polyline: makeStub('Polyline'),
+    Text: makeStub('SvgText'),
+    Defs: makeStub('Defs'),
+    Use: makeStub('Use'),
+    ClipPath: makeStub('ClipPath'),
+    LinearGradient: makeStub('LinearGradient'),
+    Stop: makeStub('Stop'),
+  };
+});

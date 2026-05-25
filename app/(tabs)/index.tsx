@@ -15,11 +15,14 @@ import { ChallengeReplyCard } from '@/components/ChallengeReplyCard';
 import { HelpResultCard } from '@/components/HelpResultCard';
 import { Masthead } from '@/components/Masthead';
 import { ShieldSavedBanner } from '@/components/ShieldSavedBanner';
+import { ShieldSavedModal } from '@/components/ShieldSavedModal';
+import { StreakAtRiskBanner } from '@/components/StreakAtRiskBanner';
+import { StreakIgnitionModal } from '@/components/StreakIgnitionModal';
 import { C, F } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
-import { computeActiveWeek, getWeekDateRange } from '@/lib/contentWeek';
+import { computeActiveWeek, computeCurrentWeek, getWeekDateRange } from '@/lib/contentWeek';
 import { useGame } from '@/context/GameContext';
 import { db } from '@/lib/firebase';
 import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
@@ -33,11 +36,42 @@ function getSectionDate(): string {
 }
 
 export default function HubScreen() {
-  const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner } = useGame();
+  const { state, dismissHelpCard, removeFriendInteraction, dismissStreakSavedBanner, dismissOnboardingFlag, dismissAtRisk } = useGame();
   const { banks, contentWeek, reload } = useContent();
-  const { streakShieldUsedThisWeek, streakSavedBannerSeen } = state.stats;
-  const showStreakSavedBanner = streakShieldUsedThisWeek && !streakSavedBannerSeen;
+  const {
+    streakShieldUsedThisWeek,
+    streakSavedBannerSeen,
+    weeklyStreak,
+    totalWeeksPlayed,
+    lastPlayedWeek,
+    streakShieldsAvailable,
+    onboarding,
+  } = state.stats;
   const today = getTodayISODate();
+
+  // §1a Streak Ignition — once, after first week of play
+  const showIgnitionModal = totalWeeksPlayed === 1 && weeklyStreak === 1 && !onboarding.streakIntroSeen;
+
+  // §1d Shield Saved — first time only; subsequent saves use the inline banner
+  const showShieldSavedModal =
+    !showIgnitionModal &&
+    streakShieldUsedThisWeek &&
+    !streakSavedBannerSeen &&
+    !onboarding.firstShieldSaveSeen;
+
+  // Existing inline banner (subsequent shield saves)
+  const showStreakSavedBanner =
+    !showShieldSavedModal && streakShieldUsedThisWeek && !streakSavedBannerSeen;
+
+  // §1e At-Risk Banner — Sat/Sun, streak≥2, not played this week, not dismissed
+  const currentWeek = computeCurrentWeek();
+  const dayOfWeek = new Date().getDay(); // 0=Sun … 6=Sat
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const showAtRiskBanner =
+    isWeekend &&
+    weeklyStreak >= 2 &&
+    lastPlayedWeek !== currentWeek &&
+    onboarding.atRiskWeekDismissed !== currentWeek;
 
   const candidateHelpResults = state.friendInteractions.filter(
     i => i.type === 'received_help' && i.token && !i.homeCardDismissed,
@@ -118,7 +152,35 @@ export default function HubScreen() {
       >
         <Masthead />
 
+        {/* §1e At-Risk Banner — Sat/Sun nudge when streak hasn't been played this week */}
+        {showAtRiskBanner && (
+          <StreakAtRiskBanner
+            weeklyStreak={weeklyStreak}
+            shieldsAvailable={streakShieldsAvailable}
+            onDismiss={() => dismissAtRisk(currentWeek)}
+          />
+        )}
+
+        {/* §1d Inline banner for subsequent shield saves (§1d first-time is a modal below) */}
         <ShieldSavedBanner visible={showStreakSavedBanner} onDismiss={dismissStreakSavedBanner} />
+
+        {/* §1a Streak Ignition Modal — rendered here, dismissed after first game week */}
+        <StreakIgnitionModal
+          visible={showIgnitionModal}
+          weeklyStreak={weeklyStreak}
+          onDismiss={() => dismissOnboardingFlag('streakIntroSeen')}
+        />
+
+        {/* §1d Shield Saved Modal — first time only; shown instead of the inline banner */}
+        <ShieldSavedModal
+          visible={showShieldSavedModal}
+          weeklyStreak={weeklyStreak}
+          shieldsRemaining={streakShieldsAvailable}
+          onDismiss={() => {
+            dismissOnboardingFlag('firstShieldSaveSeen');
+            dismissStreakSavedBanner();
+          }}
+        />
 
         {hasReplies && (
           <>

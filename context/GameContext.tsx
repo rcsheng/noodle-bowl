@@ -10,7 +10,9 @@ import { readStats, writeStats } from '@/lib/statsRepo';
 import { scheduleWrite } from '@/lib/syncQueue';
 import { useAuth } from '@/context/AuthContext';
 import { computeActiveWeek, computeCurrentWeek } from '@/lib/contentWeek';
-import { Action, AppState, FriendInteraction, initialState, reducer } from './gameReducer';
+import { Action, AppState, FriendInteraction, OnboardingFlags, initialState, reducer } from './gameReducer';
+
+const MAX_SHIELDS = 3;
 
 export type { FriendInteraction };
 
@@ -26,6 +28,8 @@ interface GameContextType {
   setAskerAnswer: (token: string, askerAnswer: string) => void;
   dismissStreakSavedBanner: () => void;
   dismissStreakCelebration: () => void;
+  dismissOnboardingFlag: (flag: keyof Omit<OnboardingFlags, 'atRiskWeekDismissed'>) => void;
+  dismissAtRisk: (weekId: string) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -159,8 +163,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const earnStreakShield = useCallback(() => {
     dispatch({ type: 'EARN_SHIELD' });
+    // Firestore write uses the same cap as the reducer so stored value never exceeds MAX_SHIELDS.
     if (!isAnonymous && uid) {
-      const newStats = { ...state.stats, streakShieldsAvailable: state.stats.streakShieldsAvailable + 1 };
+      const newStats = { ...state.stats, streakShieldsAvailable: Math.min(state.stats.streakShieldsAvailable + 1, MAX_SHIELDS) };
       writeStats(uid, newStats).catch(() => {});
     }
   }, [isAnonymous, uid, state.stats]);
@@ -218,6 +223,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const dismissStreakCelebration = useCallback(() => {
     dispatch({ type: 'DISMISS_STREAK_CELEBRATION' });
+  }, []);
+
+  const dismissOnboardingFlag = useCallback(
+    (flag: keyof Omit<OnboardingFlags, 'atRiskWeekDismissed'>) => {
+      dispatch({ type: 'DISMISS_ONBOARDING_FLAG', flag });
+    },
+    [],
+  );
+
+  const dismissAtRisk = useCallback((weekId: string) => {
+    dispatch({ type: 'DISMISS_AT_RISK', weekId });
   }, []);
 
   // Keep a ref to addFriendInteraction so the snapshot callbacks can call the
@@ -302,7 +318,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [uid]);
 
   return (
-    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard, setAskerAnswer, dismissStreakSavedBanner, dismissStreakCelebration }}>
+    <GameContext.Provider value={{ state, isLoaded, updateGameStats, setSeen, earnStreakShield, addFriendInteraction, removeFriendInteraction, dismissHelpCard, setAskerAnswer, dismissStreakSavedBanner, dismissStreakCelebration, dismissOnboardingFlag, dismissAtRisk }}>
       {children}
     </GameContext.Provider>
   );
