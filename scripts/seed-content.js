@@ -115,16 +115,31 @@ async function upsertDocument(token, docId, data) {
   });
 }
 
+/** Returns the ISO week string for the *previous* complete week (Mon–Sun UTC).
+ * Mirrors computeActiveWeek() in lib/contentWeek.ts — the doc ID the app looks up. */
+function computeActiveWeek() {
+  const now = new Date();
+  const prevWeek = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7));
+  // Shift to Thursday of that week (ISO pivot day)
+  const d = new Date(prevWeek);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
 async function main() {
   console.log(`Seeding content to ${IS_PROD ? 'PRODUCTION' : 'emulator'} (project: ${PROJECT_ID})`);
 
   const banks = await loadBanks();
   const token = await getIdToken();
 
-  const docId = `v${Date.now()}`;
+  // Doc ID must match the ISO week the app will look up via findForWeek().
+  // The app always serves the *previous* complete week's content.
+  const docId = computeActiveWeek(); // e.g. "2026-W21"
   const doc = {
     id: docId,
-    active: true,
+    contentWeek: docId,   // required by ContentVersion schema
     createdAt: new Date().toISOString(),
     banks,
   };
