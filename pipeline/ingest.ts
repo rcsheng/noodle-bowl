@@ -59,21 +59,35 @@ async function fetchPage(url: string): Promise<StoryCandidate[]> {
 
 // Fetches up to `maxPages` pages of /all?published_on={date} at limit=3 per page.
 // Stops early if a page returns fewer than 3 results (end of available articles).
+// Stops early on HTTP 429 (rate limit) without throwing — returns whatever was collected.
 // Each page costs 1 API call.
-async function ingestDate(token: string, date: string, maxPages: number): Promise<{ candidates: StoryCandidate[]; calls: number }> {
+async function ingestDate(
+  token: string, date: string, maxPages: number
+): Promise<{ candidates: StoryCandidate[]; calls: number; rateLimited: boolean }> {
   const base = `https://api.thenewsapi.com/v1/news/all?api_token=${token}&locale=us&language=en&categories=general,science,politics,tech&limit=3&published_on=${date}`;
   const candidates: StoryCandidate[] = [];
   let calls = 0;
+  let rateLimited = false;
 
   for (let page = 1; page <= maxPages; page++) {
-    const items = await fetchPage(`${base}&page=${page}`);
-    calls++;
-    candidates.push(...items);
-    if (items.length < 3) break; // last page — no more results
-    if (page < maxPages) await sleep(150);
+    try {
+      const items = await fetchPage(`${base}&page=${page}`);
+      calls++;
+      candidates.push(...items);
+      if (items.length < 3) break; // last page — no more results
+      if (page < maxPages) await sleep(150);
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg.includes('429') || msg.includes('rate_limit')) {
+        console.log(` rate limited after ${calls} calls`);
+        rateLimited = true;
+        break;
+      }
+      throw e; // re-throw unexpected errors
+    }
   }
 
-  return { candidates, calls };
+  return { candidates, calls, rateLimited };
 }
 
 async function main() {
@@ -87,10 +101,11 @@ async function main() {
 
   const token = requireEnv('THENEWSAPI_TOKEN');
 
-  // Budget note: weird ingest uses up to 15 calls for headline resolution.
+  // Budget note: weird ingest caps at MAX_RESOLVE=20 calls for headline resolution.
   // This script uses up to (days × pagesPerDay) calls.
-  // Default: 1 day × 20 pages = 20 calls here + ~15 weird = ~35 total (well within 100/day).
-  // For bulk: --days=4 --pages=20 = 80 calls here + ~15 weird = ~95 total.
+  // Default: 1 day × 20 pages = 20 calls here + 20 weird = 40 total (well within 100/day).
+  // For bulk: --days=4 --pages=20 = 80 calls here + 20 weird = 100 total (at limit — see pipeline:ingest:bulk).
+  // On 429: stops early and writes partial results (exit 0) so the rest of the pipeline can continue.
   console.log(`Ingesting from TheNewsAPI: ${days} day(s) × up to ${pagesPerDay} pages/day (limit=3 per page)...`);
 
   const allCandidates: StoryCandidate[] = [];
@@ -99,10 +114,14 @@ async function main() {
   for (let i = 0; i < days; i++) {
     const date = isoDate(i);
     process.stdout.write(`  ${date}... `);
-    const { candidates, calls } = await ingestDate(token, date, pagesPerDay);
+    const { candidates, calls, rateLimited } = await ingestDate(token, date, pagesPerDay);
     process.stdout.write(`${candidates.length} articles (${calls} calls)\n`);
     allCandidates.push(...candidates);
     totalCalls += calls;
+    if (rateLimited) {
+      console.log(`  Stopped early — daily rate limit reached after ${totalCalls} total calls.`);
+      break; // write whatever we have; don't try more dates
+    }
     if (i < days - 1) await sleep(250);
   }
 

@@ -26,7 +26,7 @@
     "seed:emulator": "node scripts/seed-content.js",
     "seed:prod": "cross-env SEED_TARGET=prod node scripts/seed-content.js",
     "pipeline:ingest": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest-weird.ts && ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest.ts",
-    "pipeline:ingest:bulk": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest-weird.ts && ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest.ts --days=4 --pages=20",
+    "pipeline:ingest:bulk": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest-weird.ts && ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest.ts --days=4 --pages=15",
     "pipeline:ingest:researched": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ingest-researched.ts",
     "pipeline:select": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/select.ts",
     "pipeline:generate": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/generate.ts",

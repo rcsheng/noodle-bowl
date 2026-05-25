@@ -89,7 +89,7 @@ _(none yet — add entries here as recurring fetch/parse patterns are identified
 
 ## Project Overview
 
-React Native Expo app — daily brain-game with 5 games (Lede, Spread, SoF, Wave, Quip). Firebase backend with anonymous auth + email upgrade.
+React Native Expo app — weekly brain-game with 5 games (Lede, Spread, SoF, Wave, Quip). Firebase backend with anonymous auth + email upgrade.
 
 **Stack:** Expo Router v3, Firebase Auth + Firestore + Functions, AsyncStorage, zod, Jest.
 

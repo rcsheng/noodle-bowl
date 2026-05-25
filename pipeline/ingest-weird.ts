@@ -149,6 +149,11 @@ async function resolveViaNewsAPI(headline: string, token: string): Promise<Story
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Hard cap on TheNewsAPI calls for weird resolution.
+// Free tier: 100 calls/day. Main ingest uses up to 20 (default) or 60 (bulk).
+// Leaving 20 here keeps the daily budget at 40 (default) or 80 (bulk).
+const MAX_RESOLVE = 20;
+
 // Sources are tried in order; failures are non-fatal (logged and skipped).
 // RSS is preferred over HTML where available — more stable than page structure.
 const SOURCES: Array<{ name: string; fetch: () => Promise<ScrapedHeadline[]> }> = [
@@ -164,7 +169,7 @@ const SOURCES: Array<{ name: string; fetch: () => Promise<ScrapedHeadline[]> }> 
   },
   {
     name: 'sky/strange',
-    fetch: () => fetchRSSSource('http://feeds.skynews.com/feeds/rss/strange.xml', 'sky/strange'),
+    fetch: () => fetchRSSSource('https://feeds.skynews.com/feeds/rss/strange.xml', 'sky/strange'),
   },
   {
     name: 'upi/odd-news',
@@ -172,7 +177,7 @@ const SOURCES: Array<{ name: string; fetch: () => Promise<ScrapedHeadline[]> }> 
   },
   {
     name: 'mentalfloss',
-    fetch: () => fetchRSSSource('https://mentalfloss.com/rss.xml', 'mentalfloss'),
+    fetch: () => fetchRSSSource('https://www.mentalfloss.com/posts.rss', 'mentalfloss'),
   },
   {
     name: 'neatorama',
@@ -209,22 +214,32 @@ async function main() {
     return;
   }
 
-  // Search TheNewsAPI for each scraped headline (one call per headline)
-  console.log(`\nResolving via TheNewsAPI search...`);
+  // Shuffle for variety across sources, then cap to API budget.
+  // With 7 sources × up to 20 headlines each, we could scrape 140+ headlines —
+  // resolving them all would blow the 100-call daily free-tier budget.
+  const shuffled = [...allHeadlines].sort(() => Math.random() - 0.5);
+  const toResolve = shuffled.slice(0, MAX_RESOLVE);
+  console.log(`\nResolving ${toResolve.length} of ${allHeadlines.length} scraped headlines via TheNewsAPI (cap: ${MAX_RESOLVE})...`);
+
   const candidates: StoryCandidate[] = [];
   const seen = new Set<string>();
   let apiCalls = 0;
 
-  for (let i = 0; i < allHeadlines.length; i++) {
-    const { headline } = allHeadlines[i];
-    process.stdout.write(`  [${i + 1}/${allHeadlines.length}] ${headline.slice(0, 50).padEnd(50)} `);
+  for (let i = 0; i < toResolve.length; i++) {
+    const { headline } = toResolve[i];
+    process.stdout.write(`  [${i + 1}/${toResolve.length}] ${headline.slice(0, 50).padEnd(50)} `);
 
     let candidate: StoryCandidate | null = null;
     try {
       candidate = await resolveViaNewsAPI(headline, token);
       apiCalls++;
     } catch (e) {
-      console.log(`err (${(e as Error).message.slice(0, 50)})`);
+      const msg = (e as Error).message;
+      if (msg.includes('429') || msg.includes('rate_limit')) {
+        console.log('rate limited — stopping early');
+        break; // stop resolving; write whatever candidates we have
+      }
+      console.log(`err (${msg.slice(0, 50)})`);
       continue;
     }
 

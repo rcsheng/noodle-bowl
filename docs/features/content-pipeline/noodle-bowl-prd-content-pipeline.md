@@ -1,6 +1,6 @@
 # Noodle Bowl — Content Generation Pipeline PRD
 
-**Status:** Draft  
+**Status:** Active — Phase 3 implemented  
 **Last updated:** May 2026  
 **Author:** rcsheng  
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Noodle Bowl needs a steady supply of fresh game content to remain worth opening daily. This PRD defines a **low-cost, mostly-automated pipeline** that ingests curated news and science stories, generates structured game content via Claude, and publishes new content versions to Firestore — without requiring a dedicated editorial team.
+Noodle Bowl needs a steady supply of fresh game content to remain worth opening weekly. This PRD defines a **low-cost, mostly-automated pipeline** that ingests curated news and science stories, generates structured game content via Claude, and publishes new content versions to Firestore — without requiring a dedicated editorial team.
 
 The design principle is: **one good story feeds multiple games**. A single interesting news item can simultaneously become a Lede question, a Spread number, a SoF claim, a Quip prompt, and a Wave dial. The pipeline's job is to find those stories, structure them per-game, and get them into Firebase.
 
@@ -71,18 +71,18 @@ A real news story involving a specific number. Players pick the closest estimate
 
 ### 3. Science or Fiction (`SofItem`)
 
-Two claims from a single news story: one real (cited), one fabricated. Player taps the Science (real) claim. Two flavors:
-- **Standard**: One real science/research finding + one plausible-but-false claim in the same domain.
-- **Weird & True**: One bizarre-but-real news story + one boring plausible fake in the same style.
+Two claims from a single news story: one real (cited), one fabricated. Player taps the Science (real) claim.
 
 | Field | Description |
 |---|---|
 | `topic` | The thematic label (e.g. "Space & Astronomy") — **dominant 22pt headline in v6 UI** |
 | `intro` | One sentence framing the round — generated but not rendered in v6 play phase; kept for future use |
-| `weirdAndTrue` | `true` for Weird & True flavor, `false` for standard |
+| `weirdAndTrue` | Legacy field — always `false`. Weird & True flavor was removed; weird stories now feed Lede only. |
 | `claims[2]` | Claim 0: real (`isScience: true`, source required). Claim 1: fabricated (`isScience: false`, `source: null`). UI shuffles display order. |
 
-**Best content:** A real, specific, surprising news story. The fabricated claim must be adjacent enough to fool a reasonably informed player. The real claim must have a citable mainstream-news source.
+**Source routing:** SoF only draws from stories in the `science`, `health`, `nature`, or `technology` domains (keyword-classified). Weird stories (tagged `weird`) are excluded from SoF and routed to Lede only.
+
+**Best content:** A real, specific, surprising science/health/nature/tech news story. The fabricated claim must be adjacent enough to fool a reasonably informed player. The real claim must have a citable mainstream-news source.
 
 ### 4. The Quip (`QuipPrompt`) — Derivative
 
@@ -134,9 +134,13 @@ Three APIs provide machine-readable story candidates without newsletter scraping
 
 **Best for:** The Lede (surprising headlines), The Spread (numeric news stories)
 
-- Free plan, no credit card required
-- `GET https://api.thenewsapi.com/v1/news/top?api_token=XXX&locale=us&categories=general,science,politics`
-- Returns: `title`, `description` (snippet), `source`, `published_at`
+- Free plan, no credit card required. **100 API calls/day hard limit.**
+- **Implemented endpoint:** `GET /v1/news/all?api_token=XXX&locale=us&language=en&categories=general,science,politics,tech&limit=3&published_on=YYYY-MM-DD&page=N`
+  - The `/top` endpoint returns only ~3 results regardless of `limit`. Use paginated `/all` with `limit=3&page=N` to get more.
+  - Default pipeline: 1 day × 20 pages = 20 calls. Bulk: 4 days × 15 pages = 60 calls.
+- **Weird ingest** (`pipeline/ingest-weird.ts`): scrapes oddball headlines from RSS/HTML sources (AP News, NPR, UPI, Neatorama, Fark, Sky News), then resolves each via TheNewsAPI keyword search. Capped at `MAX_RESOLVE=20` API calls to stay within daily budget.
+- **Total daily budget:** 20 weird + 20 main = ~40 calls (default); 20 weird + 60 main = ~80 calls (bulk). Both well within 100/day.
+- Returns: `title`, `description` (snippet), `source`, `published_at`, `language`
 - **Important:** Use `title + description` as Claude input only — never display full article text. Copyright protection applies to article prose, not the underlying facts.
 
 #### Wikipedia "On This Day" API
@@ -188,15 +192,22 @@ Podcasts like _Radiolab_, _Science Friday_, _Freakonomics_, _99% Invisible_, or 
 
 Run manually, once a week or bi-weekly. Relies on Source A (newsletters) with Source C for verification.
 
-### Option 2: Daily API Pipeline (Recommended for Steady Content)
+### Option 2: Daily API Pipeline (Implemented — Phase 3)
 
 ```
-[API Ingest: TheNewsAPI + Wikipedia]  →  [Story Selection]  →  [Content Generation]  →  [Queue]
-                                                                                           ↓
-                                                                               [Weekly Human Review]  →  [Publish]
+[Windows Task Scheduler 7:17 AM]
+        ↓
+[ingest-weird.ts]  →  scrape RSS/HTML oddball sources → resolve top 20 via TheNewsAPI
+[ingest.ts]        →  paginated /all for today (~20 calls) → candidates JSON
+        ↓
+[select.ts]        →  route: weird→Lede pool, standard→Spread+SoF+Lede sweep
+[generate.ts]      →  Claude Sonnet per story → generated JSON
+[publish.ts --yes] →  merge into contentVersions/{ISO-week-id} (accumulates all week)
 ```
 
-A daily cron (midnight UTC) fetches from TheNewsAPI and Wikipedia "On This Day", generates content for that day's stories, and accumulates items in a review queue. Once a week, the builder spot-checks the queue and publishes a new content version. This decouples content freshness from manual ingest cadence.
+Runs daily at 7:17 AM via Windows Task Scheduler (`scripts/pipeline-daily.ps1`). Each day's output merges into the current ISO week's Firestore document. The app always reads the **previous** ISO week's document (`computeActiveWeek()` = current week − 7 days), giving a one-week pipeline lead time.
+
+**No human review in the automated path.** `pipeline:review` exists as a manual spot-check tool but is not wired into the scheduled task.
 
 ---
 
@@ -424,9 +435,9 @@ After 2-3 manual runs, tune prompts based on observed failure modes.
 
 Automate ingestion from TheNewsAPI and Wikipedia to accumulate items continuously.
 
-**Option A (recommended):** GitHub Actions cron runs `pipeline:ingest` + `pipeline:generate` daily at midnight UTC. Accumulates items in `pipeline/queue/`. Builder reviews + publishes weekly.
+**Implemented:** Windows Task Scheduler (`\NoodleBowl\DailyPipeline`) runs `scripts/pipeline-daily.ps1` daily at 7:17 AM. Executes the full ingest→select→generate→publish chain unattended. Logs to `pipeline/data/pipeline.log`. Time limit: 2 hours.
 
-**Option B:** Full end-to-end automation with email notification when a batch is ready for review. Only worth doing if Phase 1 is running smoothly for several weeks first.
+**GitHub Actions (alternative):** Still viable if the machine is unavailable or for cloud hosting. Same npm scripts work unchanged.
 
 ---
 
@@ -464,7 +475,7 @@ Automate ingestion from TheNewsAPI and Wikipedia to accumulate items continuousl
 | Risk | Likelihood | Mitigation |
 |---|---|---|
 | Claude generates plausible-but-wrong real citations | Medium | Generation prompt instructs model to only cite sources from the provided input; verification step checks URL reachability |
-| TheNewsAPI free tier rate limits | Low | 100 requests/day free; daily pipeline needs ~5 calls |
+| TheNewsAPI free tier rate limits | Medium | 100 requests/day free; pipeline uses ~40 (default) or ~80 (bulk). Weird ingest capped at MAX_RESOLVE=20 to protect main ingest budget. 429s handled gracefully — pipeline writes partial results and continues. |
 | Wikipedia API returns sparse results for obscure dates | Low | Fall back to `page/summary/{title}` for specific topics; newsletter source as backup |
 | Generated SoF fake claim too obviously wrong | Medium | Haiku plausibility check flags items where fake is rated < 40% believable by a second Claude call |
 | Generated Lede partial headline gives away the answer | Medium | Review checklist; generation prompt instructs cut at syntactically ambiguous point |
