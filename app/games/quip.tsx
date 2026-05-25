@@ -17,8 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChallengeModal } from '@/components/ChallengeModal';
 import { ChallengeSignUpBanner } from '@/components/ChallengeSignUpBanner';
 import { CopiedToast } from '@/components/CopiedToast';
+import { FirstShieldEarnedModal } from '@/components/FirstShieldEarnedModal';
 import { Masthead } from '@/components/Masthead';
 import { ShieldEarnedToast } from '@/components/ShieldEarnedToast';
+import { ShieldPrimerModal } from '@/components/ShieldPrimerModal';
 import { ShieldSignUpBanner } from '@/components/ShieldSignUpBanner';
 import { BankExhaustedModal } from '@/components/BankExhaustedModal';
 import { StreakCelebrationModal } from '@/components/StreakCelebrationModal';
@@ -79,7 +81,7 @@ function getReaction(panelist: typeof PANEL[0], quip: string): { reaction: strin
 
 export default function QuipScreen() {
   const { user, isAnonymous } = useAuth();
-  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, dismissOnboardingFlag } = useGame();
   const { banks, contentWeek } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
@@ -118,6 +120,8 @@ export default function QuipScreen() {
   const [helpRespondResult, setHelpRespondResult] = useState<HelpRespondOutput | null>(null);
   const [signUpBannerDismissed, setSignUpBannerDismissed] = useState(false);
   const [shieldToastVisible, setShieldToastVisible] = useState(false);
+  const [firstShieldModalVisible, setFirstShieldModalVisible] = useState(false);
+  const [shieldPrimerVisible, setShieldPrimerVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
   const [bankExhausted, setBankExhausted] = useState(false);
 
@@ -176,9 +180,7 @@ export default function QuipScreen() {
                   questionIndex: questionIdx,
                   shieldEarned: true,
                 });
-                earnStreakShield();
-                setShieldToastVisible(true);
-                setTimeout(() => setShieldToastVisible(false), 2200);
+                handleShieldEarned();
               } catch {
                 // ignore — user still sees their result
               }
@@ -194,9 +196,7 @@ export default function QuipScreen() {
                   questionIndex: questionIdx,
                   shieldEarned: true,
                 });
-                earnStreakShield();
-                setShieldToastVisible(true);
-                setTimeout(() => setShieldToastVisible(false), 2200);
+                handleShieldEarned();
               } catch {
                 // ignore
               }
@@ -205,6 +205,29 @@ export default function QuipScreen() {
         }
       }, delay + i * 700);
     });
+  };
+
+  /** Earns a shield and shows the right feedback (first-time modal vs. repeat toast). */
+  const handleShieldEarned = () => {
+    const isFirst =
+      state.stats.streakShieldsAvailable === 0 &&
+      !state.stats.onboarding.firstShieldEarnedSeen;
+    earnStreakShield();
+    if (isFirst) {
+      setFirstShieldModalVisible(true);
+    } else {
+      setShieldToastVisible(true);
+      setTimeout(() => setShieldToastVisible(false), 2200);
+    }
+  };
+
+  /** Opens "Ask a Friend" modal — shows primer first if not yet seen. */
+  const handleAskFriend = () => {
+    if (!state.stats.onboarding.shieldPrimerSeen) {
+      setShieldPrimerVisible(true);
+    } else {
+      requireAuth(handleOpenHelp);
+    }
   };
 
   const handlePlayAgain = () => {
@@ -330,7 +353,7 @@ export default function QuipScreen() {
               {!isChallengeMode && !isHelpMode && (
                 <TouchableOpacity
                   style={styles.secondaryBtn}
-                  onPress={() => requireAuth(handleOpenHelp)}
+                  onPress={handleAskFriend}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.secondaryBtnText}>Ask a Friend for Help</Text>
@@ -552,8 +575,28 @@ export default function QuipScreen() {
         </View>
       </Modal>
 
-      <ShieldEarnedToast visible={shieldToastVisible} />
+      <ShieldEarnedToast visible={shieldToastVisible} suppressed={firstShieldModalVisible} />
       <StreakCelebrationModal />
+
+      {/* §1b Shield Primer — shown before first ask-a-friend tap */}
+      <ShieldPrimerModal
+        visible={shieldPrimerVisible}
+        onContinue={() => {
+          setShieldPrimerVisible(false);
+          dismissOnboardingFlag('shieldPrimerSeen');
+          requireAuth(handleOpenHelp);
+        }}
+        onDismiss={() => setShieldPrimerVisible(false)}
+      />
+
+      {/* §1c First Shield Earned Modal */}
+      <FirstShieldEarnedModal
+        visible={firstShieldModalVisible}
+        onDismiss={() => {
+          setFirstShieldModalVisible(false);
+          dismissOnboardingFlag('firstShieldEarnedSeen');
+        }}
+      />
     </SafeAreaView>
   );
 }
