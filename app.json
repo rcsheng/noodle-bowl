@@ -2,7 +2,7 @@
   "expo": {
     "name": "noodle-bowl",
     "slug": "noodle-bowl",
-    "version": "1.0.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "noodlebowl",
@@ -12,17 +12,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.noodlebowl.noodlebowl",
       "associatedDomains": [
-        "applinks:noodlebowl.app",
         "applinks:noodlebowl.app"
       ]
     },
     "android": {
       "package": "app.noodlebowl.noodlebowl",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#F5EDE4",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -39,7 +36,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#e8eef3"
+          "backgroundColor": "#F5EDE4"
         }
       ]
     ],

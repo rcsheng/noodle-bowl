@@ -10,7 +10,7 @@ App Store public release.
 |---|---|
 | Version | `alpha-v0.3.0` |
 | Target platform | iOS |
-| Distribution channel | TestFlight (internal) — App Store submission deferred to alpha-v0.4.0 |
+| Distribution channel | App Store public release |
 | Target date | TBD |
 | Release owner | rcsheng |
 | What's new | Streak & shield onboarding (7 education surfaces, ShieldIcon, data model); landing screen privacy fix |
@@ -84,7 +84,7 @@ Full regression against **production Firebase with QA collections** (`npm run st
 
 ## 5. App configuration
 
-- [ ] `app.json` version bumped to `0.3.0`
+- [x] `app.json` version bumped to `0.3.0`
 - [ ] `eas.json` — submit config verified (`appleId`, `ascAppId`, `appleTeamId` set)
 - [ ] EAS CLI logged in — `eas whoami`
 

@@ -96,7 +96,6 @@
 
 ## Deferred (not in this release)
 
-- [ ] [P2] App Store submission — privacy policy URL, App Store Connect listing, screenshots, `app.json` 0.4.0 bump (moved to alpha-v0.4.0)
 - [ ] [P2] Streak milestones (4 / 12 / 26 / 52 weeks)
 - [ ] [P2] Engraved-monogram shield variant
 - [ ] [P2] Shield primer re-promptable (if 0 shields for 3+ weeks)
