@@ -41,21 +41,43 @@ App Store public release.
 
 ## 2. Smoke test
 
-Formal QA blocks (start:qa) are skipped for this release. Testing is done directly on the **production build** installed via TestFlight or direct install.
+Formal QA blocks (start:qa) are skipped for this release. Testing is done directly on the **production build** installed via TestFlight internal testing. Install the build from TestFlight after Step 5 below, then run the blocks below.
 
-Key flows to manually verify on the production build:
+> Cross-device blocks (B, C) require two devices and throwaway accounts. Writes go to prod `challenges` / `helpRequests` (real collections, no prefix).
 
-- [ ] Cold launch — anonymous auth, home screen loads
-- [ ] Play a game end-to-end (Lede, Spread, or SoF)
-- [ ] Challenge a friend (share link, friend opens and plays, verify notification received) ← new
-- [ ] Ask a friend for help (share link, friend answers, verify notification received) ← new
-- [ ] Weekly notification fires Monday 10 AM ET ← scheduled (verify in Cloud Function logs)
-- [ ] Streak ignition modal fires on first-ever game completion
-- [ ] Tappable masthead chip opens tooltip
+### Block A — Cold launch & basic game
+
+- [ ] Cold launch — anonymous auth, home screen loads with today's content
+- [ ] Play a game end-to-end (Lede, Spread, or SoF) — score saves, stats update
+- [ ] Tappable masthead chip opens streak tooltip
 - [ ] Stats tab shows shield slots + week chain
-- [ ] Help/challenge landing screen shows no question number
+- [ ] Streak ignition modal fires on first-ever game completion (use a fresh account if needed)
 
-> Cross-device flows (challenge, help) require two devices and throwaway accounts writing to prod `challenges` / `helpRequests` collections.
+### Block B — Push notifications: challenge flow ← new
+
+- [ ] Launch app on Device 1 — play any game to trigger `registerPushToken` — verify `pushTokens/{uid}` written in Firestore console
+- [ ] Send a challenge from Device 1 — share link to Device 2
+- [ ] Device 2 opens link, plays the game, submits response
+- [ ] Device 1 receives push notification: `"Someone responded to your [game] challenge"`
+- [ ] Tapping the notification routes to the correct screen (home or friends tab)
+
+### Block C — Push notifications: help flow ← new
+
+- [ ] Send a help request from Device 1 — share link to Device 2
+- [ ] Device 2 opens link, submits an answer
+- [ ] Device 1 receives push notification: `"Someone answered your [game] question"`
+- [ ] Tapping the notification routes correctly
+
+### Block D — Carry-forward regression
+
+- [ ] Challenge landing screen shows no question number (`"They challenged you to answer a question."`)
+- [ ] Help landing screen shows no question number (`"They're stuck and need your help."`)
+- [ ] Sign out and sign back in — progress preserved
+- [ ] Help/challenge deep links work (universal links: `noodlebowl.app/c/TOKEN`, `/h/TOKEN`)
+
+### Block E — Weekly notification (async — verify in logs)
+
+- [ ] Cloud Function `sendWeeklyNotification` appears in Firebase Functions logs for next Monday 10 AM ET run *(do not block release on this — verify post-release or trigger manually)*
 
 ---
 
@@ -73,36 +95,41 @@ Reference: `docs/releases/alpha-v1.0.0/app-store-listing.md`
 
 ## 4. Production environment
 
-- [ ] Production Firebase project is the target
+- [ ] Rebuild functions (source changed since last build): `cd functions && npm run build`
+- [ ] Deploy Cloud Functions to production: `firebase deploy --only functions`
+- [ ] Deploy Firestore security rules: `firebase deploy --only firestore:rules`
 - [ ] Production `contentVersions` has a doc for the current active ISO week
-- [ ] Firestore security rules deployed and verified
-- [ ] Cloud Functions deployed and verified — including `sendWeeklyNotification`
+- [ ] Cloud Functions verified in Firebase console — all 6 deployed: `challengeCreate`, `challengeGet`, `challengeRespond`, `helpCreate`, `helpGet`, `helpRespond`, `sendWeeklyNotification`
 - [ ] AASA file live: `https://noodlebowl.app/.well-known/apple-app-site-association`
 - [ ] `eas.json` — `appleId`, `ascAppId`, `appleTeamId` verified
 - [ ] `eas whoami` — EAS CLI logged in
 
 ---
 
-## 5. Build
+## 5. Build & TestFlight install
 
 ```bash
 eas build --platform ios --profile production
+eas submit --platform ios --profile production --latest
 ```
 
 - [ ] Build submitted to EAS cloud
 - [ ] Build completed without errors
 - [ ] `.ipa` artifact visible in EAS dashboard
+- [ ] Submitted to App Store Connect — no errors
+- [ ] Build visible in App Store Connect → TestFlight → Internal Testing
+- [ ] Build installed on device via TestFlight app
+
+> After installing, run smoke test blocks A–D from §2 above before proceeding to §6.
 
 ---
 
-## 6. Submit to App Store
+## 6. Submit to App Store Review
 
-```bash
-eas submit --platform ios --profile production --latest
-```
+*Complete only after §2 smoke test passes.*
 
-- [ ] Submit completed — no errors
-- [ ] Build appears in App Store Connect → App Store tab
+- [ ] §2 smoke test passed (Blocks A–D)
+- [ ] App Store Connect → App Store tab — set version to **Ready for Review**
 - [ ] Status changes to **Waiting for Review**
 
 ---
@@ -121,7 +148,8 @@ eas submit --platform ios --profile production --latest
 | Step | Done by | Date |
 |---|---|---|
 | Code quality | rcsheng | 2026-05-29 |
-| Smoke test (production build) | | |
+| Functions rebuilt + deployed | | |
+| Build (EAS production) | | |
+| Smoke test (TestFlight, Blocks A–D) | | |
 | App Store listing | | |
-| Build | | |
 | App Store submit | | |

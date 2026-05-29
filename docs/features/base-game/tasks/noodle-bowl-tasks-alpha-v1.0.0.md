@@ -94,7 +94,9 @@ TDD approach: RED tests first → GREEN implementation → security review fixes
 
 ## 5. Smoke tests (→ PRR §2)
 
-Formal QA blocks (start:qa) skipped for this release — verified directly on the production build.
+Formal QA blocks (start:qa) skipped for this release — verified directly on the **production TestFlight build**.
+
+Blocks 0–15 carry forward from alpha-v0.1.1 (last verified on `start:qa`). Block 16 (push notifications) is new and **must be verified on the production build** — Expo Go does not support push notifications.
 
 - [x] Block 0 — Q2 Redesign (home, Lede, Spread, SoF)
 - [x] Block 1 — App launch / anonymous auth
@@ -112,7 +114,11 @@ Formal QA blocks (start:qa) skipped for this release — verified directly on th
 - [x] Block 13 — Weekly streak & shields
 - [x] Block 14 — Landing screen privacy
 - [x] Block 15 — Streak & shield onboarding
-- [ ] Production smoke — manual test on production build (see PRR §2)
+- [ ] Block 16 — Push notifications (production build, PRR §2 Blocks A–D)
+  - [ ] A: Cold launch, basic game, streak modal
+  - [ ] B: Challenge push — Device 1 sends, Device 2 responds, Device 1 gets notification + tap routes correctly
+  - [ ] C: Help push — same pattern
+  - [ ] D: Carry-forward regression (landing screen text, deep links, sign-out)
 
 ---
 
@@ -130,9 +136,11 @@ Reference: `docs/releases/alpha-v1.0.0/app-store-listing.md`
 
 ## 7. Production environment (→ PRR §4)
 
+- [ ] Functions rebuilt: `cd functions && npm run build` ⚠️ build is stale — source changed in b384299
+- [ ] Cloud Functions deployed: `firebase deploy --only functions`
+- [ ] Firestore security rules deployed: `firebase deploy --only firestore:rules`
 - [ ] `contentVersions` has a doc for the active ISO week at release time
-- [ ] Firestore security rules deployed and verified
-- [ ] Cloud Functions deployed and verified (including `sendWeeklyNotification`)
+- [ ] All 7 functions visible in Firebase console: `challengeCreate`, `challengeGet`, `challengeRespond`, `helpCreate`, `helpGet`, `helpRespond`, `sendWeeklyNotification`
 - [ ] AASA file live: `https://noodlebowl.app/.well-known/apple-app-site-association`
 - [ ] `eas.json` — `appleId`, `ascAppId`, `appleTeamId` verified
 - [ ] `eas whoami` — EAS CLI logged in
@@ -142,7 +150,10 @@ Reference: `docs/releases/alpha-v1.0.0/app-store-listing.md`
 ## 8. Build & submit
 
 ```bash
+# Step 1: build
 eas build --platform ios --profile production
+
+# Step 2: submit to App Store Connect (makes it available in TestFlight)
 eas submit --platform ios --profile production --latest
 ```
 
@@ -150,7 +161,10 @@ eas submit --platform ios --profile production --latest
 - [ ] Build completed without errors
 - [ ] `.ipa` artifact visible in EAS dashboard
 - [ ] Submission completed — no errors
-- [ ] Build appears in App Store Connect → App Store tab
+- [ ] Build visible in TestFlight → Internal Testing
+- [ ] Installed on device via TestFlight app
+- [ ] Block 16 smoke test passed (→ §5)
+- [ ] App Store Connect → set version to **Ready for Review**
 - [ ] Status changes to **Waiting for Review**
 
 ---
