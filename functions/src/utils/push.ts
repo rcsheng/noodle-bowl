@@ -24,9 +24,13 @@ export async function sendExpoPush(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  await fetch('https://exp.host/--/api/v2/push/send', {
+  const res = await fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
     headers,
     body: JSON.stringify({ to: expoPushToken, title, body, data }),
   });
+
+  if (!res.ok) {
+    throw new Error(`Expo push API returned ${res.status}`);
+  }
 }

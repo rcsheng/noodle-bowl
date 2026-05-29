@@ -47,11 +47,13 @@ export async function respondToHelpHandler(
     resolvedAt: Timestamp.fromDate(new Date()),
   });
 
-  if (data.askerPushToken) {
+  const pushDoc = await db.collection('pushTokens').doc(data.askerId as string).get();
+  const askerPushToken = (pushDoc.data() as { expoPushToken?: string } | undefined)?.expoPushToken;
+  if (askerPushToken) {
     const gameTitle = GAME_TITLES[data.gameId as string] ?? (data.gameId as string);
     try {
       await sendExpoPush(
-        data.askerPushToken as string,
+        askerPushToken,
         { type: 'received_help', token: input.token },
         `Your friend answered your ${gameTitle} question`,
         'See what they picked',

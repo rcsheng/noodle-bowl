@@ -9,7 +9,6 @@ export interface ChallengeCreateInput {
   senderPrediction: string;
   senderAnswer: string;
   senderName: string;
-  senderPushToken: string | null;
   collectionPrefix?: string;
 }
 
@@ -21,6 +20,7 @@ export interface ChallengeCreateOutput {
 
 const VALID_GAME_IDS = new Set(['lede', 'spread', 'sof', 'wave', 'quip']);
 const MAX_TOKEN_RETRIES = 10;
+const MAX_NAME_LENGTH = 100;
 
 export async function createChallengeHandler(
   db: ReturnType<typeof getFirestore>,
@@ -32,6 +32,9 @@ export async function createChallengeHandler(
   }
   if (!Number.isInteger(data.questionIndex) || data.questionIndex < 0) {
     throw new HttpsError('invalid-argument', 'questionIndex must be a non-negative integer');
+  }
+  if (typeof data.senderName === 'string' && data.senderName.length > MAX_NAME_LENGTH) {
+    throw new HttpsError('invalid-argument', 'senderName exceeds maximum length');
   }
 
   const prefix = validateCollectionPrefix(data.collectionPrefix);
@@ -85,15 +88,7 @@ export async function createChallengeHandler(
     expiresAt: Timestamp.fromDate(expiresAt),
     friendAnswer: null,
     resolvedAt: null,
-    senderPushToken: data.senderPushToken,
   });
-
-  if (data.senderPushToken) {
-    await db.collection('pushTokens').doc(uid).set(
-      { expoPushToken: data.senderPushToken, updatedAt: Timestamp.fromDate(now) },
-      { merge: true },
-    );
-  }
 
   return {
     token,

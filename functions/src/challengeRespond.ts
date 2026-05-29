@@ -53,13 +53,15 @@ export async function respondToChallengeHandler(
     resolvedAt: Timestamp.fromDate(new Date()),
   });
 
-  if (data.senderPushToken) {
+  const pushDoc = await db.collection('pushTokens').doc(data.senderId as string).get();
+  const senderPushToken = (pushDoc.data() as { expoPushToken?: string } | undefined)?.expoPushToken;
+  if (senderPushToken) {
     const gameTitle = GAME_TITLES[data.gameId as string] ?? (data.gameId as string);
     try {
       await sendExpoPush(
-        data.senderPushToken as string,
+        senderPushToken,
         { type: 'challenge_accepted', token: input.token },
-        `${data.senderName} responded to your ${gameTitle} challenge`,
+        `Someone responded to your ${gameTitle} challenge`,
         'See how they did',
       );
     } catch (err) {

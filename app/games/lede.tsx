@@ -34,7 +34,7 @@ import { useAuthGate } from '@/lib/authGuard';
 import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
-import { getCachedPushToken, registerPushToken } from '@/lib/pushTokens';
+import { registerPushToken } from '@/lib/pushTokens';
 import { logger } from '@/lib/logger';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
@@ -268,7 +268,6 @@ export default function LedeScreen() {
         questionIndex: questionIdx,
         contentWeek,
         askerName: null,
-        askerPushToken: getCachedPushToken(),
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
@@ -592,7 +591,6 @@ export default function LedeScreen() {
             senderPrediction: prediction,
             senderAnswer: selected !== null ? String(selected) : '',
             senderName: user?.displayName ?? 'A Friend',
-            senderPushToken: getCachedPushToken(),
           });
           Analytics.challengeSent('lede');
           return { url: result.url, token: result.token };

@@ -68,7 +68,6 @@ const validInput: ChallengeCreateInput = {
   senderPrediction: 'Pip',
   senderAnswer: 'Dex',
   senderName: 'Alex',
-  senderPushToken: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -106,6 +105,19 @@ describe('createChallengeHandler', () => {
       await expect(
         createChallengeHandler(db as any, 'uid-1', { ...validInput, questionIndex: 1.5 }),
       ).rejects.toMatchObject({ code: 'invalid-argument' });
+    });
+
+    test('throws invalid-argument when senderName exceeds 100 characters', async () => {
+      const { db } = makeDb();
+      await expect(
+        createChallengeHandler(db as any, 'uid-1', { ...validInput, senderName: 'A'.repeat(101) }),
+      ).rejects.toMatchObject({ code: 'invalid-argument' });
+    });
+
+    test('accepts senderName exactly 100 characters', async () => {
+      const { db } = makeDb();
+      const result = await createChallengeHandler(db as any, 'uid-1', { ...validInput, senderName: 'A'.repeat(100) });
+      expect(result.token).toBeDefined();
     });
 
     test('accepts every valid gameId', async () => {
@@ -175,8 +187,9 @@ describe('createChallengeHandler', () => {
         senderAnswer: 'Dex',
         friendAnswer: null,
         resolvedAt: null,
-        senderPushToken: null,
       });
+      // push token is never stored on the challenge document (security: token exposure prevention)
+      expect((write!.data as any).senderPushToken).toBeUndefined();
     });
 
     test('challenge document includes issuedAt and expiresAt timestamps', async () => {
@@ -188,26 +201,12 @@ describe('createChallengeHandler', () => {
       expect((write!.data as any).expiresAt).toBeDefined();
     });
 
-    test('does NOT write to pushTokens when senderPushToken is null', async () => {
+    test('does NOT write to pushTokens (token lookup happens server-side at respond time)', async () => {
       const { db, setCalls } = makeDb();
       await createChallengeHandler(db as any, 'uid-1', validInput);
 
       const pushWrite = setCalls.find(c => c.coll === 'pushTokens');
       expect(pushWrite).toBeUndefined();
-    });
-
-    test('upserts pushTokens/{uid} when senderPushToken is present', async () => {
-      const { db, setCalls } = makeDb();
-      await createChallengeHandler(db as any, 'uid-sender', {
-        ...validInput,
-        senderPushToken: 'ExponentPushToken[abc123]',
-      });
-
-      const pushWrite = setCalls.find(c => c.coll === 'pushTokens');
-      expect(pushWrite).toBeDefined();
-      expect(pushWrite!.id).toBe('uid-sender');
-      expect(pushWrite!.data).toMatchObject({ expoPushToken: 'ExponentPushToken[abc123]' });
-      expect(pushWrite!.opts).toEqual({ merge: true });
     });
   });
 

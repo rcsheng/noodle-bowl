@@ -67,7 +67,6 @@ const validInput: HelpCreateInput = {
   questionIndex: 3,
   contentWeek: '2026-W20',
   askerName: 'Alex',
-  askerPushToken: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -108,6 +107,19 @@ describe('createHelpHandler', () => {
     test('accepts null askerName', async () => {
       const { db } = makeDb();
       const result = await createHelpHandler(db as any, 'uid-1', { ...validInput, askerName: null });
+      expect(result.token).toBeDefined();
+    });
+
+    test('throws invalid-argument when askerName exceeds 100 characters', async () => {
+      const { db } = makeDb();
+      await expect(
+        createHelpHandler(db as any, 'uid-1', { ...validInput, askerName: 'A'.repeat(101) }),
+      ).rejects.toMatchObject({ code: 'invalid-argument' });
+    });
+
+    test('accepts askerName exactly 100 characters', async () => {
+      const { db } = makeDb();
+      const result = await createHelpHandler(db as any, 'uid-1', { ...validInput, askerName: 'A'.repeat(100) });
       expect(result.token).toBeDefined();
     });
   });
@@ -181,8 +193,9 @@ describe('createHelpHandler', () => {
         askerName: 'Alex',
         helperAnswer: null,
         resolvedAt: null,
-        askerPushToken: null,
       });
+      // push token is never stored on the help document (security: token exposure prevention)
+      expect((write!.data as any).askerPushToken).toBeUndefined();
     });
 
     test('throws invalid-argument for malformed contentWeek', async () => {
@@ -192,24 +205,10 @@ describe('createHelpHandler', () => {
       ).rejects.toMatchObject({ code: 'invalid-argument' });
     });
 
-    test('does NOT write to pushTokens when askerPushToken is null', async () => {
+    test('does NOT write to pushTokens (token lookup happens server-side at respond time)', async () => {
       const { db, setCalls } = makeDb();
       await createHelpHandler(db as any, 'uid-1', validInput);
       expect(setCalls.find(c => c.coll === 'pushTokens')).toBeUndefined();
-    });
-
-    test('upserts pushTokens/{uid} when askerPushToken is present', async () => {
-      const { db, setCalls } = makeDb();
-      await createHelpHandler(db as any, 'uid-asker', {
-        ...validInput,
-        askerPushToken: 'ExponentPushToken[abc]',
-      });
-
-      const pushWrite = setCalls.find(c => c.coll === 'pushTokens');
-      expect(pushWrite).toBeDefined();
-      expect(pushWrite!.id).toBe('uid-asker');
-      expect(pushWrite!.data).toMatchObject({ expoPushToken: 'ExponentPushToken[abc]' });
-      expect(pushWrite!.opts).toEqual({ merge: true });
     });
   });
 

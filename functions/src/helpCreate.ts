@@ -8,7 +8,6 @@ export interface HelpCreateInput {
   questionIndex: number;
   contentWeek: string; // ISO week of the question, e.g. "2026-W20"
   askerName: string | null;
-  askerPushToken: string | null;
   collectionPrefix?: string;
 }
 
@@ -22,6 +21,7 @@ export interface HelpCreateOutput {
 
 const VALID_GAME_IDS = new Set(['lede', 'spread', 'sof', 'wave', 'quip']);
 const MAX_TOKEN_RETRIES = 10;
+const MAX_NAME_LENGTH = 100;
 
 export async function createHelpHandler(
   db: ReturnType<typeof getFirestore>,
@@ -36,6 +36,9 @@ export async function createHelpHandler(
   }
   if (!CONTENT_WEEK_RE.test(data.contentWeek)) {
     throw new HttpsError('invalid-argument', `Invalid contentWeek: ${data.contentWeek}`);
+  }
+  if (typeof data.askerName === 'string' && data.askerName.length > MAX_NAME_LENGTH) {
+    throw new HttpsError('invalid-argument', 'askerName exceeds maximum length');
   }
 
   const prefix = validateCollectionPrefix(data.collectionPrefix);
@@ -88,15 +91,7 @@ export async function createHelpHandler(
     expiresAt: Timestamp.fromDate(expiresAt),
     helperAnswer: null,
     resolvedAt: null,
-    askerPushToken: data.askerPushToken,
   });
-
-  if (data.askerPushToken) {
-    await db.collection('pushTokens').doc(uid).set(
-      { expoPushToken: data.askerPushToken, updatedAt: Timestamp.fromDate(now) },
-      { merge: true },
-    );
-  }
 
   return {
     token,

@@ -5,7 +5,6 @@ export interface HelpCreateInput {
   questionIndex: number;
   contentWeek: string; // ISO week of the question, e.g. "2026-W20"
   askerName: string | null;
-  askerPushToken: string | null;
   collectionPrefix?: string;
 }
 
@@ -42,7 +41,6 @@ export interface ChallengeCreateInput {
   senderPrediction: string;
   senderAnswer: string;
   senderName: string;
-  senderPushToken: string | null;
   collectionPrefix?: string;
 }
 

@@ -32,7 +32,7 @@ import { useAuthGate } from '@/lib/authGuard';
 import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
-import { getCachedPushToken, registerPushToken } from '@/lib/pushTokens';
+import { registerPushToken } from '@/lib/pushTokens';
 import { logger } from '@/lib/logger';
 import { buildChoicesForItem } from '@/lib/spreadChoices';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
@@ -217,7 +217,6 @@ export default function SpreadScreen() {
         questionIndex: questionIdx,
         contentWeek,
         askerName: null,
-        askerPushToken: getCachedPushToken(),
       });
       setHelpUrl(result.url);
       setHelpToken(result.token);
@@ -489,7 +488,6 @@ export default function SpreadScreen() {
             senderPrediction: prediction,
             senderAnswer: String(revealData?.selected ?? ''),
             senderName: user?.displayName ?? 'A Friend',
-            senderPushToken: getCachedPushToken(),
           });
           Analytics.challengeSent('spread');
           return { url: result.url, token: result.token };

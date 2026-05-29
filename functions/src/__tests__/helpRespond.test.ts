@@ -33,7 +33,6 @@ interface HelpDocData {
   askerName: string | null;
   expiresAt: MockTimestamp;
   resolvedAt: MockTimestamp | null;
-  askerPushToken: string | null;
 }
 
 function makeHelpDoc(overrides: Partial<HelpDocData> = {}): HelpDocData {
@@ -45,21 +44,25 @@ function makeHelpDoc(overrides: Partial<HelpDocData> = {}): HelpDocData {
     askerName: 'Jordan',
     expiresAt: { toDate: () => future },
     resolvedAt: null,
-    askerPushToken: null,
     ...overrides,
   };
 }
 
-function makeDb(docData: HelpDocData | null) {
+/**
+ * @param docData - help document data (null = not found)
+ * @param pushTokenByUid - map of uid → expoPushToken for server-side lookup simulation
+ */
+function makeDb(docData: HelpDocData | null, pushTokenByUid: Record<string, string> = {}) {
   const updateCalls: Array<{ id: string; data: unknown }> = [];
   return {
     db: {
-      collection: () => ({
+      collection: (coll: string) => ({
         doc: (id: string) => ({
-          get: jest.fn().mockResolvedValue({
-            exists: docData !== null,
-            data: () => docData,
-          }),
+          get: jest.fn().mockResolvedValue(
+            coll === 'pushTokens'
+              ? { exists: Boolean(pushTokenByUid[id]), data: () => ({ expoPushToken: pushTokenByUid[id] }) }
+              : { exists: docData !== null, data: () => docData },
+          ),
           update: jest.fn().mockImplementation((data: unknown) => {
             updateCalls.push({ id, data });
             return Promise.resolve();
@@ -147,14 +150,14 @@ describe('respondToHelpHandler', () => {
   });
 
   describe('push notifications', () => {
-    test('does NOT send push when askerPushToken is null', async () => {
-      const { db } = makeDb(makeHelpDoc({ askerPushToken: null }));
+    test('does NOT send push when asker has no push token registered', async () => {
+      const { db } = makeDb(makeHelpDoc()); // pushTokenByUid empty → no token for uid-asker
       await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
       expect(pushUtils.sendExpoPush).not.toHaveBeenCalled();
     });
 
-    test('sends push to asker when askerPushToken is present', async () => {
-      const { db } = makeDb(makeHelpDoc({ askerPushToken: 'ExponentPushToken[xyz]' }));
+    test('sends push to asker when asker has a push token registered', async () => {
+      const { db } = makeDb(makeHelpDoc(), { 'uid-asker': 'ExponentPushToken[xyz]' });
       await respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper');
       expect(pushUtils.sendExpoPush).toHaveBeenCalledWith(
         'ExponentPushToken[xyz]',
@@ -166,7 +169,7 @@ describe('respondToHelpHandler', () => {
 
     test('help response write succeeds even when push notification throws', async () => {
       jest.spyOn(pushUtils, 'sendExpoPush').mockRejectedValue(new Error('network error'));
-      const { db, updateCalls } = makeDb(makeHelpDoc({ askerPushToken: 'ExponentPushToken[xyz]' }));
+      const { db, updateCalls } = makeDb(makeHelpDoc(), { 'uid-asker': 'ExponentPushToken[xyz]' });
 
       await expect(
         respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper'),

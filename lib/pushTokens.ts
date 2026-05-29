@@ -13,6 +13,14 @@ export function clearCachedPushToken(): void {
   cachedToken = null;
 }
 
+/**
+ * Register the device push token for the given user and persist it to Firestore.
+ * Idempotent: returns the cached token on subsequent calls without re-requesting
+ * permissions or writing to Firestore again.
+ *
+ * @note Tests must call `clearCachedPushToken()` in `beforeEach` to prevent
+ * cross-test token leakage from the module-level cache.
+ */
 export async function registerPushToken(uid: string): Promise<string | null> {
   // Re-evaluated on each call so tests can control it via mock
   const isExpoGo = Constants.appOwnership === 'expo';

@@ -35,7 +35,6 @@ interface ChallengeDocData {
   senderAnswer: string;
   expiresAt: MockTimestamp;
   resolvedAt: MockTimestamp | null;
-  senderPushToken: string | null;
 }
 
 function makeChallengeDoc(overrides: Partial<ChallengeDocData> = {}): ChallengeDocData {
@@ -49,21 +48,25 @@ function makeChallengeDoc(overrides: Partial<ChallengeDocData> = {}): ChallengeD
     senderAnswer: 'Dex',
     expiresAt: { toDate: () => future },
     resolvedAt: null,
-    senderPushToken: null,
     ...overrides,
   };
 }
 
-function makeDb(docData: ChallengeDocData | null) {
+/**
+ * @param docData - challenge document data (null = not found)
+ * @param pushTokenByUid - map of uid → expoPushToken for server-side lookup simulation
+ */
+function makeDb(docData: ChallengeDocData | null, pushTokenByUid: Record<string, string> = {}) {
   const updateCalls: Array<{ id: string; data: unknown }> = [];
   return {
     db: {
-      collection: () => ({
+      collection: (coll: string) => ({
         doc: (id: string) => ({
-          get: jest.fn().mockResolvedValue({
-            exists: docData !== null,
-            data: () => docData,
-          }),
+          get: jest.fn().mockResolvedValue(
+            coll === 'pushTokens'
+              ? { exists: Boolean(pushTokenByUid[id]), data: () => ({ expoPushToken: pushTokenByUid[id] }) }
+              : { exists: docData !== null, data: () => docData },
+          ),
           update: jest.fn().mockImplementation((data: unknown) => {
             updateCalls.push({ id, data });
             return Promise.resolve();
@@ -155,14 +158,14 @@ describe('respondToChallengeHandler', () => {
 
   // ── Push notifications ────────────────────────────────────────────────────
 
-  test('does NOT send push notification when senderPushToken is null', async () => {
-    const { db } = makeDb(makeChallengeDoc({ senderPushToken: null }));
+  test('does NOT send push notification when sender has no push token registered', async () => {
+    const { db } = makeDb(makeChallengeDoc()); // pushTokenByUid empty → no token for uid-sender
     await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend');
     expect(pushUtils.sendExpoPush).not.toHaveBeenCalled();
   });
 
-  test('sends push notification when senderPushToken is present', async () => {
-    const { db } = makeDb(makeChallengeDoc({ senderPushToken: 'ExponentPushToken[abc]' }));
+  test('sends push notification when sender has a push token registered', async () => {
+    const { db } = makeDb(makeChallengeDoc(), { 'uid-sender': 'ExponentPushToken[abc]' });
     await respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend');
     expect(pushUtils.sendExpoPush).toHaveBeenCalledWith(
       'ExponentPushToken[abc]',
@@ -173,7 +176,7 @@ describe('respondToChallengeHandler', () => {
   });
 
   test('push notification data includes the challenge token', async () => {
-    const { db } = makeDb(makeChallengeDoc({ senderPushToken: 'ExponentPushToken[xyz]' }));
+    const { db } = makeDb(makeChallengeDoc(), { 'uid-sender': 'ExponentPushToken[xyz]' });
     await respondToChallengeHandler(db as any, { token: 'MYTOKEN1', friendAnswer: 'Pip' }, 'uid-friend');
     expect(pushUtils.sendExpoPush).toHaveBeenCalledWith(
       'ExponentPushToken[xyz]',
@@ -185,7 +188,7 @@ describe('respondToChallengeHandler', () => {
 
   test('challenge response write succeeds even when push notification throws', async () => {
     jest.spyOn(pushUtils, 'sendExpoPush').mockRejectedValue(new Error('network error'));
-    const { db, updateCalls } = makeDb(makeChallengeDoc({ senderPushToken: 'ExponentPushToken[abc]' }));
+    const { db, updateCalls } = makeDb(makeChallengeDoc(), { 'uid-sender': 'ExponentPushToken[abc]' });
 
     await expect(
       respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend'),
