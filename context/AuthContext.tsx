@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onIdTokenChanged, signInAnonymously, signOut, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { registerPushToken } from '@/lib/pushTokens';
 
 interface AuthContextType {
   user: User | null;
@@ -62,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             (prev.user?.uid === firebaseUser.uid ? prev.displayName : null),
         }));
         setIsLoading(false);
-        registerPushToken(firebaseUser.uid).catch(() => {});
       } else {
         setAuthState({ user: null, isAnonymous: true, displayName: null });
         try {

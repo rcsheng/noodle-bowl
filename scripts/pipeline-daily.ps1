@@ -1,5 +1,12 @@
 # Noodle Bowl daily content pipeline
-# Runs: ingest -> select -> generate -> publish
+# Runs: [ingest:researched?] -> [ingest?] -> select -> generate -> publish
+#
+# Smart research detection:
+#   - Runs ingest:researched only when a .md file in pipeline/data/researched/
+#     is newer than today's researched candidates file (or that file doesn't exist yet).
+#   - If ingest:researched produces >= 20 candidates, skips the API ingest entirely
+#     to conserve TheNewsAPI daily credits.
+#
 # Scheduled via Windows Task Scheduler. Logs to pipeline/data/pipeline.log
 
 $ProjectDir = Split-Path -Parent $PSScriptRoot
@@ -30,7 +37,63 @@ Write-Log '==============================='
 Write-Log 'Pipeline run started'
 Write-Log '==============================='
 
-Run-Step 'ingest'   'npm run pipeline:ingest'
+# --- Research detection ---
+$todayStr        = (Get-Date).ToString('yyyy-MM-dd')
+$researchedDir   = Join-Path $ProjectDir 'pipeline\data\researched'
+$todayResearched = Join-Path $ProjectDir "pipeline\data\candidates\$todayStr-researched.json"
+
+$hasNewResearch = $false
+if (Test-Path $researchedDir) {
+    $mdFiles = Get-ChildItem $researchedDir -Filter '*.md' -ErrorAction SilentlyContinue
+    if ($mdFiles.Count -gt 0) {
+        if (-not (Test-Path $todayResearched)) {
+            $hasNewResearch = $true
+            Write-Log "[research] No researched file for today — will ingest research"
+        } else {
+            $researchedMtime = (Get-Item $todayResearched).LastWriteTime
+            $newer = $mdFiles | Where-Object { $_.LastWriteTime -gt $researchedMtime }
+            if ($newer.Count -gt 0) {
+                $hasNewResearch = $true
+                Write-Log "[research] $($newer.Count) .md file(s) newer than $todayStr-researched.json — will re-ingest research"
+            } else {
+                Write-Log "[research] No new .md files since last ingest — skipping ingest:researched"
+            }
+        }
+    } else {
+        Write-Log "[research] No .md files in researched/ — skipping ingest:researched"
+    }
+} else {
+    Write-Log "[research] researched/ dir not found — skipping ingest:researched"
+}
+
+# Run researched ingest if new files detected
+if ($hasNewResearch) {
+    Run-Step 'ingest:researched' 'npm run pipeline:ingest:researched'
+}
+
+# Decide whether to run API ingest
+$skipApiIngest = $false
+if ($hasNewResearch -and (Test-Path $todayResearched)) {
+    try {
+        $researchedData = Get-Content $todayResearched -Raw -Encoding UTF8 | ConvertFrom-Json
+        $count = $researchedData.candidates.Count
+        if ($count -ge 20) {
+            $skipApiIngest = $true
+            Write-Log "[research] $count researched candidates available — skipping API ingest to conserve credits"
+        } else {
+            Write-Log "[research] Only $count researched candidates — running API ingest for more coverage"
+        }
+    } catch {
+        Write-Log "[research] Could not read researched candidates file — running API ingest"
+    }
+}
+
+if (-not $skipApiIngest) {
+    Run-Step 'ingest' 'npm run pipeline:ingest'
+} else {
+    Write-Log '[ingest] skipped (sufficient researched candidates)'
+}
+
 Run-Step 'select'   'npm run pipeline:select'
 Run-Step 'generate' 'npm run pipeline:generate'
 Run-Step 'publish'  'npm run pipeline:publish -- --yes'

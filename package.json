@@ -32,7 +32,10 @@
     "pipeline:generate": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/generate.ts",
     "pipeline:review": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/review.ts",
     "pipeline:publish": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts",
+    "pipeline:publish:auto": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --yes",
+    "pipeline:publish:force": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --yes --force",
     "pipeline:publish:emulator": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --emulator",
+    "pipeline:daily": "npm run pipeline:ingest && npm run pipeline:ingest:researched && npm run pipeline:select && npm run pipeline:generate && npm run pipeline:publish:auto",
     "pipeline:recover": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/recover.ts",
     "pipeline:status": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/status.ts",
     "pipeline:fix-cross-game-dupes": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/fix-cross-game-dupes.ts"

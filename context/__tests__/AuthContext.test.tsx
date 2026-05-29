@@ -11,8 +11,6 @@ const mockOnIdTokenChanged = jest.fn((_auth: unknown, cb: (user: unknown) => voi
 });
 const mockSignInAnonymously = jest.fn();
 const mockSignOut = jest.fn().mockResolvedValue(undefined);
-const mockRegisterPushToken = jest.fn().mockResolvedValue(null);
-
 jest.mock('firebase/auth', () => ({
   onIdTokenChanged: (auth: unknown, cb: (user: unknown) => void) => mockOnIdTokenChanged(auth, cb),
   signInAnonymously: (...args: unknown[]) => mockSignInAnonymously(...args),
@@ -21,10 +19,6 @@ jest.mock('firebase/auth', () => ({
 
 jest.mock('@/lib/firebase', () => ({
   auth: { currentUser: null },
-}));
-
-jest.mock('@/lib/pushTokens', () => ({
-  registerPushToken: (...args: unknown[]) => mockRegisterPushToken(...args),
 }));
 
 // All mock users need getIdToken so the prod-token-validation path doesn't throw.
@@ -98,14 +92,6 @@ describe('AuthContext', () => {
       authStateCallback!(makeUser({ uid: 'real-uid', isAnonymous: false, email: 'test@example.com' }));
     });
     expect(result.current.isAnonymous).toBe(false);
-  });
-
-  it('calls registerPushToken when a user resolves', async () => {
-    renderHook(() => useAuth(), { wrapper });
-    await act(async () => {
-      authStateCallback!(makeUser({ uid: 'some-uid', isAnonymous: true }));
-    });
-    expect(mockRegisterPushToken).toHaveBeenCalledWith('some-uid');
   });
 
   it('unsubscribes from onIdTokenChanged on unmount', () => {

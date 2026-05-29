@@ -1,7 +1,7 @@
 # Noodle Bowl — Task List alpha-v0.3.0
 
 **PRD ref:** `noodle-bowl-prd-alpha-v0.3.0.md`
-**Last updated:** 2026-05-25
+**Last updated:** 2026-05-27
 
 ---
 
@@ -74,23 +74,82 @@
 
 ---
 
-## 3. Cross-cutting quality
+## 3. Code quality gates
 
-- [ ] `npx tsc --noEmit` — clean (no TypeScript errors)
-- [ ] Run **code-reviewer** agent — full diff since alpha-v0.2.0
-- [ ] Run **security-reviewer** agent — focus on new Firestore onboarding fields
-- [ ] **Block 0 smoke test** (current release PRR) after any UI change
-- [ ] Update `docs/RELEASES.md` row for `alpha-v0.3.0` once shipped
+- [ ] `npm test` — all tests passing
+- [ ] `cd functions && npm test` — functions tests passing
+- [ ] `npx tsc --noEmit` — no TypeScript errors
+- [ ] **code-reviewer** agent — full diff since alpha-v0.2.0
+- [ ] **security-reviewer** agent — Firestore onboarding fields
 
 ---
 
-## Release
+## 4. Smoke tests (→ PRR §2 for step-by-step)
 
-- [ ] Cut EAS build: `eas build --platform ios --profile production`
-- [ ] Submit to App Store: `eas submit --platform ios --profile production --latest`
-- [ ] Tag: `git tag -a alpha-v0.3.0 -m "feat: streak & shield onboarding + landing privacy"`
+Standard blocks run against `npm run start:qa`. Blocks marked `prod_smoke` require `npm run start:prod_smoke` on both devices (deep links don't carry the QA prefix).
+
+- [ ] Block 0 — Q2 Redesign (home, Lede, Spread, SoF)
+- [ ] Block 1 — App launch / anonymous auth
+- [ ] Block 2 — Account creation
+- [ ] Block 3 — Sign in
+- [ ] Block 4 — Auth gate on sharing
+- [ ] Block 5 — Cross-device challenge flow `prod_smoke`
+- [ ] Block 6 — Cross-device help flow `prod_smoke`
+- [ ] Block 7 — Content & offline resilience
+- [ ] Block 8 — Sign-out behaviour
+- [ ] Block 9 — Stats persistence
+- [ ] Block 10 — Self-challenge guard
+- [ ] Block 11 — Universal link deep linking `prod_smoke`
+- [ ] Block 12 — Live content
+- [ ] Block 13 — Weekly streak & shields
+- [ ] Block 14 — Landing screen privacy `prod_smoke`
+- [ ] Block 15 — Streak & shield onboarding (new — 15a–15h; 15h requires `prod_smoke`)
+
+---
+
+## 5. App Store Connect (→ PRR §3)
+
+- [ ] Privacy policy live at `https://noodlebowl.app/privacy`
+- [ ] App listing complete (name, subtitle, description, keywords, URLs, category, age rating) 🔄
+- [ ] Screenshots uploaded — iPhone 6.9" minimum 🔄 *(in progress — separate thread)*
+- [ ] App preview video *(optional — skip if not ready)*
+- [ ] Status set to **Ready for Review**
+
+---
+
+## 6. Production environment (→ PRR §4–5)
+
+- [ ] `contentVersions` has a doc for the active ISO week at release time
+- [ ] Firestore security rules deployed and verified
+- [ ] Cloud Functions deployed and verified
+- [ ] AASA file live: `https://noodlebowl.app/.well-known/apple-app-site-association`
+- [ ] `eas.json` — `appleId`, `ascAppId`, `appleTeamId` verified
+- [ ] `eas whoami` — EAS CLI logged in
+
+---
+
+## 7. Build & submit
+
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios --profile production --latest
+```
+
+- [ ] Build submitted to EAS cloud
+- [ ] Build completed without errors
+- [ ] `.ipa` artifact visible in EAS dashboard
+- [ ] Submission completed — no errors
+- [ ] Build appears in App Store Connect → App Store tab
+- [ ] Status changes to **Waiting for Review**
+
+---
+
+## 8. Post-release
+
+- [ ] Git tag: `git tag -a alpha-v0.3.0 -m "feat: App Store public release"`
 - [ ] Push tag: `git push origin --tags`
 - [ ] Add row to `docs/RELEASES.md`
+- [ ] PRR sign-off complete (`docs/releases/alpha-v0.3.0/prr-alpha-v0.3.0.md`)
 
 ---
 

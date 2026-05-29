@@ -186,6 +186,7 @@ function confirm(question: string): Promise<boolean> {
 async function main() {
   const emulator = process.argv.includes('--emulator');
   const autoYes = process.argv.includes('--yes');
+  const force = process.argv.includes('--force');
   const isProd = !emulator;
   const projectId = process.env.FIREBASE_PROJECT_ID ?? 'noodle-bowl';
 
@@ -219,10 +220,14 @@ async function main() {
   const existingDoc = await firestoreGet(token, projectId, isProd, `contentVersions/${weekId}`);
   const existingPublishedDates: string[] = (existingDoc?.publishedDates as string[] | undefined) ?? [];
 
-  // Idempotency: skip if this date is already recorded
+  // Idempotency: skip if this date is already recorded (bypass with --force to re-merge)
   if (existingPublishedDates.includes(date)) {
-    console.log(`\n⚠ Date ${date} already published to ${weekId}. Skipping (idempotent).`);
-    return;
+    if (!force) {
+      console.log(`\n⚠ Date ${date} already published to ${weekId}. Skipping (idempotent).`);
+      console.log(`  Re-run with --force to merge updated content for this date.`);
+      return;
+    }
+    console.log(`\n⚠ Date ${date} already published — re-merging with --force.`);
   }
 
   // Merge banks: accumulate new items into whatever is already in the week doc,
@@ -249,7 +254,7 @@ async function main() {
     wave:   dedupBy([...existingBanks.wave,   ...banks.wave],   x => x.story),
   };
 
-  const publishedDates = [...existingPublishedDates, date];
+  const publishedDates = [...new Set([...existingPublishedDates, date])];
   const now = new Date().toISOString();
 
   // Write merged ContentVersion doc — ID is the weekId

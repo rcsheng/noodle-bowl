@@ -2,7 +2,7 @@
   "expo": {
     "name": "noodle-bowl",
     "slug": "noodle-bowl",
-    "version": "0.3.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "noodlebowl",
@@ -13,7 +13,10 @@
       "bundleIdentifier": "app.noodlebowl.noodlebowl",
       "associatedDomains": [
         "applinks:noodlebowl.app"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "app.noodlebowl.noodlebowl",
