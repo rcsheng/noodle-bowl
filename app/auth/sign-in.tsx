@@ -22,16 +22,17 @@ export default function SignInScreen() {
   const { user } = useAuth();
   const { from } = useLocalSearchParams<{ from?: string }>();
   const cameFromReveal = from === 'reveal';
+  const cameFromGame = from === 'game';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  // When launched from a reveal panel (AC7.13), success returns the user to
-  // the answers they just saw via router.back() ("Back to Answers" semantics).
-  // Otherwise success goes to the home tab.
+  // from=reveal: return to the reveal panel (AC7.13 "Back to Answers")
+  // from=game:   return to the game screen so the user can complete Help/Challenge
+  // default:     go to home tab
   function navigateOnSuccess() {
-    if (cameFromReveal) router.back();
+    if (cameFromReveal || cameFromGame) router.back();
     else router.replace('/');
   }
 

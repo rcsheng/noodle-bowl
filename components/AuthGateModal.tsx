@@ -11,12 +11,12 @@ interface Props {
 export function AuthGateModal({ visible, onDismiss }: Props) {
   const handleSignIn = () => {
     onDismiss();
-    router.push('/auth/sign-in');
+    router.push('/auth/sign-in?from=game');
   };
 
   const handleCreateAccount = () => {
     onDismiss();
-    router.push('/auth/sign-up');
+    router.push('/auth/sign-up?from=game');
   };
 
   return (

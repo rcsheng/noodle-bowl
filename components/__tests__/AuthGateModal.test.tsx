@@ -18,7 +18,7 @@ describe('AuthGateModal', () => {
     fireEvent.press(getByTestId('auth-gate-signin-btn'));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
-    expect(router.push).toHaveBeenCalledWith('/auth/sign-in');
+    expect(router.push).toHaveBeenCalledWith('/auth/sign-in?from=game');
   });
 
   it('navigates to /auth/sign-up and dismisses when Create Account is tapped', () => {
@@ -28,7 +28,7 @@ describe('AuthGateModal', () => {
     fireEvent.press(getByTestId('auth-gate-create-btn'));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
-    expect(router.push).toHaveBeenCalledWith('/auth/sign-up');
+    expect(router.push).toHaveBeenCalledWith('/auth/sign-up?from=game');
   });
 
   it('calls onDismiss without navigating when Not Now is tapped', () => {

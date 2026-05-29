@@ -24,6 +24,7 @@ export default function SignUpScreen() {
   const { isAnonymous, reloadUser } = useAuth();
   const { from } = useLocalSearchParams<{ from?: string }>();
   const cameFromReveal = from === 'reveal';
+  const cameFromGame = from === 'game';
   const [phase, setPhase] = useState<Phase>('form');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -113,7 +114,7 @@ export default function SignUpScreen() {
             <TouchableOpacity
               testID="verify-signin-btn"
               style={styles.ghostBtn}
-              onPress={() => router.replace('/auth/sign-in')}
+              onPress={() => router.replace(cameFromGame ? '/auth/sign-in?from=game' : '/auth/sign-in')}
               activeOpacity={0.85}
             >
               <Text style={styles.ghostBtnText}>Sign in after verifying</Text>
