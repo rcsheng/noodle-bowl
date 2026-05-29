@@ -1,22 +1,22 @@
-# Noodle Bowl — PRD alpha-v1.0.0
+# Noodle Bowl — PRD alpha-v1.1.0
 
 **Status:** In progress
 **Last updated:** 2026-05-29
-**App Store version:** 1.1.0 (internal name alpha-v1.0.0; App Store uses 1.x.x to stay consistent with build history)
+**App Store version:** 1.1.0
 **What's new:** Push notifications (transactional + weekly); App Store public release.
 
 ---
 
 ## Overview
 
-alpha-v1.0.0 completes the first public App Store release. It carries forward all shipped work from alpha-v0.3.0 and adds the one missing layer: **push notifications** that close the loop on the social flows.
+alpha-v1.1.0 completes the first public App Store release. It carries forward all shipped work from alpha-v0.3.0 and adds the one missing layer: **push notifications** that close the loop on the social flows.
 
 | Track | Goal | Status |
 |---|---|---|
 | **Streak & shield onboarding** | Seven education surfaces, ShieldIcon, data model | ✅ Shipped (alpha-v0.3.0) |
 | **Landing screen privacy** | Remove question number from help/challenge screens | ✅ Shipped (alpha-v0.3.0) |
-| **Push notifications** | Transactional (challenge/help response) + weekly (new content) | 🔲 New in v1.0.0 |
-| **App Store submission** | Listing, screenshots, review | 🔲 New in v1.0.0 |
+| **Push notifications** | Transactional (challenge/help response) + weekly (new content) | 🔲 New in v1.1.0 |
+| **App Store submission** | Listing, screenshots, review | 🔲 New in v1.1.0 |
 
 ---
 

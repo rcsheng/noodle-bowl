@@ -1,8 +1,6 @@
-# Production Release Readiness — Alpha v1.0.0
+# Production Release Readiness — Alpha v1.1.0
 
 App Store public release.
-
-> **Version note:** Internal name is `alpha-v1.0.0` to align with App Store versioning (1.x.x). The `app.json` version is `1.1.0` because `1.0.0` was already consumed by EAS build 12 (uploaded 2026-05-24). The git tag will be `alpha-v1.0.0`.
 
 ---
 
@@ -10,7 +8,7 @@ App Store public release.
 
 | Field | Value |
 |---|---|
-| Version | `alpha-v1.0.0` |
+| Version | `alpha-v1.1.0` |
 | App Store version | `1.1.0` |
 | Target platform | iOS |
 | Distribution channel | App Store public release |
@@ -83,7 +81,7 @@ Formal QA blocks (start:qa) are skipped for this release. Testing is done direct
 
 ## 3. App Store Connect
 
-Reference: `docs/releases/alpha-v1.0.0/app-store-listing.md`
+Reference: `docs/releases/alpha-v1.1.0/app-store-listing.md`
 
 - [ ] Privacy policy live at `https://noodlebowl.app/privacy`
 - [ ] App listing complete (name, subtitle, description, keywords, promotional text, URLs, category, age rating)
@@ -136,7 +134,7 @@ eas submit --platform ios --profile production --latest
 
 ## 7. Post-release
 
-- [ ] Git tag: `git tag -a alpha-v1.0.0 -m "feat: App Store public release — push notifications"`
+- [ ] Git tag: `git tag -a alpha-v1.1.0 -m "feat: App Store public release — push notifications"`
 - [ ] Push tag: `git push origin --tags`
 - [ ] Row added to `docs/RELEASES.md`
 - [ ] This PRR updated with actual dates and outcomes

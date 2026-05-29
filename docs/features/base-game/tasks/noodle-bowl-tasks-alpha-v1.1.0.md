@@ -1,6 +1,6 @@
-# Noodle Bowl — Task List alpha-v1.0.0
+# Noodle Bowl — Task List alpha-v1.1.0
 
-**PRD ref:** `noodle-bowl-prd-alpha-v1.0.0.md`
+**PRD ref:** `noodle-bowl-prd-alpha-v1.1.0.md`
 **App Store version:** 1.1.0
 **Last updated:** 2026-05-29
 
@@ -124,7 +124,7 @@ Blocks 0–15 carry forward from alpha-v0.1.1 (last verified on `start:qa`). Blo
 
 ## 6. App Store Connect (→ PRR §3)
 
-Reference: `docs/releases/alpha-v1.0.0/app-store-listing.md`
+Reference: `docs/releases/alpha-v1.1.0/app-store-listing.md`
 
 - [ ] Privacy policy live at `https://noodlebowl.app/privacy`
 - [ ] App listing complete (name, subtitle, description, keywords, URLs, category, age rating) 🔄
@@ -171,10 +171,10 @@ eas submit --platform ios --profile production --latest
 
 ## 9. Post-release
 
-- [ ] Git tag: `git tag -a alpha-v1.0.0 -m "feat: App Store public release — push notifications"`
+- [ ] Git tag: `git tag -a alpha-v1.1.0 -m "feat: App Store public release — push notifications"`
 - [ ] Push tag: `git push origin --tags`
 - [ ] Add row to `docs/RELEASES.md`
-- [ ] PRR sign-off complete (`docs/releases/alpha-v1.0.0/prr-alpha-v1.0.0.md`)
+- [ ] PRR sign-off complete (`docs/releases/alpha-v1.1.0/prr-alpha-v1.1.0.md`)
 
 ---
 
