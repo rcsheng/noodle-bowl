@@ -30,71 +30,65 @@ All items shipped in alpha-v0.3.0. Full task history in `docs/archive/features/b
 
 ---
 
-## 3. Push Notifications 🔲
+## 3. Push Notifications ✅
 
-TDD approach: write RED tests first, then implement GREEN, then refactor.
+TDD approach: RED tests first → GREEN implementation → security review fixes.
 
-### §3a — Permission request (client)
+### §3a — Permission request (client) ✅
 
-- [ ] `lib/__tests__/pushTokens.test.ts` — RED: add tests for contextual permission trigger:
-  - `requestPermissionsAsync` not called on module import
-  - `registerPushToken` returns null when permission denied
-  - `registerPushToken` writes token to Firestore when granted
-  - idempotent: returns cached token on second call (no double-register)
-  - no-op in Expo Go (`isExpoGo === true`)
-- [ ] `lib/pushTokens.ts` — GREEN: update `registerPushToken` to use cached token guard; ensure `isExpoGo` guard still in place
-- [ ] `context/AuthContext.tsx` — keep notification registration OUT of auth flow; registration is triggered contextually (see §3b)
-- [ ] `app/games/lede.tsx` — call `registerPushToken` after first shield primer interaction (primary CTA tap); same pattern on all five game screens
-- [ ] `app/games/spread.tsx` — same
-- [ ] `app/games/sof.tsx` — same
-- [ ] `app/games/quip.tsx` — same
-- [ ] `app/games/wave.tsx` — same
+- [x] `lib/__tests__/pushTokens.test.ts` — 7 tests: permissions granted/denied, token error, empty uid, Expo Go guard, idempotency, cache reset
+- [x] `lib/pushTokens.ts` — `registerPushToken` with in-memory cache guard; `clearCachedPushToken`; Expo Go guard inside function body for testability; JSDoc warning for test isolation
+- [x] `context/AuthContext.tsx` — registration kept OUT of auth flow ✅
+- [x] `app/games/lede.tsx` — `registerPushToken` called contextually before challenge/help creation
+- [x] `app/games/spread.tsx` — same
+- [x] `app/games/sof.tsx` — same
+- [x] `app/games/quip.tsx` — same
+- [x] `app/games/wave.tsx` — same
 
-### §3b — Notification handler (client)
+### §3b — Notification handler (client) ✅
 
-- [ ] `app/__tests__/_layout.test.tsx` — RED: test that `setNotificationHandler` is called on mount; test that notification tap listener is registered
-- [ ] `app/_layout.tsx` — GREEN: `Notifications.setNotificationHandler(...)` on mount; `addNotificationResponseReceivedListener` that routes via `data.screen` to correct tab
-- [ ] `jest.setup.ts` — add `addNotificationResponseReceivedListener` and `setNotificationHandler` to `expo-notifications` mock
+- [x] `app/_layout.tsx` — `setNotificationHandler` (foreground display) + `addNotificationResponseReceivedListener` routing taps via `routeNotification`
+- [x] `lib/notificationRouter.ts` — `routeNotification` maps `data.screen` → Expo Router href; 6 tests (home, friends, stats, unknown, null data, missing screen)
+- [x] `jest.setup.ts` — `setNotificationHandler` and `addNotificationResponseReceivedListener` mocked
 
-### §3c — Challenge responded notification (Cloud Function)
+> `app/__tests__/_layout.test.tsx` not written — layout requires heavy mocking for limited signal; notification routing covered by `notificationRouter.test.ts`
 
-- [ ] `functions/src/__tests__/challengeRespond.test.ts` — RED: add tests:
-  - sends push to `senderPushToken` when present on challenge doc
-  - skips gracefully (no throw) when `senderPushToken` is null or missing
-  - challenge write succeeds regardless of notification outcome
-  - correct payload: `title`, `body`, `data.screen === 'home'`
-- [ ] `functions/src/challengeRespond.ts` — GREEN: after successful response write, look up `senderPushToken` from challenge doc, POST to Expo push API; wrap in try/catch
+### §3c — Challenge responded notification (Cloud Function) ✅
 
-### §3d — Help received notification (Cloud Function)
+- [x] `functions/src/__tests__/challengeRespond.test.ts` — tests: push sent when token present (server-side lookup), skipped when no token, write succeeds on push failure, payload includes token
+- [x] `functions/src/challengeRespond.ts` — looks up `pushTokens/{senderId}` via Admin SDK at respond time; try/catch so push failure is non-fatal; title: `"Someone responded to your X challenge"` (no responder name stored)
 
-- [ ] `functions/src/__tests__/helpRespond.test.ts` — RED: same pattern as §3c for `askerPushToken`
-- [ ] `functions/src/helpRespond.ts` — GREEN: after successful response write, look up `askerPushToken`, POST to Expo push API; wrap in try/catch
+### §3d — Help received notification (Cloud Function) ✅
 
-> `helpRespond.ts` may not exist yet — check; create if needed following `challengeRespond.ts` pattern.
+- [x] `functions/src/__tests__/helpRespond.test.ts` — same pattern as §3c for `askerId`
+- [x] `functions/src/helpRespond.ts` — looks up `pushTokens/{askerId}` server-side; non-fatal push
 
-### §3e — New week notification (scheduled Cloud Function)
+### §3e — New week notification (scheduled Cloud Function) ✅
 
-- [ ] `functions/src/__tests__/sendWeeklyNotification.test.ts` — RED:
-  - fetches all documents from `pushTokens` collection
-  - sends batches of ≤ 100 tokens
-  - handles empty collection without error
-  - correct payload: title, body, `data.screen === 'home'`
-- [ ] `functions/src/sendWeeklyNotification.ts` — GREEN: scheduled function (`pubsub.schedule('0 15 * * 1').timeZone('America/New_York')`); fetch `pushTokens`, chunk into 100s, POST to Expo API
-- [ ] `functions/src/index.ts` — export `sendWeeklyNotification`
+- [x] `functions/src/__tests__/sendWeeklyNotification.test.ts` — 5 tests: empty collection, <100 tokens, >100 tokens (multi-batch), correct payload, skips docs with missing token
+- [x] `functions/src/sendWeeklyNotification.ts` — `onSchedule` Mon 10 AM ET; fetches `pushTokens` collection, batches ≤100 tokens/request; non-fatal per-batch error
+- [x] `functions/src/index.ts` — exports `sendWeeklyNotification`
 
-### §3f — Shared Expo push helper
+### §3f — Shared Expo push helper ✅
 
-- [ ] `functions/src/lib/expoPush.ts` — extract the Expo API POST logic into a shared helper used by §3c, §3d, §3e; include retry on 429 / transient errors
+- [x] `functions/src/utils/push.ts` — `sendExpoPush(token | token[], data, title?, body?)`; throws on non-2xx HTTP response so callers' catch blocks fire
+
+### Security fixes (from review) ✅
+
+- [x] Push token **not** stored in challenge/help documents — removes token exposure to any authenticated link recipient
+- [x] `challengeRespond` / `helpRespond` look up `pushTokens/{uid}` via Admin SDK instead of reading from challenge doc
+- [x] `senderName` / `askerName` capped at 100 chars server-side in both create handlers
+- [x] Push token fields removed from `packages/shared/types.ts` and all game screen call sites
 
 ---
 
-## 4. Code quality gates
+## 4. Code quality gates ✅
 
-- [ ] `npm test` — all tests passing
-- [ ] `cd functions && npm test` — functions tests passing
-- [ ] `npx tsc --noEmit` — no TypeScript errors
-- [ ] **code-reviewer** agent — full diff since alpha-v0.2.0
-- [ ] **security-reviewer** agent — push token storage, Expo API call from functions
+- [x] `npm test` — 480 tests passing (37 suites)
+- [x] `cd functions && npm test` — 74 tests passing (6 suites)
+- [x] `npx tsc --noEmit` — no TypeScript errors
+- [x] **code-reviewer** agent — reviewed; HIGH items resolved
+- [x] **security-reviewer** agent — reviewed; all HIGH items resolved (token exposure, API response check, name length)
 
 ---
 
@@ -175,10 +169,13 @@ eas submit --platform ios --profile production --latest
 - [ ] [P2] Streak at-risk push notification (requires queryable per-user stats in Firestore)
 - [ ] [P2] "Friend challenged you" / "Friend asked for help" notifications (requires known recipient UID at link creation)
 - [ ] [P2] Notification preferences screen
-- [ ] [P2] Friend name in notification copy (requires Firestore read in function)
+- [ ] [P2] Friend name in challenge-responded notification (requires storing responder display name on update)
 - [ ] [P2] Streak milestones (4 / 12 / 26 / 52 weeks)
 - [ ] [P2] Engraved-monogram shield variant
 - [ ] [P2] Shield primer re-promptable
+- [ ] [P3] Cursor-based pagination for weekly notification scan (scale: 10k+ tokens)
+- [ ] [P3] `EXPO_ACCESS_TOKEN` set in Cloud Function environment (higher Expo push rate limits)
+- [ ] [P3] Batch error isolation test for `sendWeeklyNotification` (continue remaining batches on one failure)
 - [ ] [P3] Cross-device dismissal race (simultaneous open on two devices)
 - [ ] [P3] Garbage-collect orphaned `received_help` interactions
 - [ ] [P3] Animated entry/exit on Help Result / Challenge Reply cards

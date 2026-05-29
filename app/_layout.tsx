@@ -49,6 +49,7 @@ function NotificationHandler() {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: false,
         shouldSetBadge: false,
       }),
@@ -56,7 +57,8 @@ function NotificationHandler() {
 
     listenerRef.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown> | null;
-      routeNotification(data, router);
+      // Wrap router.push in a lambda so the string signature matches our Router interface
+      routeNotification(data, { push: (href) => router.push(href as never) });
     });
     return () => listenerRef.current?.remove();
   }, []);

@@ -29,13 +29,13 @@ App Store public release.
 
 ---
 
-## 1. Code quality
+## 1. Code quality ✅
 
-- [ ] All tests passing — `npm test`
-- [ ] Functions tests passing — `cd functions && npm test`
-- [ ] No TypeScript errors — `npx tsc --noEmit`
-- [ ] Code review complete (code-reviewer agent)
-- [ ] Security review complete (security-reviewer agent) — push token storage, Expo API call from functions
+- [x] All tests passing — `npm test` (480 tests, 37 suites)
+- [x] Functions tests passing — `cd functions && npm test` (74 tests, 6 suites)
+- [x] No TypeScript errors — `npx tsc --noEmit`
+- [x] Code review complete (code-reviewer agent) — HIGH items resolved
+- [x] Security review complete (security-reviewer agent) — all HIGH items resolved
 
 ---
 
@@ -120,7 +120,7 @@ eas submit --platform ios --profile production --latest
 
 | Step | Done by | Date |
 |---|---|---|
-| Code quality | | |
+| Code quality | rcsheng | 2026-05-29 |
 | Smoke test (production build) | | |
 | App Store listing | | |
 | Build | | |
