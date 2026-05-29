@@ -23,15 +23,14 @@ git push origin --tags
 
 ### Versioning convention
 
-Format: `vMAJOR.MINOR.PATCH-CHANNEL.N`
+**Internal release name:** `alpha-vMAJOR.MINOR.PATCH` — used for git tags, docs folders, and PRRs.
+**App Store version (`app.json`):** `MAJOR.MINOR.PATCH` — must always increase. Stays in sync with the internal name from v1.0.0 onward.
 
-- `0.1.0` — pre-1.0 alpha series. Bump the third number (`0.1.1`) when you start a
-  qualitatively different alpha (new game, major redesign).
-- `-alpha.N` — Tier-0 alpha (5–10 trusted testers). `N` increments per build.
-- `-beta.N` — Tier-1+ broader alpha. (Switch when you start inviting beyond the trust circle.)
-- No suffix (`v1.0.0`) — public launch.
+As of alpha-v1.0.0 the two schemes are aligned:
+- Internal `alpha-v1.0.0` → App Store `1.1.0` (1.0.0 was consumed by a pre-release EAS build)
+- Internal `alpha-v1.1.0` → App Store `1.1.0` → bump to `1.2.0`, etc.
 
-So your first alpha is `v0.1.0-alpha.1`, then `v0.1.0-alpha.2`, etc.
+Bump minor (`1.1.0 → 1.2.0`) for new features. Bump major (`1.x → 2.0.0`) for a new game or fundamental redesign.
 
 ### What counts as a "release"?
 
@@ -55,6 +54,7 @@ the moment you run any of those commands, so you don't have to remember.
 | --- | --- | --- | --- | --- |
 | `alpha-v0.1.1` | 2026-05-09 | Q2 UI redesign — compact home index, Lede headline-first, Spread multiple-choice, SoF segmented toggle + pick-the-fake. Reveal polish (✓/✗, compact result cards). Content pipeline (internal). | Slurp game (feature-flagged, alpha-v0.2.0). Push notifications (permanently deferred). | PRD v6 §12, §15 |
 | `alpha-v0.2.0` | 2026-05-24 | Live content pipeline (weekly content windows, week-keyed Firestore docs), bank safety & question exhaustion (`mergeWithFallback` + `BankExhaustedModal`), points removal, weekly streak & shield system, SoF mode toggle removal, ContentContext race condition fix, deep link routing fixes (carry-forward from v0.1.2). | App Store listing and submission (alpha-v0.3.0). | alpha-v0.2.0 PRD |
+| `alpha-v1.0.0` | TBD | Push notifications (challenge/help response, weekly new-content); streak & shield onboarding (7 surfaces, ShieldIcon); landing screen privacy; App Store public release. | Streak at-risk notification, "friend challenged/helped you" notifications (require queryable per-user stats / known recipient UID). | alpha-v1.0.0 PRD |
 
 <!--
 Template for the next row:
