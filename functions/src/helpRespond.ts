@@ -49,12 +49,16 @@ export async function respondToHelpHandler(
 
   if (data.askerPushToken) {
     const gameTitle = GAME_TITLES[data.gameId as string] ?? (data.gameId as string);
-    await sendExpoPush(
-      data.askerPushToken as string,
-      { type: 'received_help', token: input.token },
-      `Your friend answered your ${gameTitle} question`,
-      'See what they picked',
-    );
+    try {
+      await sendExpoPush(
+        data.askerPushToken as string,
+        { type: 'received_help', token: input.token },
+        `Your friend answered your ${gameTitle} question`,
+        'See what they picked',
+      );
+    } catch (err) {
+      console.error('[helpRespond] push notification failed (non-fatal):', err);
+    }
   }
 
   return {

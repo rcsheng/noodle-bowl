@@ -1,11 +1,14 @@
 export interface PushData {
   type: string;
-  token: string;
   [key: string]: string;
 }
 
+/**
+ * Send an Expo push notification to one token or a batch of up to 100 tokens.
+ * Errors are not swallowed here — callers decide whether to log and continue.
+ */
 export async function sendExpoPush(
-  expoPushToken: string,
+  expoPushToken: string | string[],
   data: PushData,
   title?: string,
   body?: string,

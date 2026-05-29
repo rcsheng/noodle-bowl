@@ -182,4 +182,15 @@ describe('respondToChallengeHandler', () => {
       expect.any(String),
     );
   });
+
+  test('challenge response write succeeds even when push notification throws', async () => {
+    jest.spyOn(pushUtils, 'sendExpoPush').mockRejectedValue(new Error('network error'));
+    const { db, updateCalls } = makeDb(makeChallengeDoc({ senderPushToken: 'ExponentPushToken[abc]' }));
+
+    await expect(
+      respondToChallengeHandler(db as any, { token: 'AB3X9K2M', friendAnswer: 'Pip' }, 'uid-friend'),
+    ).resolves.toMatchObject({ friendAnswer: 'Pip' });
+
+    expect(updateCalls).toHaveLength(1); // Firestore write still happened
+  });
 });

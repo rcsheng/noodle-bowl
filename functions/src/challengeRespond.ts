@@ -55,12 +55,16 @@ export async function respondToChallengeHandler(
 
   if (data.senderPushToken) {
     const gameTitle = GAME_TITLES[data.gameId as string] ?? (data.gameId as string);
-    await sendExpoPush(
-      data.senderPushToken as string,
-      { type: 'challenge_accepted', token: input.token },
-      `${data.senderName} responded to your ${gameTitle} challenge`,
-      'See how they did',
-    );
+    try {
+      await sendExpoPush(
+        data.senderPushToken as string,
+        { type: 'challenge_accepted', token: input.token },
+        `${data.senderName} responded to your ${gameTitle} challenge`,
+        'See how they did',
+      );
+    } catch (err) {
+      console.error('[challengeRespond] push notification failed (non-fatal):', err);
+    }
   }
 
   return {

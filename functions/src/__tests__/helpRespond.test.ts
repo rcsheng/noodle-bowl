@@ -163,5 +163,16 @@ describe('respondToHelpHandler', () => {
         expect.any(String),
       );
     });
+
+    test('help response write succeeds even when push notification throws', async () => {
+      jest.spyOn(pushUtils, 'sendExpoPush').mockRejectedValue(new Error('network error'));
+      const { db, updateCalls } = makeDb(makeHelpDoc({ askerPushToken: 'ExponentPushToken[xyz]' }));
+
+      await expect(
+        respondToHelpHandler(db as any, { token: 'HELPTKN1', helperAnswer: '42' }, 'uid-helper'),
+      ).resolves.toMatchObject({ helperAnswer: '42' });
+
+      expect(updateCalls).toHaveLength(1); // Firestore write still happened
+    });
   });
 });

@@ -32,7 +32,7 @@ import { useAuthGate } from '@/lib/authGuard';
 import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
-import { getCachedPushToken } from '@/lib/pushTokens';
+import { getCachedPushToken, registerPushToken } from '@/lib/pushTokens';
 import { logger } from '@/lib/logger';
 import { buildChoicesForItem } from '@/lib/spreadChoices';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
@@ -210,6 +210,7 @@ export default function SpreadScreen() {
     setShowFriend(true);
     setHelpError(false);
     setHelpLoading(true);
+    if (user) await registerPushToken(user.uid).catch(() => {});
     try {
       const result = await createHelp({
         gameId: 'spread',
@@ -481,6 +482,7 @@ export default function SpreadScreen() {
           value: String(c),
         })) : []}
         buildChallengeUrl={async (friendName, prediction) => {
+          if (user) await registerPushToken(user.uid).catch(() => {});
           const result = await createChallenge({
             gameId: 'spread',
             questionIndex: questionIdx,

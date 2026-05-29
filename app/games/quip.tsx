@@ -35,7 +35,7 @@ import { useAuthGate } from '@/lib/authGuard';
 import * as Analytics from '@/lib/analytics';
 import { createChallenge, respondToChallenge } from '@/lib/challengeApi';
 import { createHelp, respondToHelp } from '@/lib/helpApi';
-import { getCachedPushToken } from '@/lib/pushTokens';
+import { getCachedPushToken, registerPushToken } from '@/lib/pushTokens';
 import { logger } from '@/lib/logger';
 import { ChallengeRespondOutput, HelpRespondOutput } from '@/packages/shared/types';
 
@@ -253,6 +253,7 @@ export default function QuipScreen() {
     setShowFriend(true);
     setHelpError(false);
     setHelpLoading(true);
+    if (user) await registerPushToken(user.uid).catch(() => {});
     try {
       const result = await createHelp({
         gameId: 'quip',
@@ -512,6 +513,7 @@ export default function QuipScreen() {
           { label: 'All 3', value: '3' },
         ]}
         buildChallengeUrl={async (friendName, prediction) => {
+          if (user) await registerPushToken(user.uid).catch(() => {});
           const result = await createChallenge({
             gameId: 'quip',
             questionIndex: questionIdx,

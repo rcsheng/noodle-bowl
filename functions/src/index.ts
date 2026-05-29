@@ -7,3 +7,4 @@ export { challengeRespond } from './challengeRespond';
 export { helpCreate } from './helpCreate';
 export { helpGet } from './helpGet';
 export { helpRespond } from './helpRespond';
+export { sendWeeklyNotification } from './sendWeeklyNotification';

@@ -21,10 +21,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 
+import { router } from 'expo-router';
 import { AuthProvider } from '@/context/AuthContext';
 import { ContentProvider } from '@/context/ContentContext';
 import { GameProvider } from '@/context/GameContext';
 import { initAnalytics } from '@/lib/analytics';
+import { routeNotification } from '@/lib/notificationRouter';
 
 initAnalytics();
 
@@ -43,8 +45,18 @@ function NotificationHandler() {
     if (isExpoGo) return;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Notifications = require('expo-notifications') as typeof import('expo-notifications');
-    listenerRef.current = Notifications.addNotificationResponseReceivedListener((_response) => {
-      // Future: navigate to friends tab on challenge_accepted tap
+
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+
+    listenerRef.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, unknown> | null;
+      routeNotification(data, router);
     });
     return () => listenerRef.current?.remove();
   }, []);
