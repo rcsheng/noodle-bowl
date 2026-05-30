@@ -60,7 +60,7 @@ export function HelpResultCard({
         <Text style={styles.rowValue}>{answerLabel}</Text>
       </View>
 
-      {correctLabel !== null && (
+      {isGameCompleted && correctLabel !== null && (
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Correct answer</Text>
           <Text style={styles.rowValue}>{correctLabel}</Text>
@@ -74,14 +74,14 @@ export function HelpResultCard({
         </View>
       )}
 
-      {correct !== null && (
+      {isGameCompleted && correct !== null && (
         <Text style={[styles.tag, correct ? styles.tagCorrect : styles.tagWrong]}>
           {correct ? '✓ Correct' : '✗ Wrong'}
         </Text>
       )}
 
       {isGameCompleted && (
-        <Text style={styles.playedToday}>Played today</Text>
+        <Text style={styles.playedToday}>Played this week</Text>
       )}
 
       {!isGameCompleted && !!onPlay && (

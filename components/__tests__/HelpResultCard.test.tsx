@@ -23,9 +23,9 @@ describe('HelpResultCard', () => {
     expect(getByText('Cat Burglar Caught')).toBeTruthy();
   });
 
-  test('renders friend pick and correct answer rows', () => {
+  test('renders friend pick and correct answer rows when isGameCompleted=true', () => {
     const { getByText } = render(
-      <HelpResultCard {...baseProps} answerLabel="Alex" correctLabel="Bea" correct={false} />,
+      <HelpResultCard {...baseProps} isGameCompleted={true} answerLabel="Alex" correctLabel="Bea" correct={false} />,
     );
     expect(getByText('Alex')).toBeTruthy();
     expect(getByText('Bea')).toBeTruthy();
@@ -33,19 +33,19 @@ describe('HelpResultCard', () => {
     expect(getByText('Correct answer')).toBeTruthy();
   });
 
-  test('shows ✓ Correct tag when correct=true', () => {
-    const { getByText } = render(<HelpResultCard {...baseProps} correct={true} />);
+  test('shows ✓ Correct tag when correct=true and isGameCompleted=true', () => {
+    const { getByText } = render(<HelpResultCard {...baseProps} isGameCompleted={true} correct={true} />);
     expect(getByText('✓ Correct')).toBeTruthy();
   });
 
-  test('shows ✗ Wrong tag when correct=false', () => {
-    const { getByText } = render(<HelpResultCard {...baseProps} correct={false} />);
+  test('shows ✗ Wrong tag when correct=false and isGameCompleted=true', () => {
+    const { getByText } = render(<HelpResultCard {...baseProps} isGameCompleted={true} correct={false} />);
     expect(getByText('✗ Wrong')).toBeTruthy();
   });
 
   test('omits correctness tag and "Correct answer" row when correctLabel is null', () => {
     const { queryByText } = render(
-      <HelpResultCard {...baseProps} correct={null} correctLabel={null} />,
+      <HelpResultCard {...baseProps} isGameCompleted={true} correct={null} correctLabel={null} />,
     );
     expect(queryByText('✓ Correct')).toBeNull();
     expect(queryByText('✗ Wrong')).toBeNull();
@@ -61,24 +61,53 @@ describe('HelpResultCard', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  describe('Played today state', () => {
-    test('shows "Played today" label when isGameCompleted=true', () => {
+  // ---------------------------------------------------------------------------
+  // Spoiler behavior — correctLabel and tag are hidden until the game is played
+  // ---------------------------------------------------------------------------
+  describe('Spoiler suppression', () => {
+    test('hides "Correct answer" row and correct/wrong tag when isGameCompleted=false', () => {
+      const { queryByText } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={false} correctLabel="Bea" correct={true} />,
+      );
+      expect(queryByText('Correct answer')).toBeNull();
+      expect(queryByText('✓ Correct')).toBeNull();
+    });
+
+    test('hides "Correct answer" row and correct/wrong tag when isGameCompleted is not set', () => {
+      const { queryByText } = render(
+        <HelpResultCard {...baseProps} correctLabel="Bea" correct={true} />,
+      );
+      expect(queryByText('Correct answer')).toBeNull();
+      expect(queryByText('✓ Correct')).toBeNull();
+    });
+
+    test('still shows "They picked" row regardless of completion state', () => {
+      const { getByText } = render(
+        <HelpResultCard {...baseProps} isGameCompleted={false} answerLabel="Alex" />,
+      );
+      expect(getByText('They picked')).toBeTruthy();
+      expect(getByText('Alex')).toBeTruthy();
+    });
+  });
+
+  describe('Played this week state', () => {
+    test('shows "Played this week" label when isGameCompleted=true', () => {
       const { getByText } = render(
         <HelpResultCard {...baseProps} isGameCompleted={true} />,
       );
-      expect(getByText(/played today/i)).toBeTruthy();
+      expect(getByText(/played this week/i)).toBeTruthy();
     });
 
-    test('does not show "Played today" label when isGameCompleted=false', () => {
+    test('does not show "Played this week" label when isGameCompleted=false', () => {
       const { queryByText } = render(
         <HelpResultCard {...baseProps} isGameCompleted={false} onPlay={jest.fn()} />,
       );
-      expect(queryByText(/played today/i)).toBeNull();
+      expect(queryByText(/played this week/i)).toBeNull();
     });
 
-    test('does not show "Played today" label by default (backward compat)', () => {
+    test('does not show "Played this week" label by default (backward compat)', () => {
       const { queryByText } = render(<HelpResultCard {...baseProps} />);
-      expect(queryByText(/played today/i)).toBeNull();
+      expect(queryByText(/played this week/i)).toBeNull();
     });
   });
 

@@ -46,7 +46,7 @@ interface RevealData {
 
 export default function SpreadScreen() {
   const { user, isAnonymous } = useAuth();
-  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, dismissOnboardingFlag } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer, dismissOnboardingFlag } = useGame();
   const { banks, contentWeek, isLoading: contentLoading } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
@@ -58,6 +58,10 @@ export default function SpreadScreen() {
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
+    hintQuestionIndex,
+    friendHint,
+    hintToken,
+    hintContentWeek,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -65,9 +69,14 @@ export default function SpreadScreen() {
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
+    hintQuestionIndex?: string;
+    friendHint?: string;
+    hintToken?: string;
+    hintContentWeek?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
+  const isHintMode = !!hintQuestionIndex && !helpTokenParam && !challengeToken;
 
   const [question, setQuestion] = useState<SpreadItem | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -90,6 +99,7 @@ export default function SpreadScreen() {
   const [shieldPrimerVisible, setShieldPrimerVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
   const [bankExhausted, setBankExhausted] = useState(false);
+  const [hintUnavailable, setHintUnavailable] = useState(false);
 
   const loadQuestion = (item: SpreadItem) => {
     setChoices(buildChoicesForItem(item));
@@ -112,6 +122,16 @@ export default function SpreadScreen() {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.spread[idx];
       if (!item) { router.replace('/'); return; }
+      setQuestion(item);
+      setQuestionIdx(idx);
+      loadQuestion(item);
+    } else if (isHintMode && hintQuestionIndex !== undefined) {
+      const idx = parseInt(hintQuestionIndex, 10);
+      const item = banks.spread[idx];
+      if (!item || (hintContentWeek && hintContentWeek !== contentWeek)) {
+        setHintUnavailable(true);
+        return;
+      }
       setQuestion(item);
       setQuestionIdx(idx);
       loadQuestion(item);
@@ -163,6 +183,10 @@ export default function SpreadScreen() {
           handleShieldEarned();
         })
         .catch(() => {});
+    }
+
+    if (isHintMode && hintToken) {
+      setAskerAnswer(hintToken, String(selected));
     }
   };
 
@@ -252,6 +276,28 @@ export default function SpreadScreen() {
     );
   }
 
+  if (hintUnavailable) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <CompactMasthead />
+          <View style={styles.unavailableBody}>
+            <Text style={styles.unavailableText}>
+              This question is no longer available.
+            </Text>
+            <TouchableOpacity
+              style={styles.unavailableBtn}
+              onPress={() => router.replace('/')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.unavailableBtnText}>Back to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   if (!question) return null;
 
   const CHOICE_LETTERS = ['A', 'B', 'C', 'D'];
@@ -287,15 +333,24 @@ export default function SpreadScreen() {
             <View style={styles.choiceList}>
               {choices.map((choice, i) => {
                 const isSelected = selected === choice;
+                const isHintPick = isHintMode && !!friendHint && String(choice) === friendHint;
                 return (
                   <TouchableOpacity
                     key={choice}
                     testID={`spread-choice-${i}`}
-                    style={[styles.choiceRow, isSelected && styles.choiceRowSelected]}
+                    style={[
+                      styles.choiceRow,
+                      isSelected && styles.choiceRowSelected,
+                      isHintPick && !isSelected && styles.choiceRowHinted,
+                    ]}
                     onPress={() => setSelected(choice)}
                     activeOpacity={0.85}
                   >
-                    <View style={[styles.choiceBar, isSelected && styles.choiceBarSelected]} />
+                    <View style={[
+                      styles.choiceBar,
+                      isSelected && styles.choiceBarSelected,
+                      isHintPick && !isSelected && styles.choiceBarHinted,
+                    ]} />
                     <Text style={[styles.choiceText, isSelected && styles.choiceTextSelected]}>
                       {choice.toLocaleString()}
                     </Text>
@@ -320,7 +375,7 @@ export default function SpreadScreen() {
               </Text>
             </TouchableOpacity>
 
-            {!isChallengeMode && !isHelpMode && (
+            {!isChallengeMode && !isHelpMode && !isHintMode && (
               <TouchableOpacity
                 style={styles.helpLink}
                 onPress={handleAskFriend}
@@ -852,6 +907,38 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: C.muted,
+  },
+  choiceRowHinted: {
+    borderColor: C.gold,
+  },
+  choiceBarHinted: {
+    backgroundColor: C.gold,
+  },
+  unavailableBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 60,
+    gap: 20,
+  },
+  unavailableText: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.muted,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  unavailableBtn: {
+    backgroundColor: C.ink,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  unavailableBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: C.onDark,
   },
   modalOverlay: {
     flex: 1,

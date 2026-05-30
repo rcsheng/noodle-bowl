@@ -20,7 +20,6 @@ import { StreakAtRiskBanner } from '@/components/StreakAtRiskBanner';
 import { StreakIgnitionModal } from '@/components/StreakIgnitionModal';
 import { C, F } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
-import { getTodayISODate } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
 import { computeActiveWeek, computeCurrentWeek, getWeekDateRange, isPlayedThisWeek } from '@/lib/contentWeek';
 import { useGame } from '@/context/GameContext';
@@ -47,8 +46,6 @@ export default function HubScreen() {
     streakShieldsAvailable,
     onboarding,
   } = state.stats;
-  const today = getTodayISODate();
-
   // §1a Streak Ignition — once, after first week of play
   const showIgnitionModal = totalWeeksPlayed === 1 && weeklyStreak === 1 && !onboarding.streakIntroSeen;
 
@@ -220,7 +217,7 @@ export default function HubScreen() {
                 interaction.friendAnswer ?? '',
                 banks,
               );
-              const isGameCompleted = state.stats[interaction.gameId].lastPlayed === today;
+              const isGameCompleted = isPlayedThisWeek(state.stats[interaction.gameId].lastPlayed, computeCurrentWeek());
               const askerEval = interaction.askerAnswer
                 ? evaluateHelperAnswer(interaction.gameId, interaction.questionIndex, interaction.askerAnswer, banks)
                 : null;
