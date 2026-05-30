@@ -22,7 +22,7 @@ import { C, F } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { getTodayISODate } from '@/constants/utils';
 import { useContent } from '@/context/ContentContext';
-import { computeActiveWeek, computeCurrentWeek, getWeekDateRange } from '@/lib/contentWeek';
+import { computeActiveWeek, computeCurrentWeek, getWeekDateRange, isPlayedThisWeek } from '@/lib/contentWeek';
 import { useGame } from '@/context/GameContext';
 import { db } from '@/lib/firebase';
 import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
@@ -262,7 +262,7 @@ export default function HubScreen() {
           {VISIBLE_GAMES.map((id: GameId) => {
             const meta = GAME_META[id];
             const gameStats = state.stats[id];
-            const playedToday = gameStats.lastPlayed === today;
+            const completedThisWeek = isPlayedThisWeek(gameStats.lastPlayed, computeCurrentWeek());
             return (
               <TouchableHighlight
                 key={id}
@@ -279,10 +279,10 @@ export default function HubScreen() {
                     <Text style={styles.rowMeta}>{meta.meta.join(' · ')}</Text>
                   </View>
                   <View style={styles.rowTrailingWrapper}>
-                    {playedToday ? (
+                    {completedThisWeek ? (
                       <>
                         <Text style={styles.rowTrailingPlayed}>✓</Text>
-                        <Text style={styles.rowPlayAgain}>PLAY AGAIN</Text>
+                        <Text style={styles.rowCompleted}>COMPLETED</Text>
                       </>
                     ) : (
                       <View style={styles.playBtn}>
@@ -389,13 +389,12 @@ const styles = StyleSheet.create({
     color: C.gold,
     marginBottom: 4,
   },
-  rowPlayAgain: {
+  rowCompleted: {
     fontFamily: F.mono,
     fontSize: 9,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     color: C.muted,
-    textDecorationLine: 'underline',
   },
   playBtn: {
     backgroundColor: C.ink,

@@ -1,4 +1,4 @@
-import { computeActiveWeek, computeCurrentWeek, formatWeekId, getISOWeekYear, getWeekDateRange } from '../contentWeek';
+import { computeActiveWeek, computeCurrentWeek, formatWeekId, getISOWeekYear, getWeekDateRange, isPlayedThisWeek } from '../contentWeek';
 
 // ---------------------------------------------------------------------------
 // getISOWeekYear
@@ -114,5 +114,33 @@ describe('getWeekDateRange', () => {
     expect(getWeekDateRange('')).toBe('');
     expect(getWeekDateRange('2026-20')).toBe('');
     expect(getWeekDateRange('bad')).toBe('');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isPlayedThisWeek
+// ---------------------------------------------------------------------------
+describe('isPlayedThisWeek', () => {
+  it('returns false when lastPlayed is undefined', () => {
+    expect(isPlayedThisWeek(undefined, '2026-W22')).toBe(false);
+  });
+
+  it('returns true when lastPlayed falls within the given week', () => {
+    // 2026-W22: Mon May 25 – Sun May 31
+    expect(isPlayedThisWeek('2026-05-25', '2026-W22')).toBe(true); // Monday
+    expect(isPlayedThisWeek('2026-05-28', '2026-W22')).toBe(true); // Thursday
+    expect(isPlayedThisWeek('2026-05-31', '2026-W22')).toBe(true); // Sunday
+  });
+
+  it('returns false when lastPlayed is in a different (earlier) week', () => {
+    // 2026-W21: Mon May 18 – Sun May 24
+    expect(isPlayedThisWeek('2026-05-24', '2026-W22')).toBe(false); // last day of W21
+    expect(isPlayedThisWeek('2026-05-18', '2026-W22')).toBe(false); // first day of W21
+    expect(isPlayedThisWeek('2026-04-01', '2026-W22')).toBe(false); // weeks ago
+  });
+
+  it('handles year-boundary: Dec 29 2025 is in 2026-W01', () => {
+    expect(isPlayedThisWeek('2025-12-29', '2026-W01')).toBe(true);
+    expect(isPlayedThisWeek('2025-12-28', '2026-W01')).toBe(false); // W52 of 2025
   });
 });

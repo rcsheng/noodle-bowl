@@ -51,6 +51,16 @@ export function computeActiveWeek(date: Date = new Date()): string {
 }
 
 /**
+ * Returns true if the given ISO date string (e.g. "2026-05-30") falls within
+ * the given ISO week string (e.g. "2026-W22"). Used by the home screen to
+ * determine whether to show COMPLETED vs PLAY for a game row.
+ */
+export function isPlayedThisWeek(lastPlayed: string | undefined, currentWeek: string): boolean {
+  if (!lastPlayed) return false;
+  return computeCurrentWeek(new Date(lastPlayed)) === currentWeek;
+}
+
+/**
  * Returns a human-readable date range for the Mon–Sun span of a given ISO week.
  * Same-month weeks: "May 11–17". Cross-month weeks: "May 31 – Jun 6".
  * Returns an empty string if weekId is not a valid ISO week string.
