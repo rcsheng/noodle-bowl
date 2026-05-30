@@ -9,7 +9,7 @@ import { C, F, cardShadow } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useGame } from '@/context/GameContext';
 import { GameId } from '@/constants/data';
-import { signOutAndGoAnonymous } from '@/lib/authApi';
+import { deleteAccount, mapAuthError, signOutAndGoAnonymous } from '@/lib/authApi';
 
 const ALL_GAMES: GameId[] = ['lede', 'spread', 'sof', 'quip', 'wave'];
 
@@ -19,6 +19,30 @@ export default function ProfileScreen() {
 
   async function handleSignOut() {
     await signOutAndGoAnonymous();
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account, streak, and stats. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              router.replace('/');
+            } catch (err: unknown) {
+              const code = (err as { code?: string }).code ?? '';
+              const message = (err as { message?: string }).message ?? '';
+              Alert.alert('Could not delete account', mapAuthError(code, message));
+            }
+          },
+        },
+      ],
+    );
   }
 
   function handleResetSeen() {
@@ -116,6 +140,14 @@ export default function ProfileScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={styles.signOutBtnText}>Sign Out</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={handleDeleteAccount}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.deleteBtnText}>Delete Account</Text>
               </TouchableOpacity>
             </>
           )}
@@ -274,6 +306,7 @@ const styles = StyleSheet.create({
     borderColor: C.rule,
     paddingVertical: 14,
     alignItems: 'center',
+    marginBottom: 10,
   },
   signOutBtnText: {
     fontFamily: F.monoBold,
@@ -281,6 +314,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     textTransform: 'uppercase',
     color: C.muted,
+  },
+  deleteBtn: {
+    borderWidth: 1,
+    borderColor: '#c4453a',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deleteBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 12,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: '#c4453a',
   },
   saveBanner: {
     borderWidth: 1,

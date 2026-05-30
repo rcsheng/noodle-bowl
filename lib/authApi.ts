@@ -1,5 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   EmailAuthProvider,
   linkWithCredential,
   sendEmailVerification,
@@ -41,6 +43,7 @@ export function mapAuthError(code: string, rawMessage = ''): string {
     'auth/credential-already-in-use': 'This email is linked to another account. Try signing in instead.',
     'auth/provider-already-linked': 'This account already has an email address linked.',
     'auth/user-token-expired': 'Session expired. Please try again.',
+    'auth/requires-recent-login': 'For security, please sign out and sign back in before deleting your account.',
   };
   if (map[code]) return map[code];
   if (rawMessage.toLowerCase().includes('network') || rawMessage.toLowerCase().includes('fetch')) {
@@ -81,6 +84,21 @@ export async function signIn(email: string, password: string) {
   signInSchema.parse({ email, password });
   const result = await signInWithEmailAndPassword(auth, email, password);
   return result.user;
+}
+
+/**
+ * Permanently deletes the current user's Firebase Auth account, wipes local
+ * AsyncStorage, then signs in anonymously so the app always has a session.
+ *
+ * Throws `auth/requires-recent-login` if Firebase rejects the deletion because
+ * the credential is stale — callers should surface this to the user.
+ */
+export async function deleteAccount(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('No authenticated user to delete.');
+  await deleteUser(user);
+  await AsyncStorage.clear();
+  await signInAnonymously(auth);
 }
 
 export async function signOutAndGoAnonymous() {

@@ -96,6 +96,16 @@ TDD approach: RED tests first → GREEN implementation → security review fixes
 
 Found and fixed during Android Expo Go smoke testing (2026-05-30). All committed; require next EAS build to reach device.
 
+---
+
+## 4c. Pre-submission fixes ✅
+
+Implemented before App Store submission (2026-05-30). Require next EAS build.
+
+- [x] Sign-up: replace email verification step with welcome screen — `081b34a`
+- [x] Profile: add Delete Account (required by App Store guideline for apps with account creation) — `deleteAccount()` in `lib/authApi.ts`; button in profile screen below Sign Out; confirmation Alert; handles `auth/requires-recent-login` gracefully
+- [x] `npm test` — 502 tests passing (37 suites)
+
 - [x] App display name `"noodle-bowl"` → `"Noodle Bowl"` (`app.json`) — `a8d1296`
 - [x] Auth redirect: after signing in via auth gate modal, return to game screen instead of home — `from=game` param propagated through sign-in and sign-up screens — `99d1f70`
 - [x] Home screen: replace day-scoped `PLAY AGAIN` with week-scoped `COMPLETED` label — `isPlayedThisWeek` utility added with full test coverage — `939db35`

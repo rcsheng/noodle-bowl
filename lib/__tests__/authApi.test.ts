@@ -1,6 +1,8 @@
-import { mapAuthError, resendVerificationEmail, sendPasswordReset, signIn, signOutAndGoAnonymous, signUp } from '../authApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deleteAccount, mapAuthError, resendVerificationEmail, sendPasswordReset, signIn, signOutAndGoAnonymous, signUp } from '../authApi';
 import { auth } from '../firebase';
 
+const mockDeleteUser = jest.fn();
 const mockLinkWithCredential = jest.fn();
 const mockCreateUserWithEmailAndPassword = jest.fn();
 const mockSignInWithEmailAndPassword = jest.fn();
@@ -12,6 +14,7 @@ const mockSendEmailVerification = jest.fn().mockResolvedValue(undefined);
 const mockEmailAuthProviderCredential = jest.fn().mockReturnValue({ _credential: 'mock' });
 
 jest.mock('firebase/auth', () => ({
+  deleteUser: (...args: unknown[]) => mockDeleteUser(...args),
   linkWithCredential: (...args: unknown[]) => mockLinkWithCredential(...args),
   createUserWithEmailAndPassword: (...args: unknown[]) => mockCreateUserWithEmailAndPassword(...args),
   signInWithEmailAndPassword: (...args: unknown[]) => mockSignInWithEmailAndPassword(...args),
@@ -286,5 +289,66 @@ describe('mapAuthError', () => {
     const msg = mapAuthError('auth/unknown-code-xyz');
     expect(typeof msg).toBe('string');
     expect(msg.length).toBeGreaterThan(0);
+  });
+
+  it('maps requires-recent-login', () => {
+    expect(mapAuthError('auth/requires-recent-login')).toMatch(/sign out and sign back in/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteAccount
+// ---------------------------------------------------------------------------
+describe('deleteAccount', () => {
+  it('calls deleteUser with the current user', async () => {
+    const user = stubUser({ uid: 'uid-to-delete', isAnonymous: false });
+    (auth as { currentUser: unknown }).currentUser = user;
+    mockDeleteUser.mockResolvedValue(undefined);
+    mockSignInAnonymously.mockResolvedValue({ user: { uid: 'anon', isAnonymous: true } });
+
+    await deleteAccount();
+
+    expect(mockDeleteUser).toHaveBeenCalledWith(user);
+  });
+
+  it('clears AsyncStorage after deletion', async () => {
+    const user = stubUser({ uid: 'uid-to-delete', isAnonymous: false });
+    (auth as { currentUser: unknown }).currentUser = user;
+    mockDeleteUser.mockResolvedValue(undefined);
+    mockSignInAnonymously.mockResolvedValue({ user: { uid: 'anon', isAnonymous: true } });
+
+    await deleteAccount();
+
+    expect(AsyncStorage.clear).toHaveBeenCalledTimes(1);
+  });
+
+  it('signs in anonymously after deletion to restore a session', async () => {
+    const user = stubUser({ uid: 'uid-to-delete', isAnonymous: false });
+    (auth as { currentUser: unknown }).currentUser = user;
+    mockDeleteUser.mockResolvedValue(undefined);
+    const anonUser = { uid: 'fresh-anon', isAnonymous: true };
+    mockSignInAnonymously.mockResolvedValue({ user: anonUser });
+
+    await deleteAccount();
+
+    expect(mockSignInAnonymously).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws when there is no current user', async () => {
+    (auth as { currentUser: unknown }).currentUser = null;
+
+    await expect(deleteAccount()).rejects.toThrow('No authenticated user');
+  });
+
+  it('re-throws Firebase errors without swallowing them (e.g. requires-recent-login)', async () => {
+    const user = stubUser({ uid: 'uid-to-delete', isAnonymous: false });
+    (auth as { currentUser: unknown }).currentUser = user;
+    const firebaseError = Object.assign(new Error('requires recent login'), {
+      code: 'auth/requires-recent-login',
+    });
+    mockDeleteUser.mockRejectedValue(firebaseError);
+
+    await expect(deleteAccount()).rejects.toMatchObject({ code: 'auth/requires-recent-login' });
+    expect(mockSignInAnonymously).not.toHaveBeenCalled();
   });
 });

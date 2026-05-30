@@ -2,7 +2,10 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 
 jest.mock('@/context/AuthContext', () => ({ useAuth: jest.fn() }));
-jest.mock('@/lib/authApi', () => ({ signOutAndGoAnonymous: jest.fn() }));
+jest.mock('@/lib/authApi', () => ({
+  signOutAndGoAnonymous: jest.fn(),
+  deleteAccount: jest.fn(),
+}));
 jest.mock('@/context/GameContext', () => ({
   useGame: () => ({
     state: { stats: { weeklyStreak: 0, streakShieldsAvailable: 0 } },
@@ -25,6 +28,26 @@ beforeEach(() => {
   jest.clearAllMocks();
   useAuth.mockReturnValue(anonAuth);
   delete process.env.EXPO_PUBLIC_USE_EMULATOR;
+});
+
+const signedInAuth = {
+  user: { uid: 'uid-123', email: 'test@example.com' },
+  isAnonymous: false,
+  displayName: 'Test User',
+};
+
+describe('Profile — Delete Account button', () => {
+  it('shows for signed-in users', () => {
+    useAuth.mockReturnValue(signedInAuth);
+    const { getByText } = render(<ProfileScreen />);
+    expect(getByText(/delete account/i)).toBeTruthy();
+  });
+
+  it('is not shown for anonymous users', () => {
+    useAuth.mockReturnValue(anonAuth);
+    const { queryByText } = render(<ProfileScreen />);
+    expect(queryByText(/delete account/i)).toBeNull();
+  });
 });
 
 describe('Profile — Clear local data button', () => {
