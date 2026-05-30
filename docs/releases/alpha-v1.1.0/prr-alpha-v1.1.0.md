@@ -29,11 +29,13 @@ App Store public release.
 
 ## 1. Code quality ✅
 
-- [x] All tests passing — `npm test` (480 tests, 37 suites)
+- [x] All tests passing — `npm test` (492 tests, 37 suites)
 - [x] Functions tests passing — `cd functions && npm test` (74 tests, 6 suites)
 - [x] No TypeScript errors — `npx tsc --noEmit`
 - [x] Code review complete (code-reviewer agent) — HIGH items resolved
 - [x] Security review complete (security-reviewer agent) — all HIGH items resolved
+
+> **Post-build fixes (2026-05-30):** Six bugs found and fixed during Android Expo Go smoke testing — app display name, auth redirect after sign-in, home screen PLAY AGAIN → COMPLETED (week-scoped), HelpResultCard spoiler removal, and hint mode for Spread/Wave/Quip. All committed; require next EAS build to reach device. Test count updated from 480 → 492 to reflect new coverage.
 
 ---
 
@@ -42,6 +44,8 @@ App Store public release.
 Formal QA blocks (start:qa) are skipped for this release. Testing is done directly on the **production build** installed via TestFlight internal testing. Install the build from TestFlight after Step 5 below, then run the blocks below.
 
 > Cross-device blocks (B, C) require two devices and throwaway accounts. Writes go to prod `challenges` / `helpRequests` (real collections, no prefix).
+
+> **Pre-build verification (2026-05-30):** Core flows (launch, auth, game play, help/challenge flow, streak/shield onboarding, landing screen privacy, deep links) re-verified on Android Expo Go after §1 post-build fixes. Help/challenge flow specifically re-confirmed passing. Push notification blocks (A–D) require the production TestFlight build and cannot be tested on Expo Go.
 
 ### Block A — Cold launch & basic game
 
@@ -97,7 +101,7 @@ Reference: `docs/releases/alpha-v1.1.0/app-store-listing.md`
 - [ ] Deploy Cloud Functions to production: `firebase deploy --only functions`
 - [ ] Deploy Firestore security rules: `firebase deploy --only firestore:rules`
 - [ ] Production `contentVersions` has a doc for the current active ISO week
-- [ ] Cloud Functions verified in Firebase console — all 6 deployed: `challengeCreate`, `challengeGet`, `challengeRespond`, `helpCreate`, `helpGet`, `helpRespond`, `sendWeeklyNotification`
+- [ ] Cloud Functions verified in Firebase console — all 7 deployed: `challengeCreate`, `challengeGet`, `challengeRespond`, `helpCreate`, `helpGet`, `helpRespond`, `sendWeeklyNotification`
 - [ ] AASA file live: `https://noodlebowl.app/.well-known/apple-app-site-association`
 - [ ] `eas.json` — `appleId`, `ascAppId`, `appleTeamId` verified
 - [ ] `eas whoami` — EAS CLI logged in
@@ -145,7 +149,7 @@ eas submit --platform ios --profile production --latest
 
 | Step | Done by | Date |
 |---|---|---|
-| Code quality | rcsheng | 2026-05-29 |
+| Code quality | rcsheng | 2026-05-30 |
 | Functions rebuilt + deployed | | |
 | Build (EAS production) | | |
 | Smoke test (TestFlight, Blocks A–D) | | |

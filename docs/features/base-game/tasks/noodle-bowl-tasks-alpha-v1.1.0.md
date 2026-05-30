@@ -2,7 +2,7 @@
 
 **PRD ref:** `noodle-bowl-prd-alpha-v1.1.0.md`
 **App Store version:** 1.1.0
-**Last updated:** 2026-05-29
+**Last updated:** 2026-05-30
 
 ---
 
@@ -84,11 +84,24 @@ TDD approach: RED tests first → GREEN implementation → security review fixes
 
 ## 4. Code quality gates ✅
 
-- [x] `npm test` — 480 tests passing (37 suites)
+- [x] `npm test` — 492 tests passing (37 suites)
 - [x] `cd functions && npm test` — 74 tests passing (6 suites)
 - [x] `npx tsc --noEmit` — no TypeScript errors
 - [x] **code-reviewer** agent — reviewed; HIGH items resolved
 - [x] **security-reviewer** agent — reviewed; all HIGH items resolved (token exposure, API response check, name length)
+
+---
+
+## 4b. Post-build bug fixes ✅
+
+Found and fixed during Android Expo Go smoke testing (2026-05-30). All committed; require next EAS build to reach device.
+
+- [x] App display name `"noodle-bowl"` → `"Noodle Bowl"` (`app.json`) — `a8d1296`
+- [x] Auth redirect: after signing in via auth gate modal, return to game screen instead of home — `from=game` param propagated through sign-in and sign-up screens — `99d1f70`
+- [x] Home screen: replace day-scoped `PLAY AGAIN` with week-scoped `COMPLETED` label — `isPlayedThisWeek` utility added with full test coverage — `939db35`
+- [x] Help result card (Bug 1): correct answer and ✓/✗ tag were always shown — removed entirely; the card is a hint, not a grade report — `e301a0a`
+- [x] Help result card (Bug 2): "Try this question →" opened a random question in Spread, Wave, and Quip — hint mode (`hintQuestionIndex` param) added to all three games to match the existing Lede/SoF implementation — `3942392`, `8c90e1e`
+- [x] `isGameCompleted` check on home card updated to week-scoped (`isPlayedThisWeek`) — `939db35`
 
 ---
 
@@ -98,13 +111,15 @@ Formal QA blocks (start:qa) skipped for this release — verified directly on th
 
 Blocks 0–15 carry forward from alpha-v0.1.1 (last verified on `start:qa`). Block 16 (push notifications) is new and **must be verified on the production build** — Expo Go does not support push notifications.
 
+Help/challenge flow re-verified on Android Expo Go 2026-05-30 after §4b bug fixes — confirmed passing.
+
 - [x] Block 0 — Q2 Redesign (home, Lede, Spread, SoF)
 - [x] Block 1 — App launch / anonymous auth
 - [x] Block 2 — Account creation
 - [x] Block 3 — Sign in
 - [x] Block 4 — Auth gate on sharing
 - [x] Block 5 — Cross-device challenge flow
-- [x] Block 6 — Cross-device help flow
+- [x] Block 6 — Cross-device help flow *(re-verified 2026-05-30 after §4b fixes)*
 - [x] Block 7 — Content & offline resilience
 - [x] Block 8 — Sign-out behaviour
 - [x] Block 9 — Stats persistence
