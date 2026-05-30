@@ -228,8 +228,6 @@ export default function HubScreen() {
                   gameTitle={GAME_META[interaction.gameId].title}
                   questionText={evaluation.questionText}
                   answerLabel={evaluation.label}
-                  correctLabel={evaluation.correctLabel}
-                  correct={evaluation.correct}
                   onDismiss={() => dismissHelpCard(interaction.token!)}
                   isGameCompleted={isGameCompleted}
                   askerAnswerLabel={askerEval?.label}

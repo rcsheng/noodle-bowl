@@ -9,85 +9,42 @@ describe('HelpResultCard', () => {
     gameTitle: 'The Lede',
     questionText: 'Cat Burglar Caught',
     answerLabel: 'Bea',
-    correctLabel: 'Bea',
-    correct: true as boolean | null,
     onDismiss: jest.fn(),
   };
 
   beforeEach(() => jest.clearAllMocks());
 
-  test('renders friend name, game title, and the question text', () => {
+  test('renders friend name, game title, and question text', () => {
     const { getByText } = render(<HelpResultCard {...baseProps} />);
     expect(getByText('Alice')).toBeTruthy();
     expect(getByText('The Lede')).toBeTruthy();
     expect(getByText('Cat Burglar Caught')).toBeTruthy();
   });
 
-  test('renders friend pick and correct answer rows when isGameCompleted=true', () => {
-    const { getByText } = render(
-      <HelpResultCard {...baseProps} isGameCompleted={true} answerLabel="Alex" correctLabel="Bea" correct={false} />,
-    );
-    expect(getByText('Alex')).toBeTruthy();
-    expect(getByText('Bea')).toBeTruthy();
+  test('renders "They picked" row with the friend answer label', () => {
+    const { getByText } = render(<HelpResultCard {...baseProps} answerLabel="Alex" />);
     expect(getByText('They picked')).toBeTruthy();
-    expect(getByText('Correct answer')).toBeTruthy();
+    expect(getByText('Alex')).toBeTruthy();
   });
 
-  test('shows ✓ Correct tag when correct=true and isGameCompleted=true', () => {
-    const { getByText } = render(<HelpResultCard {...baseProps} isGameCompleted={true} correct={true} />);
-    expect(getByText('✓ Correct')).toBeTruthy();
+  // Correct answer and correct/wrong tag are NEVER shown — it is always a spoiler
+  // on a hint card. The user sees the correct answer in the game screen after playing.
+  test('never shows "Correct answer" row', () => {
+    const { queryByText } = render(<HelpResultCard {...baseProps} />);
+    expect(queryByText('Correct answer')).toBeNull();
   });
 
-  test('shows ✗ Wrong tag when correct=false and isGameCompleted=true', () => {
-    const { getByText } = render(<HelpResultCard {...baseProps} isGameCompleted={true} correct={false} />);
-    expect(getByText('✗ Wrong')).toBeTruthy();
-  });
-
-  test('omits correctness tag and "Correct answer" row when correctLabel is null', () => {
-    const { queryByText } = render(
-      <HelpResultCard {...baseProps} isGameCompleted={true} correct={null} correctLabel={null} />,
-    );
+  test('never shows ✓ Correct or ✗ Wrong tag', () => {
+    const { queryByText } = render(<HelpResultCard {...baseProps} />);
     expect(queryByText('✓ Correct')).toBeNull();
     expect(queryByText('✗ Wrong')).toBeNull();
-    expect(queryByText('Correct answer')).toBeNull();
   });
 
   test('dismiss button calls onDismiss', () => {
     const onDismiss = jest.fn();
-    const { getByTestId } = render(
-      <HelpResultCard {...baseProps} onDismiss={onDismiss} />,
-    );
+    const { getByTestId } = render(<HelpResultCard {...baseProps} onDismiss={onDismiss} />);
     fireEvent.press(getByTestId('help-result-dismiss-btn'));
     expect(onDismiss).toHaveBeenCalledTimes(1);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Spoiler behavior — correctLabel and tag are hidden until the game is played
-  // ---------------------------------------------------------------------------
-  describe('Spoiler suppression', () => {
-    test('hides "Correct answer" row and correct/wrong tag when isGameCompleted=false', () => {
-      const { queryByText } = render(
-        <HelpResultCard {...baseProps} isGameCompleted={false} correctLabel="Bea" correct={true} />,
-      );
-      expect(queryByText('Correct answer')).toBeNull();
-      expect(queryByText('✓ Correct')).toBeNull();
-    });
-
-    test('hides "Correct answer" row and correct/wrong tag when isGameCompleted is not set', () => {
-      const { queryByText } = render(
-        <HelpResultCard {...baseProps} correctLabel="Bea" correct={true} />,
-      );
-      expect(queryByText('Correct answer')).toBeNull();
-      expect(queryByText('✓ Correct')).toBeNull();
-    });
-
-    test('still shows "They picked" row regardless of completion state', () => {
-      const { getByText } = render(
-        <HelpResultCard {...baseProps} isGameCompleted={false} answerLabel="Alex" />,
-      );
-      expect(getByText('They picked')).toBeTruthy();
-      expect(getByText('Alex')).toBeTruthy();
-    });
   });
 
   describe('Played this week state', () => {

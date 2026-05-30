@@ -8,8 +8,6 @@ interface Props {
   gameTitle: string;
   questionText: string;
   answerLabel: string;
-  correctLabel: string | null;
-  correct: boolean | null;
   onDismiss: () => void;
   isGameCompleted?: boolean;
   onPlay?: () => void;
@@ -21,8 +19,6 @@ export function HelpResultCard({
   gameTitle,
   questionText,
   answerLabel,
-  correctLabel,
-  correct,
   onDismiss,
   isGameCompleted,
   onPlay,
@@ -60,24 +56,11 @@ export function HelpResultCard({
         <Text style={styles.rowValue}>{answerLabel}</Text>
       </View>
 
-      {isGameCompleted && correctLabel !== null && (
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Correct answer</Text>
-          <Text style={styles.rowValue}>{correctLabel}</Text>
-        </View>
-      )}
-
       {!!askerAnswerLabel && (
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Your pick</Text>
           <Text style={styles.rowValue}>{askerAnswerLabel}</Text>
         </View>
-      )}
-
-      {isGameCompleted && correct !== null && (
-        <Text style={[styles.tag, correct ? styles.tagCorrect : styles.tagWrong]}>
-          {correct ? '✓ Correct' : '✗ Wrong'}
-        </Text>
       )}
 
       {isGameCompleted && (
@@ -183,19 +166,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: C.ink,
     flex: 1,
-  },
-  tag: {
-    fontFamily: F.monoBold,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginTop: 12,
-  },
-  tagCorrect: {
-    color: C.green,
-  },
-  tagWrong: {
-    color: C.accent,
   },
   playBtn: {
     marginTop: 14,
