@@ -81,7 +81,7 @@ function getReaction(panelist: typeof PANEL[0], quip: string): { reaction: strin
 
 export default function QuipScreen() {
   const { user, isAnonymous } = useAuth();
-  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, dismissOnboardingFlag } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer, dismissOnboardingFlag } = useGame();
   const { banks, contentWeek } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
@@ -92,6 +92,9 @@ export default function QuipScreen() {
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
+    hintQuestionIndex,
+    hintToken,
+    hintContentWeek,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -99,9 +102,13 @@ export default function QuipScreen() {
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
+    hintQuestionIndex?: string;
+    hintToken?: string;
+    hintContentWeek?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
+  const isHintMode = !!hintQuestionIndex && !helpTokenParam && !challengeToken;
 
   const [prompt, setPrompt] = useState<QuipPrompt | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -124,6 +131,7 @@ export default function QuipScreen() {
   const [shieldPrimerVisible, setShieldPrimerVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
   const [bankExhausted, setBankExhausted] = useState(false);
+  const [hintUnavailable, setHintUnavailable] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || started.current) return;
@@ -138,6 +146,15 @@ export default function QuipScreen() {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.quip[idx];
       if (!item) { router.replace('/'); return; }
+      setPrompt(item);
+      setQuestionIdx(idx);
+    } else if (isHintMode && hintQuestionIndex !== undefined) {
+      const idx = parseInt(hintQuestionIndex, 10);
+      const item = banks.quip[idx];
+      if (!item || (hintContentWeek && hintContentWeek !== contentWeek)) {
+        setHintUnavailable(true);
+        return;
+      }
       setPrompt(item);
       setQuestionIdx(idx);
     } else {
@@ -200,6 +217,9 @@ export default function QuipScreen() {
               } catch {
                 // ignore
               }
+            }
+            if (isHintMode && hintToken) {
+              setAskerAnswer(hintToken, quip.trim());
             }
           }, 400);
         }
@@ -295,6 +315,28 @@ export default function QuipScreen() {
     );
   }
 
+  if (hintUnavailable) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Masthead />
+          <View style={styles.unavailableBody}>
+            <Text style={styles.unavailableText}>
+              This question is no longer available.
+            </Text>
+            <TouchableOpacity
+              style={styles.unavailableBtn}
+              onPress={() => router.replace('/')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.unavailableBtnText}>Back to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   if (!prompt) return null;
 
   return (
@@ -350,7 +392,7 @@ export default function QuipScreen() {
                 <Text style={styles.primaryBtnText}>Submit to Panel</Text>
               </TouchableOpacity>
 
-              {!isChallengeMode && !isHelpMode && (
+              {!isChallengeMode && !isHelpMode && !isHintMode && (
                 <TouchableOpacity
                   style={styles.secondaryBtn}
                   onPress={handleAskFriend}
@@ -906,6 +948,32 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: C.muted,
+  },
+  unavailableBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 60,
+    gap: 20,
+  },
+  unavailableText: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.muted,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  unavailableBtn: {
+    backgroundColor: C.ink,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  unavailableBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: C.onDark,
   },
   modalOverlay: {
     flex: 1,

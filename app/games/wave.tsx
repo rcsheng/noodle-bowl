@@ -63,7 +63,7 @@ function scoreWave(userPos: number, truthPos: number): { correct: boolean; point
 
 export default function WaveScreen() {
   const { user, isAnonymous } = useAuth();
-  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, dismissOnboardingFlag } = useGame();
+  const { state, isLoaded, updateGameStats, setSeen, addFriendInteraction, earnStreakShield, setAskerAnswer, dismissOnboardingFlag } = useGame();
   const { banks, contentWeek } = useContent();
   const { requireAuth, authGateVisible, dismissAuthGate } = useAuthGate();
   const started = useRef(false);
@@ -74,6 +74,9 @@ export default function WaveScreen() {
     helpToken: helpTokenParam,
     helpQuestionIndex,
     helpAskerName,
+    hintQuestionIndex,
+    hintToken,
+    hintContentWeek,
   } = useLocalSearchParams<{
     challengeToken?: string;
     challengeQuestionIndex?: string;
@@ -81,9 +84,13 @@ export default function WaveScreen() {
     helpToken?: string;
     helpQuestionIndex?: string;
     helpAskerName?: string;
+    hintQuestionIndex?: string;
+    hintToken?: string;
+    hintContentWeek?: string;
   }>();
   const isChallengeMode = !!challengeToken;
   const isHelpMode = !!helpTokenParam;
+  const isHintMode = !!hintQuestionIndex && !helpTokenParam && !challengeToken;
 
   const [question, setQuestion] = useState<WaveItem | null>(null);
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -106,6 +113,7 @@ export default function WaveScreen() {
   const [shieldPrimerVisible, setShieldPrimerVisible] = useState(false);
   const [shieldSignUpDismissed, setShieldSignUpDismissed] = useState(false);
   const [bankExhausted, setBankExhausted] = useState(false);
+  const [hintUnavailable, setHintUnavailable] = useState(false);
 
   const userPosRef = useRef(50);
   const trackWidthRef = useRef(0);
@@ -123,6 +131,15 @@ export default function WaveScreen() {
       const idx = parseInt(helpQuestionIndex, 10);
       const item = banks.wave[idx];
       if (!item) { router.replace('/'); return; }
+      setQuestion(item);
+      setQuestionIdx(idx);
+    } else if (isHintMode && hintQuestionIndex !== undefined) {
+      const idx = parseInt(hintQuestionIndex, 10);
+      const item = banks.wave[idx];
+      if (!item || (hintContentWeek && hintContentWeek !== contentWeek)) {
+        setHintUnavailable(true);
+        return;
+      }
       setQuestion(item);
       setQuestionIdx(idx);
     } else {
@@ -198,6 +215,10 @@ export default function WaveScreen() {
       } catch {
         // ignore
       }
+    }
+
+    if (isHintMode && hintToken) {
+      setAskerAnswer(hintToken, String(Math.round(pos)));
     }
   };
 
@@ -286,6 +307,28 @@ export default function WaveScreen() {
         gameName="Wave"
         onDismiss={() => router.replace('/')}
       />
+    );
+  }
+
+  if (hintUnavailable) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <Masthead />
+          <View style={styles.unavailableBody}>
+            <Text style={styles.unavailableText}>
+              This question is no longer available.
+            </Text>
+            <TouchableOpacity
+              style={styles.unavailableBtn}
+              onPress={() => router.replace('/')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.unavailableBtnText}>Back to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -383,7 +426,7 @@ export default function WaveScreen() {
               <Text style={styles.primaryBtnText}>Lock In</Text>
             </TouchableOpacity>
 
-            {!isChallengeMode && !isHelpMode && (
+            {!isChallengeMode && !isHelpMode && !isHintMode && (
               <TouchableOpacity
                 style={styles.secondaryBtn}
                 onPress={handleAskFriend}
@@ -892,6 +935,32 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: C.muted,
+  },
+  unavailableBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 60,
+    gap: 20,
+  },
+  unavailableText: {
+    fontFamily: F.fraunces,
+    fontSize: 16,
+    color: C.muted,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  unavailableBtn: {
+    backgroundColor: C.ink,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  unavailableBtnText: {
+    fontFamily: F.monoBold,
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    color: C.onDark,
   },
   modalOverlay: {
     flex: 1,
