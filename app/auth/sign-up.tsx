@@ -15,10 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Masthead } from '@/components/Masthead';
 import { C, F, cardShadow } from '@/constants/theme';
 import * as Analytics from '@/lib/analytics';
-import { mapAuthError, resendVerificationEmail, signUp } from '@/lib/authApi';
+import { mapAuthError, signUp } from '@/lib/authApi';
 import { useAuth } from '@/context/AuthContext';
 
-type Phase = 'form' | 'verify';
+type Phase = 'form' | 'welcome';
 
 export default function SignUpScreen() {
   const { isAnonymous, reloadUser } = useAuth();
@@ -31,8 +31,6 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [resendPending, setResendPending] = useState(false);
-  const [resentAt, setResentAt] = useState<number | null>(null);
 
   async function handleSignUp() {
     setError(null);
@@ -42,7 +40,7 @@ export default function SignUpScreen() {
       await signUp(email.trim(), password, trimmedName);
       Analytics.signedUp();
       reloadUser(trimmedName);
-      setPhase('verify');
+      setPhase('welcome');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'errors' in err) {
         const zodErr = err as { errors: { message: string }[] };
@@ -57,17 +55,7 @@ export default function SignUpScreen() {
     }
   }
 
-  async function handleResend() {
-    setResendPending(true);
-    try {
-      await resendVerificationEmail();
-      setResentAt(Date.now());
-    } finally {
-      setResendPending(false);
-    }
-  }
-
-  if (phase === 'verify') {
+  if (phase === 'welcome') {
     return (
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content}>
@@ -75,22 +63,18 @@ export default function SignUpScreen() {
 
           <View style={styles.card}>
             <View style={styles.cardInnerBorder} />
-            <Text style={styles.preheader}>One more step</Text>
-            <Text style={styles.title}>Check your inbox</Text>
+            <Text style={styles.preheader}>Account created</Text>
+            <Text style={styles.title}>You're all set.</Text>
             <Text style={styles.subtitle}>
-              We've sent a verification link to{' '}
-              <Text style={styles.emailHighlight}>{email.trim()}</Text>
-              {'. '}
-              Tap it to activate your account, then sign in.
+              {cameFromGame
+                ? 'Your streak and stats are now saved. Head back and keep playing.'
+                : 'Your streak and stats are now saved across devices.'}
             </Text>
-            {resentAt && (
-              <Text style={styles.resentLabel}>Email resent.</Text>
-            )}
           </View>
 
           {cameFromReveal && (
             <TouchableOpacity
-              testID="verify-back-to-answers-btn"
+              testID="welcome-back-to-answers-btn"
               style={styles.primaryBtn}
               onPress={() => router.back()}
               activeOpacity={0.85}
@@ -99,37 +83,25 @@ export default function SignUpScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            testID="verify-back-to-home-btn"
-            style={cameFromReveal ? styles.secondaryBtn : styles.primaryBtn}
-            onPress={() => router.replace('/')}
-            activeOpacity={0.85}
-          >
-            <Text style={cameFromReveal ? styles.secondaryBtnText : styles.primaryBtnText}>
-              Back to Home
-            </Text>
-          </TouchableOpacity>
-
-          {isAnonymous && (
+          {cameFromGame && (
             <TouchableOpacity
-              testID="verify-signin-btn"
-              style={styles.ghostBtn}
-              onPress={() => router.replace(cameFromGame ? '/auth/sign-in?from=game' : '/auth/sign-in')}
+              testID="welcome-back-to-game-btn"
+              style={styles.primaryBtn}
+              onPress={() => router.back()}
               activeOpacity={0.85}
             >
-              <Text style={styles.ghostBtnText}>Sign in after verifying</Text>
+              <Text style={styles.primaryBtnText}>Back to Game</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
-            testID="verify-resend-btn"
-            style={styles.ghostBtn}
-            onPress={handleResend}
-            disabled={resendPending}
+            testID="welcome-home-btn"
+            style={cameFromReveal || cameFromGame ? styles.secondaryBtn : styles.primaryBtn}
+            onPress={() => router.replace('/')}
             activeOpacity={0.85}
           >
-            <Text style={styles.ghostBtnText}>
-              {resendPending ? 'Sending…' : 'Resend email'}
+            <Text style={cameFromReveal || cameFromGame ? styles.secondaryBtnText : styles.primaryBtnText}>
+              {cameFromReveal || cameFromGame ? 'Back to Home' : 'Start Playing'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -264,17 +236,6 @@ const styles = StyleSheet.create({
     color: C.muted,
     lineHeight: 20,
     marginBottom: 8,
-  },
-  emailHighlight: {
-    fontFamily: F.frauncesBold,
-    color: C.ink,
-  },
-  resentLabel: {
-    fontFamily: F.mono,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: C.green,
-    marginTop: 8,
   },
   label: {
     fontFamily: F.mono,

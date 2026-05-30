@@ -10,7 +10,6 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/lib/authApi', () => ({
   signUp: jest.fn().mockResolvedValue(undefined),
-  resendVerificationEmail: jest.fn().mockResolvedValue(undefined),
   mapAuthError: (code: string) => `mapped:${code}`,
 }));
 
@@ -30,9 +29,9 @@ const { useAuth } = require('@/context/AuthContext') as { useAuth: jest.Mock };
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const SignUpScreen = require('../sign-up').default;
 
-async function reachVerifyPhase(getByText: ReturnType<typeof render>['getByText']) {
+async function reachWelcomePhase(getByText: ReturnType<typeof render>['getByText']) {
   fireEvent.changeText(getByText(/Display Name/i).parent!, ''); // ensure inputs accessible
-  // Submit the form to trigger phase=verify
+  // Submit the form to trigger phase=welcome
   fireEvent.press(getByText('Create Account'));
   // Allow promise chain to resolve.
   await new Promise(r => setTimeout(r, 0));
@@ -43,7 +42,7 @@ beforeEach(() => {
   useAuth.mockReturnValue({ isAnonymous: false, reloadUser: jest.fn() });
 });
 
-describe('SignUp verify phase — navigation CTAs (AC1.10, AC7.13)', () => {
+describe('SignUp welcome phase — navigation CTAs (AC1.10, AC7.13)', () => {
   test('when from=reveal, renders BOTH "Back to Answers" and "Back to Home"', async () => {
     useLocalSearchParams.mockReturnValue({ from: 'reveal' });
     signUp.mockResolvedValue(undefined);
@@ -53,25 +52,36 @@ describe('SignUp verify phase — navigation CTAs (AC1.10, AC7.13)', () => {
     const submits = getAllByText('Create Account');
     fireEvent.press(submits[submits.length - 1]);
 
-    await findByText('Check your inbox');
+    await findByText("You're all set.");
     expect(getByText('Back to Answers')).toBeTruthy();
     expect(getByText('Back to Home')).toBeTruthy();
-    expect(queryByText('Back to Games')).toBeNull();
-    expect(queryByText('Continue to Games')).toBeNull();
+    expect(queryByText('Start Playing')).toBeNull();
   });
 
-  test('when from is not "reveal", renders ONLY "Back to Home" (no "Back to Answers")', async () => {
+  test('when from is not set, renders "Start Playing" (no "Back to Answers")', async () => {
     useLocalSearchParams.mockReturnValue({});
     signUp.mockResolvedValue(undefined);
 
     const { getByText, queryByText, findByText, getAllByText } = render(<SignUpScreen />);
-    // The first "Create Account" text is the card title; the second is the button.
     const submits = getAllByText('Create Account');
     fireEvent.press(submits[submits.length - 1]);
 
-    await findByText('Check your inbox');
-    expect(getByText('Back to Home')).toBeTruthy();
+    await findByText("You're all set.");
+    expect(getByText('Start Playing')).toBeTruthy();
     expect(queryByText('Back to Answers')).toBeNull();
+  });
+
+  test('when from=game, renders "Back to Game" and "Back to Home"', async () => {
+    useLocalSearchParams.mockReturnValue({ from: 'game' });
+    signUp.mockResolvedValue(undefined);
+
+    const { getByText, findByText, getAllByText } = render(<SignUpScreen />);
+    const submits = getAllByText('Create Account');
+    fireEvent.press(submits[submits.length - 1]);
+
+    await findByText("You're all set.");
+    expect(getByText('Back to Game')).toBeTruthy();
+    expect(getByText('Back to Home')).toBeTruthy();
   });
 
   test('"Back to Answers" calls router.back()', async () => {
@@ -82,7 +92,7 @@ describe('SignUp verify phase — navigation CTAs (AC1.10, AC7.13)', () => {
     const submits = getAllByText('Create Account');
     fireEvent.press(submits[submits.length - 1]);
 
-    await findByText('Check your inbox');
+    await findByText("You're all set.");
     fireEvent.press(getByText('Back to Answers'));
     expect(router.back).toHaveBeenCalledTimes(1);
     expect(router.replace).not.toHaveBeenCalled();
@@ -96,9 +106,23 @@ describe('SignUp verify phase — navigation CTAs (AC1.10, AC7.13)', () => {
     const submits = getAllByText('Create Account');
     fireEvent.press(submits[submits.length - 1]);
 
-    await findByText('Check your inbox');
+    await findByText("You're all set.");
     fireEvent.press(getByText('Back to Home'));
     expect(router.replace).toHaveBeenCalledWith('/');
     expect(router.back).not.toHaveBeenCalled();
+  });
+
+  test('"Back to Game" calls router.back()', async () => {
+    useLocalSearchParams.mockReturnValue({ from: 'game' });
+    signUp.mockResolvedValue(undefined);
+
+    const { getByText, findByText, getAllByText } = render(<SignUpScreen />);
+    const submits = getAllByText('Create Account');
+    fireEvent.press(submits[submits.length - 1]);
+
+    await findByText("You're all set.");
+    fireEvent.press(getByText('Back to Game'));
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.replace).not.toHaveBeenCalled();
   });
 });
