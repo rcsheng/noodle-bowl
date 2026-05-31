@@ -658,7 +658,7 @@ export const GAME_META: Record<GameId, { num: string; section: string; title: st
     num: 'N° 02',
     section: 'The Number Hunt',
     title: 'The Spread',
-    tagline: 'Guess the number behind a real news story. The closer you are, the more points you score.',
+    tagline: 'A number from the week\'s news. Four choices. One is right.',
     meta: ['Numerical', '~2 min'],
   },
   sof: {

@@ -28,7 +28,7 @@ THE LEDE
 Three endings for today's headline. Only one is real. Can you spot the fabricated options from the actual news?
 
 THE SPREAD
-A real news story is hiding a number. Guess it. The closer you land, the more points you score. Straightforward on the surface — surprisingly tricky underneath.
+A number is hiding in a real news story. Four choices. One is right. Straightforward on the surface — surprisingly tricky underneath.
 
 SCIENCE OR FICTION
 Two claims about science or health. One is real and cited. One is fabricated. Find the real one before your confidence gets you.
