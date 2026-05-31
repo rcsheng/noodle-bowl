@@ -1,0 +1,17 @@
+description: "Noodle Bowl — Spread game content generation"
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    label: "Sonnet 4.6 (production)"
+    config:
+      max_tokens: 1024
+      system: "You are a trivia question writer for a weekly news game called Noodle Bowl.\nGenerate factual content only. Never reproduce article text verbatim.\nReturn ONLY valid JSON matching the schema. No markdown, no code blocks, no prose."
+
+prompts:
+  - id: v1
+    label: "v1 (current — production)"
+    raw: "file://prompts/v1.txt"
+
+tests: test-cases.yaml
+
+outputPath: ../../results/spread-latest.json

@@ -1,0 +1,81 @@
+# Lede eval test cases
+# Each case represents a different story type the pipeline might produce.
+# Assertions are grouped as:
+#   - Structural (free, rule-based) — always run
+#   - Quality (LLM-graded, costs tokens) — tagged [quality], opt-in via promptfooconfig
+
+- description: "[happy path] Weird animal story — should produce good lede"
+  vars:
+    headline: "Man Ends 3-Year Feud With Neighbor After His Rescue Goat Ate Their Shared Fence"
+    summary: "A Tennessee man says his neighbor's rescue goat, Biscuit, accidentally resolved a years-long property dispute by eating an old wooden fence that had been the center of a civil lawsuit. Both parties found the situation too absurd to stay angry and have since become friends."
+    source: "Nashville Scene"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:ledeStructure"
+      metric: structural
+    # [quality] Uncomment to enable LLM-graded quality checks (uses API tokens):
+    # - type: llm-rubric
+    #   value: >
+    #     The wrong completions should be funny and plausible — absurd but not obviously fake.
+    #     They should not contain any numbers or statistics.
+    #     The correct completion should match the actual news story (goat eating the fence).
+    #   metric: quality/funny-plausible
+
+- description: "[happy path] Surprising science — octopus dreaming"
+  vars:
+    headline: "Scientists Discover That Octopuses Experience Something Remarkably Similar to Human Dreaming"
+    summary: "Researchers at the Okinawa Institute of Science and Technology filmed octopuses undergoing rapid color changes during sleep that closely mirror REM sleep patterns in humans, suggesting they may experience vivid dream-like states. The findings were published in iScience."
+    source: "iScience"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:ledeStructure"
+      metric: structural
+
+- description: "[should skip] Routine legislative news — Senate vote"
+  vars:
+    headline: "Senate Committee Approves Transportation Budget Extension for Third Consecutive Year"
+    summary: "The Senate Appropriations Committee voted 12-10 along party lines to approve a six-month extension of the current transportation budget, avoiding a potential government shutdown ahead of the October 1 fiscal deadline."
+    source: "The Hill"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      # Should produce {"skip": true}
+      value: |
+        const o = JSON.parse(output);
+        return { pass: o.skip === true, score: o.skip ? 1 : 0, reason: o.skip ? 'Correctly skipped routine political news' : 'Should have returned skip:true for routine legislative vote' };
+      metric: skip-detection
+
+- description: "[happy path] Quirky tech story — smart home misidentifies wife"
+  vars:
+    headline: "Man's Smart Home Security System Started Treating His Wife as an Intruder After She Changed Her Hairstyle"
+    summary: "A San Francisco software engineer says his home AI security system, trained on family photos taken six months earlier, began locking doors and blasting alarm sounds every time his wife entered after she got a significantly shorter haircut. The couple has since switched back to a traditional deadbolt."
+    source: "Wired"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:ledeStructure"
+      metric: structural
+    # [quality] Uncomment to enable:
+    # - type: llm-rubric
+    #   value: >
+    #     The partial headline should cut at a genuinely ambiguous point.
+    #     Wrong completions should be funny but could plausibly be real tech headlines.
+    #   metric: quality/headline-cut
+
+- description: "[happy path] Japanese cultural quirk story"
+  vars:
+    headline: "Japanese Town That Banned Eating While Walking Has Seen a Curious Side Effect"
+    summary: "Residents of Kamakura, Japan, which introduced an ordinance against eating while walking in 2021, report that the rule has inadvertently created a thriving culture of outdoor communal benches and seating areas. Locals say chance encounters while sitting to eat have increased social cohesion in the coastal town."
+    source: "Japan Times"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:ledeStructure"
+      metric: structural

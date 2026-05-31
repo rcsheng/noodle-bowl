@@ -1,0 +1,78 @@
+# Spread eval test cases
+# Spread needs a story with a specific, surprising number.
+
+- description: "[happy path] Deep-sea fish record depth"
+  vars:
+    headline: "Record-Breaking Deep-Sea Footage Reveals Fish Surviving at 8,336 Meters Below the Surface"
+    summary: "A team of researchers using an autonomous camera lowered into the Izu-Ogasawara Trench captured footage of a snailfish at a record confirmed depth of 8,336 meters. The previous record was 8,178 meters, set in 2008. Snailfish have gelatinous bodies that prevent them from being crushed by extreme water pressure."
+    source: "Deep Sea Research"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:spreadStructure"
+      metric: structural
+    # [quality] Uncomment to enable:
+    # - type: llm-rubric
+    #   value: >
+    #     The question should naturally lead to the answer (depth in meters).
+    #     The unit should be "meter" (singular). The explanation should explain why
+    #     this depth is remarkable with a useful comparison.
+    #   metric: quality/question-naturalness
+
+- description: "[happy path] Time perception in cave isolation"
+  vars:
+    headline: "French Scientist Who Lived in Cave for 40 Days Without Clocks Emerged Thinking Only 23 Days Had Passed"
+    summary: "Chronobiologist Christian Clot spent 40 days in a cave in southern France with no natural light, clocks, or phone as part of a scientific study on internal human timekeeping. When he emerged, his biological clock indicated he had only been underground for 23 days, providing evidence of how dramatically time perception drifts without external cues."
+    source: "Current Biology"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:spreadStructure"
+      metric: structural
+
+- description: "[happy path] Wandering albatross migration distance"
+  vars:
+    headline: "Wandering Albatross Tracked Completing 75,000-Kilometer Journey in a Single Year"
+    summary: "A wandering albatross fitted with a satellite GPS tag at Bird Island, South Georgia, has been recorded completing an annual circumnavigation of the Southern Ocean covering approximately 75,000 kilometers — the equivalent of circling Earth nearly twice. Researchers say the bird did not land on solid ground for the entire flight."
+    source: "British Antarctic Survey"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:spreadStructure"
+      metric: structural
+
+- description: "[should skip] No specific number — plastic recycling method"
+  vars:
+    headline: "Scientists Develop New Process for Converting Ocean Plastic Into Road Construction Material"
+    summary: "A team at MIT has developed a method for transforming ocean-collected plastic waste into a composite material suitable for road surfaces and building applications, potentially offering a scalable solution to the growing ocean plastic crisis."
+    source: "MIT News"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: |
+        const o = JSON.parse(output);
+        return { pass: o.skip === true, score: o.skip ? 1 : 0, reason: o.skip ? 'Correctly skipped no-number story' : 'Should have returned skip:true — story contains no specific extractable number' };
+      metric: skip-detection
+
+- description: "[happy path] Saffron price premium"
+  vars:
+    headline: "World's Most Expensive Spice Fetches $18 Per Gram — More Per Ounce Than Gold"
+    summary: "Iranian saffron, produced by hand-harvesting the dried stigmas of crocus flowers at a rate of roughly 150,000 blooms per kilogram, currently sells for approximately $18 per gram on commodity markets. By comparison, gold trades at around $60 per gram. New export restrictions from Iran, the world's largest producer, are pushing prices higher."
+    source: "Financial Times"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:spreadStructure"
+      metric: structural
+    # [quality] Uncomment to enable:
+    # - type: llm-rubric
+    #   value: >
+    #     The explanation should contextualize the price by comparing it to something
+    #     familiar. The unit should be "gram" (singular). The question should not
+    #     directly state the $18 figure.
+    #   metric: quality/explanation-context

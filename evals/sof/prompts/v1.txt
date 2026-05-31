@@ -1,0 +1,30 @@
+Generate a Science or Fiction game item from the real story below.
+
+Rules:
+- Claim 0 is REAL: write one factual claim about the story's subject. Include a source with the publication name and URL.
+- Claim 1 is FABRICATED: plausible but false, about the same topic. It must fool a reasonably informed person. Set source to null.
+- The fake claim should feel like it COULD be true — same register, same level of specificity as the real one. Not a joke. Not obviously wrong.
+- Both claim texts should be roughly the same length and written in the same style.
+- The topic is the short thematic label displayed as the main header in-game (e.g. "Space & Astronomy", "Animal Kingdom", "Climate Science", "Neuroscience").
+- The intro is a single sentence framing the round — kept for potential future use but not currently displayed.
+
+If the story is too vague or generic to build any meaningful claims, return {"skip": true} instead.
+Otherwise return ONLY valid JSON. No markdown, no code blocks, no prose.
+
+Schema:
+{
+  "topic": "<short thematic label, 2-4 words>",
+  "intro": "<one sentence framing the theme>",
+  "weirdAndTrue": false,
+  "claims": [
+    {"text": "<real claim>", "isScience": true, "explanation": "<1-2 sentences why it's real>", "source": {"name": "<publication>", "url": "<url>"}},
+    {"text": "<fabricated claim>", "isScience": false, "explanation": "<what's actually true instead>", "source": null}
+  ]
+}
+
+Real story:
+Topic domain: {{domain}}
+Headline: "{{headline}}"
+Context: "{{summary}}"
+Source: {{source}}
+URL: {{url}}

@@ -1,0 +1,90 @@
+# Science or Fiction eval test cases
+# SoF needs a science/nature/technology story to produce real + fabricated claims.
+
+- description: "[happy path] Octopus RNA editing — strong science story"
+  vars:
+    headline: "Octopuses Can Edit Their Own RNA in Real Time, Allowing Rapid Adaptation to Cold"
+    summary: "Scientists at the Marine Biological Laboratory have discovered that octopuses can edit their messenger RNA in response to temperature changes, allowing their nervous systems to function normally in cold water within hours. The editing process modifies potassium ion channels, letting the animal compensate for environmental changes far faster than DNA mutation would allow."
+    source: "Cell"
+    url: "https://www.cell.com/cell/fulltext/S0092-8674(12)00441-4"
+    domain: "science"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:sofStructure"
+      metric: structural
+    # [quality] Uncomment to enable:
+    # - type: llm-rubric
+    #   value: >
+    #     The fabricated claim should be plausible — it should sound like a real science
+    #     headline that could appear in Nature or Cell. It should NOT be an obvious joke
+    #     or clearly impossible. The real and fabricated claims should be similar in tone
+    #     and specificity.
+    #   metric: quality/fake-claim-plausibility
+
+- description: "[happy path] Plants emit stress signals — acoustic"
+  vars:
+    headline: "Study Confirms Plants Release Ultrasonic Clicks When Under Stress, Detectable at One Meter"
+    summary: "Researchers at Tel Aviv University recorded ultrasonic clicking sounds emitted by tomato and tobacco plants when they were dehydrated or had their stems cut. The signals, at 20–100 kHz (inaudible to humans), were clearly detected by microphones positioned up to one meter away, suggesting plants broadcast distress information to their surroundings."
+    source: "Cell"
+    url: "https://www.cell.com/cell/fulltext/S0092-8674(23)00261-0"
+    domain: "nature"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:sofStructure"
+      metric: structural
+
+- description: "[happy path] Webb telescope exoplanet atmosphere"
+  vars:
+    headline: "Webb Telescope Detects Carbon Dioxide Signature in Atmosphere of Exoplanet 700 Light-Years Away"
+    summary: "NASA's James Webb Space Telescope has produced the first clear detection of carbon dioxide in the atmosphere of an exoplanet — WASP-39b, a hot Saturn-like gas giant 700 light-years from Earth. The finding, published in Nature, validates Webb's ability to analyze exoplanet atmospheric chemistry in detail previously impossible with any other telescope."
+    source: "Nature"
+    url: "https://www.nature.com/articles/s41586-022-05269-w"
+    domain: "science"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:sofStructure"
+      metric: structural
+
+- description: "[happy path] Oregon honey fungus — world's largest organism"
+  vars:
+    headline: "Oregon Honey Fungus Confirmed as World's Largest Living Organism, Spanning 2,385 Acres"
+    summary: "A honey fungus (Armillaria ostoyae) in Oregon's Malheur National Forest has been confirmed via DNA analysis to cover an estimated 2,385 acres and is between 2,000 and 8,000 years old, making it the largest living organism by area ever documented. Most of its mass is underground as a network of rhizomorphs."
+    source: "Nature"
+    url: "https://www.nature.com/articles/35098129"
+    domain: "nature"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: "file://assertions.js:sofStructure"
+      metric: structural
+    # [quality] Uncomment to enable:
+    # - type: llm-rubric
+    #   value: >
+    #     The fabricated claim should be about a different organism that could plausibly
+    #     hold the "world's largest" title. It should have the same level of scientific
+    #     specificity as the real claim. A naive reader should genuinely not know which
+    #     is true.
+    #   metric: quality/fake-claim-deceptiveness
+
+- description: "[should skip] Too vague — generic evolution headline"
+  vars:
+    headline: "Researchers Make Major Breakthrough in Understanding How Animals Evolve"
+    summary: "Scientists have published findings that could change the way we understand animal evolution and adaptation over time."
+    source: "Science Magazine"
+    url: "https://www.science.org"
+    domain: "science"
+  assert:
+    - type: is-json
+      metric: is-json
+    - type: javascript
+      value: |
+        const o = JSON.parse(output);
+        return { pass: o.skip === true, score: o.skip ? 1 : 0, reason: o.skip ? 'Correctly skipped vague story' : 'Should have returned skip:true — story is too vague for meaningful claims' };
+      metric: skip-detection

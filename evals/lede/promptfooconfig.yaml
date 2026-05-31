@@ -1,0 +1,25 @@
+description: "Noodle Bowl — Lede game content generation"
+
+# --- Providers ---
+# Add more entries here to compare models side-by-side in the playground.
+# Example: add "anthropic:messages:claude-opus-4-7" to A/B test against Sonnet.
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    label: "Sonnet 4.6 (production)"
+    config:
+      max_tokens: 1024
+      system: "You are a trivia question writer for a weekly news game called Noodle Bowl.\nGenerate factual content only. Never reproduce article text verbatim.\nReturn ONLY valid JSON matching the schema. No markdown, no code blocks, no prose."
+
+# --- Prompts ---
+# Add more prompt versions here to A/B test in the playground (npm run view).
+# Rename current to v1, then add v2 to experiment with changes.
+prompts:
+  - id: v1
+    label: "v1 (current — production)"
+    raw: "file://prompts/v1.txt"
+
+# --- Test suite ---
+tests: test-cases.yaml
+
+# --- Output ---
+outputPath: ../../results/lede-latest.json

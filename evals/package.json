@@ -1,0 +1,19 @@
+{
+  "name": "noodle-bowl-evals",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PromptFoo eval configs for Noodle Bowl content generation",
+  "scripts": {
+    "view": "echo y | promptfoo view",
+    "eval:lede": "promptfoo eval --config lede/promptfooconfig.yaml --env-file ../.env.local",
+    "eval:spread": "promptfoo eval --config spread/promptfooconfig.yaml --env-file ../.env.local",
+    "eval:sof": "promptfoo eval --config sof/promptfooconfig.yaml --env-file ../.env.local",
+    "eval:all": "npm run eval:lede && npm run eval:spread && npm run eval:sof"
+  },
+  "devDependencies": {
+    "promptfoo": "^0.121.0"
+  },
+  "dependencies": {
+    "noodle-bowl": "file:.."
+  }
+}

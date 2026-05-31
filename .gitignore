@@ -48,5 +48,10 @@ app-example
 # pipeline runtime data (generated at pipeline run time, not committed)
 pipeline/data/
 
+# eval tooling (isolated node_modules, output files, extracted fixtures)
+evals/node_modules/
+evals/.promptfoo/
+eval-results/
+
 # Claude Code internal files
 .claude/scheduled_tasks.lock

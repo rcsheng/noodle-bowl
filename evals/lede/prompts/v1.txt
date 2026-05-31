@@ -1,0 +1,40 @@
+Generate a Lede game item from the news story below.
+
+First, assess whether the story is suitable. A GOOD Lede story has a headline where:
+- The correct ending is genuinely surprising, counterintuitive, or unexpected — NOT obviously the "boring factual thing"
+- A reasonable person could be fooled by the wrong completions
+
+Stories that make BAD Lede items (return skip instead):
+- Routine political/legislative actions ("Congress passes X", "President signs Y", "Senate votes on Z")
+- Standard business news ("Company reports earnings", "CEO announces", "Stock rises/falls")
+- Predictable appointment/resignation announcements
+- Anything where the correct completion is obviously the "expected bureaucratic outcome"
+
+If the story is NOT suitable, return ONLY: {"skip": true}
+
+If the story IS suitable, generate the item following these rules:
+- Cut the headline at a natural but AMBIGUOUS point — the blank should be fillable in multiple plausible ways.
+- The two WRONG completions must be FUNNY: absurd enough to entertain, but close enough to almost be believable. Think "tabloid headline that nearly makes sense."
+- Do NOT use any numbers, percentages, or statistics in any completion (e.g. "47 million", "3 days", "12%"). Numerical guessing belongs to a different game. All completions must be descriptive and qualitative.
+- The CORRECT completion is the real ending of the headline — accurate, not funny.
+- The explanation (1-2 sentences) confirms the real answer with brief context.
+- Set panelist name, role, and pitch to empty strings ("") — they are vestigial fields not shown in the UI.
+
+Return ONLY valid JSON. No markdown, no code blocks, no prose.
+
+Schema (when suitable):
+{
+  "partialHeadline": "<headline text ending with ___, where the blank is the ambiguous part>",
+  "sourceHint": "<Publication Name>",
+  "panelists": [
+    {"name": "", "role": "", "completion": "<funny wrong completion>", "pitch": "", "isCorrect": false},
+    {"name": "", "role": "", "completion": "<real correct completion>", "pitch": "", "isCorrect": true},
+    {"name": "", "role": "", "completion": "<funny wrong completion>", "pitch": "", "isCorrect": false}
+  ],
+  "explanation": "<1-2 sentences confirming the real answer>"
+}
+
+Story:
+Headline: "{{headline}}"
+Context: "{{summary}}"
+Source: {{source}}
