@@ -57,7 +57,8 @@ the moment you run any of those commands, so you don't have to remember.
 | --- | --- | --- | --- | --- |
 | `alpha-v0.1.1` | 2026-05-09 | Q2 UI redesign — compact home index, Lede headline-first, Spread multiple-choice, SoF segmented toggle + pick-the-fake. Reveal polish (✓/✗, compact result cards). Content pipeline (internal). | Slurp game (feature-flagged, alpha-v0.2.0). Push notifications (permanently deferred). | PRD v6 §12, §15 |
 | `alpha-v0.2.0` | 2026-05-24 | Live content pipeline (weekly content windows, week-keyed Firestore docs), bank safety & question exhaustion (`mergeWithFallback` + `BankExhaustedModal`), points removal, weekly streak & shield system, SoF mode toggle removal, ContentContext race condition fix, deep link routing fixes (carry-forward from v0.1.2). | App Store listing and submission (alpha-v0.3.0). | alpha-v0.2.0 PRD |
-| `alpha-v1.1.0` | TBD | Push notifications (challenge/help response, weekly new-content); streak & shield onboarding (7 surfaces, ShieldIcon); landing screen privacy; App Store public release. | Streak at-risk notification, "friend challenged/helped you" notifications (require queryable per-user stats / known recipient UID). | alpha-v1.1.0 PRD |
+| `alpha-v1.1.0` | 2026-05-30 | Push notifications (challenge/help response, weekly new-content); streak & shield onboarding (7 surfaces, ShieldIcon); landing screen privacy; App Store public release. Delete Account (App Store guideline). Welcome screen post-signup. | Streak at-risk notification, "friend challenged/helped you" notifications (require queryable per-user stats / known recipient UID). | alpha-v1.1.0 PRD |
+| `alpha-v1.2.0` | TBD | Historical weekly content packs (in-app access to past weeks); pipeline historical ingest (quarterly batches, SoF volume boost). | In-app purchases, new games. | alpha-v1.2.0 PRD |
 
 <!--
 Template for the next row:
