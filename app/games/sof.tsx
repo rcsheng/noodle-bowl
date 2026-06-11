@@ -330,7 +330,7 @@ export default function SofScreen() {
         )}
 
         {/* Topic header */}
-        <Text style={styles.categoryHeadline}>{question.topic}</Text>
+        <Text style={styles.categoryHeadline}>Science or Fiction</Text>
 
         {/* Instructions */}
         {phase === 'play' && (
