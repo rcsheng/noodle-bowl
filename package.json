@@ -38,6 +38,7 @@
     "pipeline:publish:emulator": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/publish.ts --emulator",
     "pipeline:daily": "npm run pipeline:ingest && npm run pipeline:ingest:researched && npm run pipeline:select && npm run pipeline:generate && npm run pipeline:publish:auto",
     "pipeline:recover": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/recover.ts",
+    "pipeline:recover:week": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/recover-week.ts",
     "pipeline:status": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/status.ts",
     "pipeline:ui": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/ui-server.ts",
     "pipeline:fix-cross-game-dupes": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/fix-cross-game-dupes.ts",
@@ -55,7 +56,9 @@
     "eval:all": "npm run eval:lede && npm run eval:spread && npm run eval:sof",
     "eval:view": "npm --prefix evals run view",
     "eval:batch": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/eval-batch.ts",
-    "eval:extract-fixtures": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/extract-fixtures.ts"
+    "eval:extract-fixtures": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/extract-fixtures.ts",
+    "pipeline:fix-sof-fakes": "ts-node --transpile-only --project pipeline/tsconfig.json pipeline/fix-sof-fakes.ts",
+    "pipeline:fix-sof-fakes:all": "cross-env FIX_SOF_ALL=true ts-node --transpile-only --project pipeline/tsconfig.json pipeline/fix-sof-fakes.ts"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

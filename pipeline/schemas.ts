@@ -11,6 +11,7 @@ export const ledePanelistSchema = z.object({
 export const ledeItemSchema = z.object({
   partialHeadline: z.string().min(10),
   sourceHint: z.string().min(1),
+  sourceUrl: z.string().optional(),
   panelists: z.array(ledePanelistSchema).length(3),
   explanation: z.string().min(20),
   eventDate: z.string().optional(),
@@ -22,6 +23,8 @@ export const spreadItemSchema = z.object({
   unit: z.string(),
   others: z.array(z.number()),
   explanation: z.string().min(20),
+  sourceHint: z.string().optional(),
+  sourceUrl: z.string().optional(),
   eventDate: z.string().optional(),
 });
 

@@ -27,6 +27,7 @@ export interface SpreadItem {
   others: number[];
   explanation: string;
   sourceHint?: string;
+  sourceUrl?: string;
   eventDate?: string;
 }
 
@@ -41,6 +42,7 @@ export interface LedePanelist {
 export interface LedeItem {
   partialHeadline: string;
   sourceHint: string;
+  sourceUrl?: string;
   panelists: LedePanelist[];
   explanation: string;
   eventDate?: string;
