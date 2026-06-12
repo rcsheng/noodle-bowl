@@ -21,11 +21,11 @@ import { StreakIgnitionModal } from '@/components/StreakIgnitionModal';
 import { C, F } from '@/constants/theme';
 import { GAME_META, VISIBLE_GAMES, GameId } from '@/constants/data';
 import { useContent } from '@/context/ContentContext';
-import { computeActiveWeek, computeCurrentWeek, getWeekDateRange, isPlayedThisWeek } from '@/lib/contentWeek';
+import { computeActiveWeek, computeCurrentWeek, getWeekDateRange, hasPlayedGameThisWeek, isBankExhausted } from '@/lib/contentWeek';
+import { evaluateHelperAnswer, formatPredictionLabel } from '@/lib/helpAnswerEvaluator';
 import { useGame } from '@/context/GameContext';
 import { db } from '@/lib/firebase';
 import { CHALLENGES, HELP_REQUESTS } from '@/lib/collections';
-import { evaluateHelperAnswer } from '@/lib/helpAnswerEvaluator';
 
 function getSectionDate(): string {
   const d = new Date();
@@ -46,6 +46,9 @@ export default function HubScreen() {
     streakShieldsAvailable,
     onboarding,
   } = state.stats;
+  // Active content week — used for bank-exhaustion checks throughout this screen.
+  const activeWeek = contentWeek || computeActiveWeek();
+
   // §1a Streak Ignition — once, after first week of play
   const showIgnitionModal = totalWeeksPlayed === 1 && weeklyStreak === 1 && !onboarding.streakIntroSeen;
 
@@ -192,6 +195,18 @@ export default function HubScreen() {
                 interaction.friendAnswer ?? '',
                 banks,
               );
+              const senderPredEval = interaction.senderPrediction
+                ? evaluateHelperAnswer(
+                    interaction.gameId,
+                    interaction.questionIndex,
+                    interaction.senderPrediction,
+                    banks,
+                  )
+                : null;
+              const predictionLabel = formatPredictionLabel(
+                interaction.gameId,
+                senderPredEval?.label ?? '—',
+              );
               const predictionCorrect =
                 !!interaction.senderPrediction &&
                 interaction.senderPrediction === interaction.friendAnswer;
@@ -204,7 +219,7 @@ export default function HubScreen() {
                   friendAnswerLabel={evaluation.label}
                   correctLabel={evaluation.correctLabel}
                   friendCorrect={evaluation.correct}
-                  predictionLabel={interaction.senderPrediction ?? '—'}
+                  predictionLabel={predictionLabel}
                   predictionCorrect={predictionCorrect}
                   onDismiss={() => dismissHelpCard(interaction.token!)}
                 />
@@ -217,7 +232,12 @@ export default function HubScreen() {
                 interaction.friendAnswer ?? '',
                 banks,
               );
-              const isGameCompleted = isPlayedThisWeek(state.stats[interaction.gameId].lastPlayed, computeCurrentWeek());
+              const isGameCompleted = isBankExhausted(
+                state.seen[interaction.gameId] ?? [],
+                (banks[interaction.gameId] ?? []).length,
+                state.seenWeek,
+                activeWeek,
+              );
               const askerEval = interaction.askerAnswer
                 ? evaluateHelperAnswer(interaction.gameId, interaction.questionIndex, interaction.askerAnswer, banks)
                 : null;
@@ -256,8 +276,11 @@ export default function HubScreen() {
         <View style={styles.gameList}>
           {VISIBLE_GAMES.map((id: GameId) => {
             const meta = GAME_META[id];
-            const gameStats = state.stats[id];
-            const completedThisWeek = isPlayedThisWeek(gameStats.lastPlayed, computeCurrentWeek());
+            const gameSeen = state.seen[id] ?? [];
+            const gameBank = banks[id] ?? [];
+            const bankDone = isBankExhausted(gameSeen, gameBank.length, state.seenWeek, activeWeek);
+            const hasPlayed = hasPlayedGameThisWeek(gameSeen, state.seenWeek, activeWeek);
+            const doneCount = state.seenWeek === activeWeek ? gameSeen.length : 0;
             return (
               <TouchableHighlight
                 key={id}
@@ -272,13 +295,22 @@ export default function HubScreen() {
                     <Text style={styles.rowTitle}>{meta.title}</Text>
                     <Text style={styles.rowTagline}>{meta.tagline}</Text>
                     <Text style={styles.rowMeta}>{meta.meta.join(' · ')}</Text>
+                    {gameBank.length > 0 && (
+                      <Text style={[styles.rowProgress, doneCount > 0 && !bankDone && styles.rowProgressActive]}>
+                        {doneCount}/{gameBank.length} done
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.rowTrailingWrapper}>
-                    {completedThisWeek ? (
+                    {bankDone ? (
                       <>
                         <Text style={styles.rowTrailingPlayed}>✓</Text>
                         <Text style={styles.rowCompleted}>COMPLETED</Text>
                       </>
+                    ) : hasPlayed ? (
+                      <View style={styles.playBtn}>
+                        <Text style={styles.playBtnText}>PLAY AGAIN</Text>
+                      </View>
                     ) : (
                       <View style={styles.playBtn}>
                         <Text style={styles.playBtnText}>PLAY</Text>
@@ -371,6 +403,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: C.muted,
     marginTop: 6,
+  },
+  rowProgress: {
+    fontFamily: F.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: C.muted,
+    marginTop: 5,
+  },
+  rowProgressActive: {
+    color: C.green,
   },
   rowTrailingWrapper: {
     paddingLeft: 12,
