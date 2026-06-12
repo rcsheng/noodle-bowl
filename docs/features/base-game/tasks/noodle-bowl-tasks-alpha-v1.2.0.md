@@ -2,7 +2,7 @@
 
 **PRD ref:** `noodle-bowl-prd-alpha-v1.2.0.md`
 **App Store version:** 1.2.0
-**Last updated:** 2026-05-30
+**Last updated:** 2026-06-01
 
 ---
 
@@ -15,6 +15,27 @@
 - [x] `app.json` version bumped: `1.1.0` → `1.2.0`
 - [ ] PRR sign-off complete (`docs/archive/releases/alpha-v1.1.0/prr-alpha-v1.1.0.md`)
 - [ ] Block 16 push notification smoke test (TestFlight build — if not done before submission)
+
+---
+
+## 0b. Bug fixes (2026-06-01)
+
+### §0b-1 — COMPLETED status logic
+- [x] Add `isBankExhausted(seen, bankSize, seenWeek, activeWeek)` to `lib/contentWeek.ts`
+- [x] Add `hasPlayedGameThisWeek(seen, seenWeek, activeWeek)` to `lib/contentWeek.ts`
+- [x] Home screen game list now shows three states: PLAY / PLAY AGAIN / COMPLETED
+  - PLAY: no questions seen this content week
+  - PLAY AGAIN: ≥1 question seen but bank not yet exhausted
+  - COMPLETED (✓): all available questions for this game this week have been played
+- [x] Help card `isGameCompleted` gate updated to use `isBankExhausted` (consistent logic)
+- [x] Unit tests added for both new utilities (12 new tests in `contentWeek.test.ts`)
+
+### §0b-2 — "Your prediction 0" on challenge result cards
+- [x] Add `formatPredictionLabel(gameId, label)` to `lib/helpAnswerEvaluator.ts`
+  - Lede / Spread / Wave / Quip: returns label as-is
+  - SoF: truncates at 40 chars + `…` to prevent overflow
+- [x] Home screen challenge result map: compute `predictionLabel` via `evaluateHelperAnswer` → `formatPredictionLabel` instead of showing raw `senderPrediction` value
+- [x] Unit tests added for `formatPredictionLabel` (6 new tests in `helpAnswerEvaluator.test.ts`)
 
 ---
 
