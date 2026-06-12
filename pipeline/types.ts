@@ -23,7 +23,7 @@ export interface StoryCandidate {
   ingestedAt: string;
   hasNumber: boolean;
   domain: string;
-  ingestSource: 'thenewsapi' | 'scraped' | 'researched';
+  ingestSource: 'thenewsapi' | 'scraped' | 'researched' | 'llm-historical' | 'web-historical';
   tags: string[];                          // pipeline/editorial signals e.g. "weird", "breaking"
   sourceArticle?: TheNewsAPIArticle;       // full raw TheNewsAPI response; absent for scraped candidates
 }

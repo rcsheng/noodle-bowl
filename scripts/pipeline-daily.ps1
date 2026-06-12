@@ -1,4 +1,4 @@
-# Noodle Bowl daily content pipeline
+﻿# Noodle Bowl daily content pipeline
 # Runs: [ingest:researched?] -> [ingest?] -> select -> generate -> publish
 #
 # Smart research detection:
@@ -48,22 +48,22 @@ if (Test-Path $researchedDir) {
     if ($mdFiles.Count -gt 0) {
         if (-not (Test-Path $todayResearched)) {
             $hasNewResearch = $true
-            Write-Log "[research] No researched file for today — will ingest research"
+            Write-Log "[research] No researched file for today - will ingest research"
         } else {
             $researchedMtime = (Get-Item $todayResearched).LastWriteTime
             $newer = $mdFiles | Where-Object { $_.LastWriteTime -gt $researchedMtime }
             if ($newer.Count -gt 0) {
                 $hasNewResearch = $true
-                Write-Log "[research] $($newer.Count) .md file(s) newer than $todayStr-researched.json — will re-ingest research"
+                Write-Log "[research] $($newer.Count) .md files newer than $todayStr-researched.json - will re-ingest research"
             } else {
-                Write-Log "[research] No new .md files since last ingest — skipping ingest:researched"
+                Write-Log "[research] No new .md files since last ingest - skipping ingest:researched"
             }
         }
     } else {
-        Write-Log "[research] No .md files in researched/ — skipping ingest:researched"
+        Write-Log "[research] No .md files in researched/ - skipping ingest:researched"
     }
 } else {
-    Write-Log "[research] researched/ dir not found — skipping ingest:researched"
+    Write-Log "[research] researched/ dir not found - skipping ingest:researched"
 }
 
 # Run researched ingest if new files detected
@@ -79,12 +79,12 @@ if ($hasNewResearch -and (Test-Path $todayResearched)) {
         $count = $researchedData.candidates.Count
         if ($count -ge 20) {
             $skipApiIngest = $true
-            Write-Log "[research] $count researched candidates available — skipping API ingest to conserve credits"
+            Write-Log "[research] $count researched candidates available - skipping API ingest to conserve credits"
         } else {
-            Write-Log "[research] Only $count researched candidates — running API ingest for more coverage"
+            Write-Log "[research] Only $count researched candidates - running API ingest for more coverage"
         }
     } catch {
-        Write-Log "[research] Could not read researched candidates file — running API ingest"
+        Write-Log "[research] Could not read researched candidates file - running API ingest"
     }
 }
 

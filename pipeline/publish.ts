@@ -3,7 +3,7 @@ import * as http from 'http';
 import * as path from 'path';
 import * as readline from 'readline';
 import { loadEnv, readJson, dataPath, latestFile } from './utils';
-import { writeContentPack, writePipelineRun } from './db';
+import { writeContentPack, writePipelineRun, writeContentWeek } from './db';
 import type { LedeItem, SpreadItem, SofItem, QuipPrompt, WaveItem } from '../constants/data';
 
 loadEnv();
@@ -275,6 +275,17 @@ async function main() {
     `  Week totals — lede: ${mergedBanks.lede.length}  spread: ${mergedBanks.spread.length}  sof: ${mergedBanks.sof.length}`
   );
 
+  // Write week totals to local SQLite — mirrors the Firestore merged bank
+  writeContentWeek({
+    weekId,
+    ledeTotal:   mergedBanks.lede.length,
+    spreadTotal: mergedBanks.spread.length,
+    sofTotal:    mergedBanks.sof.length,
+    publishedDates,
+    updatedAt:   now,
+  });
+  console.log(`✓ Updated local week record '${weekId}' — lede: ${mergedBanks.lede.length}  spread: ${mergedBanks.spread.length}  sof: ${mergedBanks.sof.length}`);
+
   // Write contentPacks/{date} — per-day historical record
   const packDoc: Record<string, unknown> = {
     date,
@@ -288,23 +299,36 @@ async function main() {
   await firestorePatch(token, projectId, isProd, `contentPacks/${date}`, packDoc);
   console.log(`✓ Published ContentPack '${date}'`);
 
+  // Net-new = how many questions this publish actually added to the Firestore bank
+  const netNewLede   = mergedBanks.lede.length   - existingBanks.lede.length;
+  const netNewSpread = mergedBanks.spread.length - existingBanks.spread.length;
+  const netNewSof    = mergedBanks.sof.length    - existingBanks.sof.length;
+
   // Write to local SQLite history
   writeContentPack({
     date,
     weekId,
     publishedAt: now,
-    ledeCount: banks.lede.length,
+    ledeCount:   banks.lede.length,
     spreadCount: banks.spread.length,
-    sofCount: banks.sof.length,
-    ledeJson: JSON.stringify(banks.lede),
-    spreadJson: JSON.stringify(banks.spread),
-    sofJson: JSON.stringify(banks.sof),
+    sofCount:    banks.sof.length,
+    ledeJson:    JSON.stringify(banks.lede),
+    spreadJson:  JSON.stringify(banks.spread),
+    sofJson:     JSON.stringify(banks.sof),
+    netNewLede,
+    netNewSpread,
+    netNewSof,
+    isForce: force,
   });
+
+  const forceTag = force ? ' [force-republish]' : '';
   writePipelineRun(
     date,
     'publish',
     'ok',
-    `lede:${banks.lede.length} spread:${banks.spread.length} sof:${banks.sof.length} → ${weekId}`,
+    `batch lede:${banks.lede.length} spread:${banks.spread.length} sof:${banks.sof.length}` +
+    ` | net-new lede:${netNewLede} spread:${netNewSpread} sof:${netNewSof}` +
+    ` → ${weekId}${forceTag}`,
   );
   console.log(`✓ Saved to local history (pipeline/data/history.db)`);
 }

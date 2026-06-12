@@ -29,7 +29,9 @@ function main() {
   const TARGET_SPREAD = Math.round(BASE_SPREAD * scale);
   const TARGET_SOF_CLUSTERS = Math.round(BASE_SOF_CLUSTERS * scale);
 
-  const filePath = latestFile(dataPath('candidates'), 'Run pipeline:ingest first.');
+  const filePath = process.env.PIPELINE_DATE
+    ? dataPath('candidates', `${process.env.PIPELINE_DATE}.json`)
+    : latestFile(dataPath('candidates'), 'Run pipeline:ingest first.');
   console.log(`Reading candidates from ${path.basename(filePath)}`);
   const { candidates } = readJson<CandidatesFile>(filePath);
 
@@ -116,9 +118,6 @@ function main() {
 
   const sorted = [...freshCandidates].sort((a, b) => score(b) - score(a));
 
-  // Selection order: Spread → SoF → Lede.
-  // Spread and SoF have narrow source requirements, so they pick first.
-  // Lede then sweeps up everything left: weird stories + any unused standard news.
   // Both ID and headline fingerprint are tracked so the same news story covered by two
   // different URLs (different IDs) can't appear in multiple games on the same day.
   const usedIds = new Set<string>();
@@ -136,18 +135,18 @@ function main() {
     return !(fp && usedFingerprints.has(fp));
   }
 
-  // Spread: standard ingest only (no weird), must have a number
-  const spreadPool = sorted.filter((c) => !c.tags.includes('weird') && c.hasNumber);
-  const spread = spreadPool.slice(0, TARGET_SPREAD);
-  spread.forEach(trackUsed);
+  // Selection order: SoF → Spread → Lede.
+  // SoF has the narrowest domain requirements (science/health/nature/technology only)
+  // so it picks first. Spread then picks from all remaining stories with numbers.
+  // Lede sweeps up everything left: weird stories + any unused standard news.
 
-  // SoF: science/nature/technology domain stories only (no weird)
+  // SoF: science/nature/technology/health domain stories only (no weird), picks first
   const SOF_DOMAINS = new Set(['science', 'health', 'nature', 'technology']);
-  const remaining2 = sorted.filter(
-    (c) => isUnused(c) && SOF_DOMAINS.has(c.domain) && !c.tags.includes('weird')
+  const sofPool = sorted.filter(
+    (c) => SOF_DOMAINS.has(c.domain) && !c.tags.includes('weird')
   );
   const byDomain = new Map<string, StoryCandidate[]>();
-  for (const c of remaining2) {
+  for (const c of sofPool) {
     const group = byDomain.get(c.domain) ?? [];
     group.push(c);
     byDomain.set(c.domain, group);
@@ -170,8 +169,14 @@ function main() {
       }
     }
   }
+  sofClusters.flatMap((cl) => cl.stories).forEach(trackUsed);
 
-  // Lede: weird stories + any unused standard news (sweep after Spread and SoF)
+  // Spread: stories with numbers (no weird), after SoF has reserved its pool
+  const spreadPool = sorted.filter((c) => isUnused(c) && !c.tags.includes('weird') && c.hasNumber);
+  const spread = spreadPool.slice(0, TARGET_SPREAD);
+  spread.forEach(trackUsed);
+
+  // Lede: weird stories + any unused standard news (sweep after SoF and Spread)
   const lede = sorted.filter(isUnused).slice(0, TARGET_LEDE);
   lede.forEach(trackUsed);
 

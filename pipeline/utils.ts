@@ -14,8 +14,12 @@ export function requireEnv(name: string): string {
   return val;
 }
 
+/**
+ * Returns today's date as YYYY-MM-DD.
+ * When PIPELINE_DATE is set (historical batch runs), returns that date instead.
+ */
 export function today(): string {
-  return new Date().toISOString().split('T')[0];
+  return process.env.PIPELINE_DATE ?? new Date().toISOString().split('T')[0];
 }
 
 export function dataPath(...parts: string[]): string {

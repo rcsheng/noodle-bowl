@@ -2,7 +2,7 @@ Generate a Science or Fiction game item from the real story below.
 
 Rules:
 - Claim 0 is REAL: write one factual claim about the story's subject. Include a source with the publication name and URL.
-- Claim 1 is FABRICATED: plausible but false, about the same topic. It must fool a reasonably informed person. Set source to null.
+- Claim 1 is FABRICATED: a plausible-sounding science or nature claim, but MUST be about a clearly different organism, phenomenon, or research area than claim 0. If a "Decoy reference" appears in the input, use that real fact as your raw material — alter its specific details (organism, mechanism, numbers, or outcome) so the result is false while keeping the authentic scientific register. If no decoy is provided, invent a claim from a different domain. Either way, do NOT vary the same fact as claim 0, and do NOT copy any decoy verbatim. Set source to null.
 - The fake claim should feel like it COULD be true — same register, same level of specificity as the real one. Not a joke. Not obviously wrong.
 - Both claim texts should be roughly the same length and written in the same style.
 - The topic is the short thematic label displayed as the main header in-game (e.g. "Space & Astronomy", "Animal Kingdom", "Climate Science", "Neuroscience").
