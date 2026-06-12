@@ -33,15 +33,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Persist history.db between runs so the SoF decoy pool grows over time.
+      # Persist history.db and selected/ between runs.
+      # history.db grows the SoF decoy pool; selected/ enables cross-run story deduplication.
       # A new cache entry is created each run; restore-keys picks the latest previous one.
-      - name: Restore pipeline history DB
+      - name: Restore pipeline data cache
         uses: actions/cache@v4
         with:
-          path: pipeline/data/history.db
-          key: pipeline-history-${{ runner.os }}-${{ github.run_number }}
+          path: |
+            pipeline/data/history.db
+            pipeline/data/selected
+          key: pipeline-data-${{ runner.os }}-${{ github.run_number }}
           restore-keys: |
-            pipeline-history-${{ runner.os }}-
+            pipeline-data-${{ runner.os }}-
 
       - name: Write GCP credentials
         run: echo '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-key.json
