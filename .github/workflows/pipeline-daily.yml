@@ -14,6 +14,11 @@ on:
   schedule:
     - cron: '0 7 * * *'  # 7 AM UTC daily
   workflow_dispatch:       # allow manual trigger from the Actions tab
+    inputs:
+      force:
+        description: 'Force-republish (overwrites already-published dates)'
+        type: boolean
+        default: false
 
 jobs:
   pipeline:
@@ -63,6 +68,6 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Publish
-        run: npm run pipeline:publish:auto
+        run: npm run pipeline:publish:auto ${{ inputs.force == true && '-- --force' || '' }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
