@@ -1,6 +1,21 @@
 import type { GameId } from '@/constants/data';
 import type { ContentBanks } from '@/packages/shared/contentTypes';
 
+/** Max characters shown for a SoF prediction label before truncating with '…'. */
+const SOF_PREDICTION_MAX_CHARS = 40;
+
+/**
+ * Formats a human-readable prediction label for display in challenge result
+ * cards on the home screen. For SoF, truncates long labels at
+ * SOF_PREDICTION_MAX_CHARS. All other games return the label unchanged.
+ */
+export function formatPredictionLabel(gameId: GameId, label: string): string {
+  if (gameId === 'sof' && label.length > SOF_PREDICTION_MAX_CHARS) {
+    return label.slice(0, SOF_PREDICTION_MAX_CHARS) + '…';
+  }
+  return label;
+}
+
 export interface HelperAnswerEvaluation {
   correct: boolean | null;
   label: string;                   // friend's answer, formatted

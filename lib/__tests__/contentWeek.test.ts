@@ -1,4 +1,4 @@
-import { computeActiveWeek, computeCurrentWeek, formatWeekId, getISOWeekYear, getWeekDateRange, isPlayedThisWeek } from '../contentWeek';
+import { computeActiveWeek, computeCurrentWeek, formatWeekId, getISOWeekYear, getWeekDateRange, isBankExhausted, hasPlayedGameThisWeek, isPlayedThisWeek } from '../contentWeek';
 
 // ---------------------------------------------------------------------------
 // getISOWeekYear
@@ -142,5 +142,53 @@ describe('isPlayedThisWeek', () => {
   it('handles year-boundary: Dec 29 2025 is in 2026-W01', () => {
     expect(isPlayedThisWeek('2025-12-29', '2026-W01')).toBe(true);
     expect(isPlayedThisWeek('2025-12-28', '2026-W01')).toBe(false); // W52 of 2025
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isBankExhausted
+// ---------------------------------------------------------------------------
+describe('isBankExhausted', () => {
+  it('returns false when bankSize is 0', () => {
+    expect(isBankExhausted([], 0, '2026-W20', '2026-W20')).toBe(false);
+    expect(isBankExhausted([0, 1], 0, '2026-W20', '2026-W20')).toBe(false);
+  });
+
+  it('returns false when seenWeek does not match activeWeek', () => {
+    expect(isBankExhausted([0, 1, 2], 3, '2026-W19', '2026-W20')).toBe(false);
+    expect(isBankExhausted([0, 1, 2], 3, '', '2026-W20')).toBe(false);
+  });
+
+  it('returns false when seen.length is less than bankSize', () => {
+    expect(isBankExhausted([0], 3, '2026-W20', '2026-W20')).toBe(false);
+    expect(isBankExhausted([0, 1], 3, '2026-W20', '2026-W20')).toBe(false);
+  });
+
+  it('returns true when seen.length equals bankSize and weeks match', () => {
+    expect(isBankExhausted([0, 1, 2], 3, '2026-W20', '2026-W20')).toBe(true);
+  });
+
+  it('returns true when seen.length exceeds bankSize and weeks match', () => {
+    // Defensive: shouldn't happen normally but should still be treated as exhausted.
+    expect(isBankExhausted([0, 1, 2, 3], 3, '2026-W20', '2026-W20')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hasPlayedGameThisWeek
+// ---------------------------------------------------------------------------
+describe('hasPlayedGameThisWeek', () => {
+  it('returns false when seen is empty', () => {
+    expect(hasPlayedGameThisWeek([], '2026-W20', '2026-W20')).toBe(false);
+  });
+
+  it('returns false when seenWeek does not match activeWeek', () => {
+    expect(hasPlayedGameThisWeek([0, 1], '2026-W19', '2026-W20')).toBe(false);
+    expect(hasPlayedGameThisWeek([0], '', '2026-W20')).toBe(false);
+  });
+
+  it('returns true when seenWeek matches activeWeek and seen has at least one entry', () => {
+    expect(hasPlayedGameThisWeek([0], '2026-W20', '2026-W20')).toBe(true);
+    expect(hasPlayedGameThisWeek([0, 1, 2], '2026-W20', '2026-W20')).toBe(true);
   });
 });

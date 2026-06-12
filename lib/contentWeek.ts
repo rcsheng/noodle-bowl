@@ -61,6 +61,38 @@ export function isPlayedThisWeek(lastPlayed: string | undefined, currentWeek: st
 }
 
 /**
+ * Returns true when the user has exhausted all available questions in a game's
+ * bank for the current content week. Used by the home screen to decide whether
+ * to show COMPLETED vs PLAY / PLAY AGAIN.
+ *
+ * Requires `seenWeek === activeWeek` to guard against stale seen arrays from a
+ * previous week appearing to exhaust the current week's bank.
+ */
+export function isBankExhausted(
+  seen: number[],
+  bankSize: number,
+  seenWeek: string,
+  activeWeek: string,
+): boolean {
+  if (bankSize === 0) return false;
+  if (seenWeek !== activeWeek) return false;
+  return seen.length >= bankSize;
+}
+
+/**
+ * Returns true when the user has played at least one question for a game in
+ * the current content week (seenWeek matches activeWeek and seen is non-empty).
+ * Used by the home screen to distinguish the PLAY vs PLAY AGAIN states.
+ */
+export function hasPlayedGameThisWeek(
+  seen: number[],
+  seenWeek: string,
+  activeWeek: string,
+): boolean {
+  return seenWeek === activeWeek && seen.length > 0;
+}
+
+/**
  * Returns a human-readable date range for the Mon–Sun span of a given ISO week.
  * Same-month weeks: "May 11–17". Cross-month weeks: "May 31 – Jun 6".
  * Returns an empty string if weekId is not a valid ISO week string.

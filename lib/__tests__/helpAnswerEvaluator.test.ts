@@ -1,5 +1,5 @@
 import type { ContentBanks } from '@/packages/shared/contentTypes';
-import { evaluateHelperAnswer } from '../helpAnswerEvaluator';
+import { evaluateHelperAnswer, formatPredictionLabel } from '../helpAnswerEvaluator';
 
 const banks: ContentBanks = {
   lede: [
@@ -133,5 +133,42 @@ describe('evaluateHelperAnswer', () => {
     expect(r.correct).toBeNull();
     expect(r.questionText).toBe('');
     expect(r.correctLabel).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatPredictionLabel
+// ---------------------------------------------------------------------------
+describe('formatPredictionLabel', () => {
+  const MAX = 40;
+
+  test('returns lede label as-is regardless of length', () => {
+    const long = 'a'.repeat(80);
+    expect(formatPredictionLabel('lede', long)).toBe(long);
+  });
+
+  test('returns spread label as-is', () => {
+    expect(formatPredictionLabel('spread', '42.5 million')).toBe('42.5 million');
+  });
+
+  test('returns sof label as-is when within max chars', () => {
+    expect(formatPredictionLabel('sof', 'Claim 1')).toBe('Claim 1');
+    // exactly at limit
+    expect(formatPredictionLabel('sof', 'a'.repeat(MAX))).toBe('a'.repeat(MAX));
+  });
+
+  test('truncates sof label with ellipsis when over max chars', () => {
+    const long = 'a'.repeat(MAX + 10);
+    const result = formatPredictionLabel('sof', long);
+    expect(result).toBe('a'.repeat(MAX) + '…');
+    expect(result.length).toBe(MAX + 1); // 40 chars + single '…' (1 char)
+  });
+
+  test('returns wave label as-is', () => {
+    expect(formatPredictionLabel('wave', '75%')).toBe('75%');
+  });
+
+  test('returns quip label as-is', () => {
+    expect(formatPredictionLabel('quip', 'some witty text')).toBe('some witty text');
   });
 });
