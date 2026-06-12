@@ -1,0 +1,65 @@
+# Daily content pipeline: ingest → select → generate → publish
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANTHROPIC_API_KEY        — Claude API key (generate step)
+#   THENEWSAPI_TOKEN         — TheNewsAPI token (ingest step)
+#   GCP_SERVICE_ACCOUNT_JSON — Firebase service account key JSON (publish step)
+#
+# The ingest:researched step (manual .md files) is intentionally omitted here.
+# Run it locally and commit the outputs if you want researched candidates included.
+
+name: Daily Content Pipeline
+
+on:
+  schedule:
+    - cron: '0 7 * * *'  # 7 AM UTC daily
+  workflow_dispatch:       # allow manual trigger from the Actions tab
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Persist history.db between runs so the SoF decoy pool grows over time.
+      # A new cache entry is created each run; restore-keys picks the latest previous one.
+      - name: Restore pipeline history DB
+        uses: actions/cache@v4
+        with:
+          path: pipeline/data/history.db
+          key: pipeline-history-${{ runner.os }}-${{ github.run_number }}
+          restore-keys: |
+            pipeline-history-${{ runner.os }}-
+
+      - name: Write GCP credentials
+        run: echo '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > /tmp/gcp-key.json
+
+      - name: Ingest
+        run: npm run pipeline:ingest
+        env:
+          THENEWSAPI_TOKEN: ${{ secrets.THENEWSAPI_TOKEN }}
+
+      - name: Select
+        run: npm run pipeline:select
+
+      - name: Generate
+        run: npm run pipeline:generate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Publish
+        run: npm run pipeline:publish:auto
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
