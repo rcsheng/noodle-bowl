@@ -1,8 +1,35 @@
 # Noodle Bowl
 
-Daily brain-game app with 5 games: Lede, Spread, SoF, Wave, Quip.
+*Stretch your noodle. Weekly.*
+
+The weekly brain game built from real news — five games, five minutes, a new edition every week. Not a quiz. A workout.
+
+`FIVE GAMES` · `FIVE MINUTES` · `REAL NEWS` · [noodlebowl.app](https://noodlebowl.app)
 
 **Stack:** React Native · Expo Router v3 · Firebase Auth + Firestore + Cloud Functions · AsyncStorage · Jest
+
+---
+
+## The games
+
+**The Lede** — *Finish the headline*
+A real headline with the ending missing. Three possible completions — one is the truth. Pick the one that actually ran. The real answer is always the surprising one.
+
+**The Spread** — *Pick the number*
+A real number from this week's news. Four choices — one is right. No Googling, no trivia banks. Just your sense of scale against what actually happened.
+
+**Science or Fiction** — *Tap the real science*
+Two claims about science or health. One is real and cited. One is fabricated. Tap the one that's actually true — the real science is always the weird one.
+
+**Wave** — *Read the spectrum*
+A real story, plotted between two extremes. Drag to where you think the truth landed. The closer you land, the more it's worth.
+
+**Quip** — *Beat the panel*
+A real headline missing its punchline. Write your own. A panel of fictional critics — dry, chaotic, or just plain mean — judges whether it lands.
+
+Play at least one game a week to keep your streak alive. Miss a week and it resets — unless a streak shield is protecting you, earned by helping a friend answer a question or taking up their challenge.
+
+Built by one person who got tired of news quizzes.
 
 ---
 
