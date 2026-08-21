@@ -1,35 +1,99 @@
 # Noodle Bowl
 
-*Stretch your noodle. Weekly.*
+`AVAILABLE NOW ON IOS`
 
-The weekly brain game built from real news — five games, five minutes, a new edition every week. Not a quiz. A workout.
+## Stretch your noodle. Weekly.
 
-`FIVE GAMES` · `FIVE MINUTES` · `REAL NEWS` · [noodlebowl.app](https://noodlebowl.app)
+The weekly brain game built from real news stories — inspired by *Wait Wait… Don't Tell Me!* Three games, five minutes, a new edition every week. Not a quiz. A workout.
 
-**Stack:** React Native · Expo Router v3 · Firebase Auth + Firestore + Cloud Functions · AsyncStorage · Jest
+[**Download on the App Store**](https://noodlebowl.app)
+Free · iOS only · Android coming soon
+
+> Built for people who play a daily puzzle before coffee, have *Wait Wait… Don't Tell Me!* on during their commute, and want five minutes that actually feel like something.
 
 ---
 
-## The games
+`SAMPLE EDITION`
 
-**The Lede** — *Finish the headline*
+## Three games. One streak. Every week.
+
+### The Lede — Finish the Headline
+
 A real headline with the ending missing. Three possible completions — one is the truth. Pick the one that actually ran. The real answer is always the surprising one.
 
-**The Spread** — *Pick the number*
-A real number from this week's news. Four choices — one is right. No Googling, no trivia banks. Just your sense of scale against what actually happened.
+**Example — pick the real ending**
 
-**Science or Fiction** — *Tap the real science*
-Two claims about science or health. One is real and cited. One is fabricated. Tap the one that's actually true — the real science is always the weird one.
+*"Scientists discover deep-sea creature that ···"*
 
-**Wave** — *Read the spectrum*
-A real story, plotted between two extremes. Drag to where you think the truth landed. The closer you land, the more it's worth.
+| | |
+|:---:|---|
+| A | …produces its own antibiotic compounds |
+| **B ✓** | **…uses bioluminescence to mimic its prey's food source** |
+| C | …can survive temperatures above 200°C |
 
-**Quip** — *Beat the panel*
-A real headline missing its punchline. Write your own. A panel of fictional critics — dry, chaotic, or just plain mean — judges whether it lands.
+### The Spread — Pick the Number
 
-Play at least one game a week to keep your streak alive. Miss a week and it resets — unless a streak shield is protecting you, earned by helping a friend answer a question or taking up their challenge.
+A real number from today's news. Four choices — one is right. No Googling, no trivia banks. Just your sense of scale against what actually happened.
 
-Built by one person who got tired of news quizzes.
+**Example — which one is real?**
+
+*How many miles of new offshore wind cables did the UK install in 2024?*
+
+| | |
+|:---:|---|
+| A | 98 miles |
+| B | 340 miles |
+| **C ✓** | **487 miles** |
+| D | 1,200 miles |
+
+### Science or Fiction — Tap the Science
+
+Two claims about science or health. One is real and cited. One is fabricated. Tap the one that's actually true. The real science is always the weird one — and you'll be repeating it at dinner.
+
+**Example — tap the real science**
+
+✓ Octopuses edit their RNA in real time to adapt to temperature changes in seawater.
+✗ Tardigrades produce a fluorescent protein that shields their DNA from ultraviolet radiation.
+
+*Claim 1 is real. Claim 2 was the lie.*
+
+---
+
+`THE HABIT`
+
+## Five minutes. Every week.
+
+1. **A new edition publishes every week** — All three games reset. The questions are built from real news stories and current science.
+2. **Play all three games in one session** — The Lede (pick the real ending), The Spread (pick the real number), Science or Fiction (tap the real science). Under five minutes.
+3. **Build your streak. Protect it with shields.** — Every week you play extends your streak. Miss a week? A streak shield keeps it alive — earned by helping a friend.
+4. **Challenge a friend or ask one for help** — Stuck? Send a help link and see how a friend answers. Done? Challenge them to the same question. Either way, someone earns a streak shield.
+
+---
+
+`THE SOCIAL LOOP`
+
+## Help friends. Earn shields. Protect your streak.
+
+Play at least one game each week to keep your streak alive. Miss a week and it resets — unless you have a shield. The helper always earns one: answer a friend's question, or take up their challenge. You can hold up to three at a time.
+
+> You answered Mei's Science or Fiction question — 🛡 Shield earned
+>
+> You took up Alex's Spread challenge — 🛡 Shield earned
+
+*Miss a week? A shield keeps your streak alive.*
+
+---
+
+## Ready to stretch your noodle?
+
+Free on the App Store. A new edition every week.
+
+[**Download on the App Store**](https://noodlebowl.app)
+Free · iOS only · Android coming soon
+
+---
+
+**Stack:** React Native · Expo Router v3 · Firebase Auth + Firestore + Cloud Functions · AsyncStorage · Jest
 
 ---
 
@@ -211,7 +275,7 @@ Then restart the emulator to pick up the compiled output in `functions/lib/`.
 ```
 app/
   (tabs)/          # Tab screens: home, stats, friends, profile
-  games/           # Game screens: lede, spread, sof, wave, quip
+  games/           # Game screens: lede, spread, sof
   auth/            # Auth screens: sign-up, sign-in, forgot-password
   games/challenge/ # Challenge deep-link receiver
 context/           # AuthContext, ContentContext, GameContext + gameReducer
